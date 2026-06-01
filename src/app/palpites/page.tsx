@@ -10,11 +10,26 @@ export default async function PalpitesPage() {
 
   if (!user) redirect('/auth/login')
 
-  const { data: userData } = await supabase
+  // Ensure a users row exists — handles accounts created via Supabase dashboard
+  // or cases where the register insert failed silently.
+  let { data: userData } = await supabase
     .from('users')
     .select('nome')
     .eq('id', user.id)
     .maybeSingle()
+
+  if (!userData) {
+    const fallbackNome = (user.user_metadata?.full_name as string | undefined)
+      ?? user.email?.split('@')[0]
+      ?? 'Usuário'
+    await supabase.from('users').upsert({
+      id: user.id,
+      email: user.email!,
+      nome: fallbackNome,
+      is_admin: false,
+    }, { onConflict: 'id' })
+    userData = { nome: fallbackNome }
+  }
 
   const { data: palpites } = await supabase
     .from('palpites')
@@ -22,7 +37,6 @@ export default async function PalpitesPage() {
     .eq('usuario_id', user.id)
     .order('criado_em', { ascending: false })
 
-  // All group-stage matches, chronological order
   const { data: todosJogos } = await supabase
     .from('jogos_copa')
     .select('*, resultado:resultados(*)')

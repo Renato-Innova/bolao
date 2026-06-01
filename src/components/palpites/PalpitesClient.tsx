@@ -100,6 +100,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
   const [selectedId, setSelectedId] = useState<string | null>(palpitesIniciais[0]?.id ?? null)
   const [novoNome, setNovoNome] = useState('')
   const [criando, setCriando] = useState(false)
+  const [criarError, setCriarError] = useState('')
   const [showNovo, setShowNovo] = useState(false)
   const [showPix, setShowPix] = useState(false)
   const [matchStates, setMatchStates] = useState<Record<string, MatchState>>({})
@@ -135,23 +136,39 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
   async function criarPalpite() {
     if (!novoNome.trim()) return
     setCriando(true)
-    const { data: p } = await supabase.from('palpites').insert({
-      usuario_id: userId, nome: novoNome.trim(), status: 'inativo', artilheiro: '',
-    }).select().single()
+    setCriarError('')
 
-    if (p) {
+    const { data: p, error: insertError } = await supabase
+      .from('palpites')
+      .insert({ usuario_id: userId, nome: novoNome.trim(), status: 'inativo', artilheiro: '' })
+      .select()
+      .single()
+
+    if (insertError || !p) {
+      setCriarError(insertError?.message ?? 'Erro ao criar palpite. Tente novamente.')
+      setCriando(false)
+      return
+    }
+
+    if (todosJogos.length > 0) {
       const rows = todosJogos.map(j => ({ palpite_id: p.id, jogo_id: j.id, pontos: 0 }))
       await supabase.from('palpites_jogos').insert(rows)
-      const { data: full } = await supabase
-        .from('palpites')
-        .select('*, palpites_jogos(*, jogo:jogos_copa(*, resultado:resultados(*)))')
-        .eq('id', p.id).single()
-      if (full) {
-        setPalpites(prev => [full as Palpite, ...prev])
-        setSelectedId(full.id)
-      }
     }
-    setNovoNome(''); setShowNovo(false); setCriando(false)
+
+    const { data: full } = await supabase
+      .from('palpites')
+      .select('*, palpites_jogos(*, jogo:jogos_copa(*, resultado:resultados(*)))')
+      .eq('id', p.id)
+      .single()
+
+    if (full) {
+      setPalpites(prev => [full as Palpite, ...prev])
+      setSelectedId(full.id)
+    }
+
+    setNovoNome('')
+    setShowNovo(false)
+    setCriando(false)
   }
 
   async function submitMatch(jogoId: string) {
@@ -205,19 +222,26 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
 
       {/* Create form */}
       {showNovo && (
-        <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 10, padding: '14px 16px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'flex-end' }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5, fontWeight: 600 }}>Nome do palpite</label>
-            <input type="text" value={novoNome} onChange={e => setNovoNome(e.target.value)} placeholder="Ex: Família Pereira..." maxLength={40}
-              style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 7, padding: '9px 12px', fontSize: 14, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none' }} />
+        <>
+          <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 10, padding: '14px 16px', marginBottom: 8, display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5, fontWeight: 600 }}>Nome do palpite</label>
+              <input type="text" value={novoNome} onChange={e => setNovoNome(e.target.value)} placeholder="Ex: Família Pereira..." maxLength={40}
+                style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 7, padding: '9px 12px', fontSize: 14, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none' }} />
+            </div>
+            <button onClick={criarPalpite} disabled={criando || !novoNome.trim()}
+              style={{ background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', border: 'none', padding: '10px 18px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', flexShrink: 0 }}>
+              {criando ? 'Criando...' : 'Criar'}
+            </button>
+            <button onClick={() => { setShowNovo(false); setCriarError('') }}
+              style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.5)', border: 'none', padding: '10px 14px', borderRadius: 7, fontSize: 12, cursor: 'pointer', fontFamily: 'Inter,sans-serif', flexShrink: 0 }}>×</button>
           </div>
-          <button onClick={criarPalpite} disabled={criando || !novoNome.trim()}
-            style={{ background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', border: 'none', padding: '10px 18px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', flexShrink: 0 }}>
-            {criando ? '...' : 'Criar'}
-          </button>
-          <button onClick={() => setShowNovo(false)}
-            style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.5)', border: 'none', padding: '10px 14px', borderRadius: 7, fontSize: 12, cursor: 'pointer', fontFamily: 'Inter,sans-serif', flexShrink: 0 }}>×</button>
-        </div>
+          {criarError && (
+            <div style={{ marginBottom: 10, padding: '8px 12px', background: 'rgba(255,100,100,0.1)', border: '1px solid rgba(255,100,100,0.3)', borderRadius: 8, fontSize: 12, color: 'rgba(255,130,130,0.9)' }}>
+              {criarError}
+            </div>
+          )}
+        </>
       )}
 
       {/* Entry cards */}

@@ -1,8 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import type { RankingEntry } from '@/types'
 
 export async function getRanking(): Promise<RankingEntry[]> {
-  const supabase = await createClient()
+  const supabase = await createAdminClient()
 
   const { data: palpites } = await supabase
     .from('palpites')
