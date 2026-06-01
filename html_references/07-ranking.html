@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Ranking — Bolão Copa 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#020F2A;--card:#0D1E3D;--accent:#4A90D9;--al:#7BB8F0;--border:rgba(74,144,217,.15);--ba:rgba(74,144,217,.40);--tm:rgba(255,255,255,.45);--td:rgba(255,255,255,.25);--ok:#4ade80}
+  html,body{height:100%;background:var(--bg);font-family:'Inter',sans-serif;color:#fff}
+  body::before{content:'';position:fixed;inset:0;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.02) 0,rgba(255,255,255,.02) 1px,transparent 1px,transparent 80px),repeating-linear-gradient(0deg,rgba(255,255,255,.02) 0,rgba(255,255,255,.02) 1px,transparent 1px,transparent 80px);pointer-events:none;z-index:0}
+  .hdr{position:sticky;top:0;z-index:100;background:rgba(2,15,42,.96);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);height:60px;display:flex;align-items:center;padding:0 24px;gap:20px}
+  .hdr-logo{display:flex;align-items:center;gap:12px;text-decoration:none;flex-shrink:0}
+  .ltype{display:flex;flex-direction:column;align-items:center;line-height:1}
+  .lnum{font-family:'Bebas Neue',sans-serif;font-size:30px;color:#fff;letter-spacing:-2px;line-height:1}
+  .lfifa{font-family:'Bebas Neue',sans-serif;font-size:9px;color:#fff;letter-spacing:3px}
+  .lwc{font-size:7px;color:var(--td);letter-spacing:1.5px;font-weight:500}
+  .ldiv{width:1px;height:28px;background:rgba(255,255,255,.12)}
+  .lname{color:#fff;font-size:13px;font-weight:700}
+  .lsub{color:var(--td);font-size:9px;margin-top:1px}
+  .hdr-nav{display:flex;gap:2px;flex:1;justify-content:center}
+  .nl{color:var(--tm);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;padding:6px 12px;border-radius:6px;text-decoration:none;transition:all .15s}
+  .nl:hover{color:#fff;background:rgba(255,255,255,.05)}
+  .nl.on{color:#fff;background:rgba(255,255,255,.08)}
+  .hdr-user{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .uname{font-size:12px;color:var(--tm)}
+  .av{width:34px;height:34px;background:linear-gradient(135deg,#4A90D9,#1a5ca8);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700}
+  .hero{background:linear-gradient(90deg,#04143a,#091d50,#0a1f4e);border-bottom:1px solid rgba(74,144,217,.18);padding:9px 24px;display:flex;align-items:center;justify-content:space-between}
+  .dot{width:6px;height:6px;background:var(--ok);border-radius:50%}
+  .pill{background:rgba(74,144,217,.18);border:1px solid rgba(74,144,217,.35);color:var(--al);font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
+  .main{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:20px 24px 40px}
+  .top-bar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
+  .page-title{font-size:18px;font-weight:800;color:#fff}
+  .page-sub{font-size:12px;color:var(--tm);margin-top:2px}
+
+  /* podium */
+  .podium{display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:10px;margin-bottom:20px;align-items:end}
+  .pc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 14px;text-align:center;position:relative;overflow:hidden}
+  .pc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:rgba(74,144,217,.3)}
+  .pc.first{border-color:rgba(255,215,0,.35);padding-top:22px}
+  .pc.first::before{background:linear-gradient(90deg,#b8860b,#FFD700,#b8860b)}
+  .crown{position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:22px}
+  .medal{font-size:26px;margin-bottom:6px}
+  .pname{font-size:13px;font-weight:700;color:#fff}
+  .puser{font-size:10px;color:var(--td);margin:2px 0 8px}
+  .ppts{font-size:26px;font-weight:800;color:var(--accent);line-height:1}
+  .ppts-l{font-size:10px;color:var(--td);margin-top:2px}
+
+  /* table */
+  .rtable{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .rth{display:grid;grid-template-columns:50px 1fr 80px 90px 70px;padding:8px 18px;font-size:9px;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.15)}
+  .rth span:not(:first-child){text-align:center}
+  .rrow{display:grid;grid-template-columns:50px 1fr 80px 90px 70px;padding:11px 18px;align-items:center;font-size:13px;border-bottom:1px solid rgba(255,255,255,.05)}
+  .rrow:last-child{border-bottom:none}
+  .rrow.me{background:rgba(74,144,217,.07);border-left:2px solid var(--accent)}
+  .rpos{font-size:14px;font-weight:700;color:var(--td);text-align:center}
+  .rinfo{display:flex;flex-direction:column;gap:1px}
+  .rpalpite{font-size:13px;font-weight:700;color:#fff}
+  .ruser2{font-size:10px;color:var(--td)}
+  .me-tag{font-size:8px;background:rgba(74,144,217,.2);color:var(--al);padding:1px 5px;border-radius:6px;font-weight:600;margin-left:5px}
+  .racertos{text-align:center;font-size:12px;color:var(--tm)}
+  .rpts2{text-align:center;font-size:15px;font-weight:800;color:var(--accent)}
+  .rvar{text-align:center;font-size:11px;font-weight:600}
+  .up{color:#4ade80}
+  .dn{color:rgba(255,100,100,.8)}
+  .eq{color:var(--td)}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <a href="04-dashboard.html" class="hdr-logo">
+    <div class="ltype"><span class="lnum">26</span><span class="lfifa">FIFA</span><span class="lwc">WORLD CUP™</span></div>
+    <div class="ldiv"></div>
+    <div><div class="lname">Bolão Copa 2026</div><div class="lsub">EUA · CAN · MEX · 11 jun – 19 jul</div></div>
+  </a>
+  <nav class="hdr-nav">
+    <a href="04-dashboard.html" class="nl">Dashboard</a>
+    <a href="05-tabela.html"    class="nl">Tabela</a>
+    <a href="06-palpites.html"  class="nl">Palpites</a>
+    <a href="07-ranking.html"   class="nl on">Ranking</a>
+    <a href="08-instrucoes.html" class="nl">Instruções</a>
+  </nav>
+  <div class="hdr-user"><span class="uname">Renato P.</span><div class="av">RP</div></div>
+</header>
+<div class="hero">
+  <div style="display:flex;align-items:center;gap:10px"><div class="dot"></div><span class="pill">Fase de grupos · Rodada 2</span><span style="color:var(--tm);font-size:11px">18 de 48 jogos realizados</span></div>
+  <span style="color:var(--td);font-size:10px">11 jun – 19 jul 2026</span>
+</div>
+<main class="main">
+  <div class="top-bar">
+    <div>
+      <div class="page-title">Ranking geral</div>
+      <div class="page-sub">47 palpites ativos · atualizado há 2 min</div>
+    </div>
+    <span style="background:rgba(74,144,217,.18);border:1px solid rgba(74,144,217,.35);color:var(--al);font-size:10px;font-weight:700;padding:5px 12px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;background:var(--ok);border-radius:50%;display:inline-block"></span>Fase de grupos · Rodada 2</span>
+  </div>
+
+  <!-- PODIUM -->
+  <div class="podium">
+    <div class="pc">
+      <div class="medal">🥈</div>
+      <div class="pname">Penta é Pouco</div>
+      <div class="puser">Mariana C.</div>
+      <div class="ppts">128</div>
+      <div class="ppts-l">pontos</div>
+    </div>
+    <div class="pc first">
+      <div class="crown">👑</div>
+      <div class="medal">🥇</div>
+      <div class="pname">Esquadrão Imortal</div>
+      <div class="puser">João Paulo</div>
+      <div class="ppts">142</div>
+      <div class="ppts-l">pontos</div>
+    </div>
+    <div class="pc">
+      <div class="medal">🥉</div>
+      <div class="pname">Hexa Vem!</div>
+      <div class="puser">Carlos R.</div>
+      <div class="ppts">115</div>
+      <div class="ppts-l">pontos</div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="rtable">
+    <div class="rth"><span style="text-align:center">#</span><span style="text-align:left">Palpite</span><span>Acertos</span><span>Pontos</span><span>Variação</span></div>
+    <div class="rrow"><span class="rpos">1</span><div class="rinfo"><div class="rpalpite">Esquadrão Imortal</div><div class="ruser2">João Paulo</div></div><span class="racertos">11/18</span><span class="rpts2">142</span><span class="rvar up">↑ +2</span></div>
+    <div class="rrow"><span class="rpos">2</span><div class="rinfo"><div class="rpalpite">Penta é Pouco</div><div class="ruser2">Mariana C.</div></div><span class="racertos">9/18</span><span class="rpts2">128</span><span class="rvar eq">—</span></div>
+    <div class="rrow"><span class="rpos">3</span><div class="rinfo"><div class="rpalpite">Hexa Vem!</div><div class="ruser2">Carlos R.</div></div><span class="racertos">8/18</span><span class="rpts2">115</span><span class="rvar up">↑ +1</span></div>
+    <div class="rrow me"><span class="rpos" style="color:var(--accent)">4</span><div class="rinfo"><div class="rpalpite">Hexa é Agora<span class="me-tag">você</span></div><div class="ruser2">Renato P.</div></div><span class="racertos">7/18</span><span class="rpts2">98</span><span class="rvar dn">↓ -1</span></div>
+    <div class="rrow"><span class="rpos">5</span><div class="rinfo"><div class="rpalpite">Goleada Garantida</div><div class="ruser2">Ana Beatriz</div></div><span class="racertos">6/18</span><span class="rpts2">82</span><span class="rvar eq">—</span></div>
+    <div class="rrow"><span class="rpos">6</span><div class="rinfo"><div class="rpalpite">Tá na Fita</div><div class="ruser2">Pedro H.</div></div><span class="racertos">5/18</span><span class="rpts2">71</span><span class="rvar up">↑ +3</span></div>
+    <div class="rrow"><span class="rpos">7</span><div class="rinfo"><div class="rpalpite">Família Pereira</div><div class="ruser2">Renato P.</div></div><span class="racertos">5/18</span><span class="rpts2">68</span><span class="rvar dn">↓ -2</span></div>
+    <div class="rrow"><span class="rpos">8</span><div class="rinfo"><div class="rpalpite">Chute Certo</div><div class="ruser2">Lucia M.</div></div><span class="racertos">4/18</span><span class="rpts2">55</span><span class="rvar eq">—</span></div>
+    <div class="rrow"><span class="rpos">9</span><div class="rinfo"><div class="rpalpite">Na Fé do Neymar</div><div class="ruser2">Bruno S.</div></div><span class="racertos">3/18</span><span class="rpts2">44</span><span class="rvar dn">↓ -1</span></div>
+    <div class="rrow"><span class="rpos">10</span><div class="rinfo"><div class="rpalpite">Vinícius na Final</div><div class="ruser2">Clara M.</div></div><span class="racertos">3/18</span><span class="rpts2">38</span><span class="rvar eq">—</span></div>
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Instruções — Bolão Copa 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#020F2A;--card:#0D1E3D;--accent:#4A90D9;--al:#7BB8F0;--border:rgba(74,144,217,.15);--tm:rgba(255,255,255,.45);--td:rgba(255,255,255,.25);--ok:#4ade80}
+  html,body{height:100%;background:var(--bg);font-family:'Inter',sans-serif;color:#fff}
+  body::before{content:'';position:fixed;inset:0;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.02) 0,rgba(255,255,255,.02) 1px,transparent 1px,transparent 80px),repeating-linear-gradient(0deg,rgba(255,255,255,.02) 0,rgba(255,255,255,.02) 1px,transparent 1px,transparent 80px);pointer-events:none;z-index:0}
+
+  /* header */
+  .hdr{position:sticky;top:0;z-index:100;background:rgba(2,15,42,.96);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);height:60px;display:flex;align-items:center;padding:0 24px;gap:20px}
+  .hdr-logo{display:flex;align-items:center;gap:12px;text-decoration:none;flex-shrink:0}
+  .ltype{display:flex;flex-direction:column;align-items:center;line-height:1}
+  .lnum{font-family:'Bebas Neue',sans-serif;font-size:30px;color:#fff;letter-spacing:-2px;line-height:1}
+  .lfifa{font-family:'Bebas Neue',sans-serif;font-size:9px;color:#fff;letter-spacing:3px}
+  .lwc{font-size:7px;color:var(--td);letter-spacing:1.5px;font-weight:500}
+  .ldiv{width:1px;height:28px;background:rgba(255,255,255,.12)}
+  .lname{color:#fff;font-size:13px;font-weight:700}
+  .lsub{color:var(--td);font-size:9px;margin-top:1px}
+  .hdr-nav{display:flex;gap:2px;flex:1;justify-content:center}
+  .nl{color:var(--tm);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;padding:6px 12px;border-radius:6px;text-decoration:none;transition:all .15s}
+  .nl:hover{color:#fff;background:rgba(255,255,255,.05)}
+  .nl.on{color:#fff;background:rgba(255,255,255,.08)}
+  .hdr-user{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .uname{font-size:12px;color:var(--tm)}
+  .av{width:34px;height:34px;background:linear-gradient(135deg,#4A90D9,#1a5ca8);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700}
+
+  /* hero */
+  .hero{background:linear-gradient(90deg,#04143a,#091d50,#0a1f4e);border-bottom:1px solid rgba(74,144,217,.18);padding:9px 24px;display:flex;align-items:center;justify-content:space-between}
+  .dot{width:6px;height:6px;background:var(--ok);border-radius:50%}
+  .pill{background:rgba(74,144,217,.18);border:1px solid rgba(74,144,217,.35);color:var(--al);font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
+
+  /* main */
+  .main{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:20px 24px 48px}
+  .page-title{font-size:18px;font-weight:800;color:#fff;margin-bottom:4px}
+  .page-sub{font-size:12px;color:var(--tm);margin-bottom:24px}
+
+  /* two col layout */
+  .two{display:grid;grid-template-columns:1.1fr 1fr;gap:14px;margin-bottom:14px}
+  .full{margin-bottom:14px}
+
+  /* card */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px 20px;position:relative;overflow:hidden}
+  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#4A90D9,#1a5ca8)}
+  .ct{font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .ct-icon{font-size:16px}
+
+  /* steps */
+  .steps{display:flex;flex-direction:column;gap:12px}
+  .step{display:flex;gap:12px;align-items:flex-start}
+  .step-num{width:24px;height:24px;background:linear-gradient(135deg,#4A90D9,#1a5ca8);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;margin-top:1px}
+  .step-body{}
+  .step-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:2px}
+  .step-desc{font-size:12px;color:var(--tm);line-height:1.5}
+  .step-desc strong{color:#fff}
+
+  /* scoring table */
+  .score-table{width:100%;border-collapse:collapse}
+  .score-table th{font-size:9px;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.5px;padding:6px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)}
+  .score-table th:not(:first-child){text-align:center}
+  .score-table td{font-size:12px;color:rgba(255,255,255,.8);padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04)}
+  .score-table td:not(:first-child){text-align:center;font-weight:700;color:var(--accent)}
+  .score-table tr:last-child td{border-bottom:none}
+  .score-table .phase-row td:first-child{color:#fff;font-weight:600}
+  .score-table .highlight td{background:rgba(74,144,217,.07)}
+
+  /* payment box */
+  .pay-box{display:flex;flex-direction:column;gap:10px}
+  .pay-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:8px}
+  .pay-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+  .pay-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:2px}
+  .pay-desc{font-size:12px;color:var(--tm);line-height:1.5}
+  .pay-desc strong{color:#fff}
+
+  /* rules */
+  .rules-list{display:flex;flex-direction:column;gap:8px}
+  .rule-item{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:7px;border-left:2px solid rgba(74,144,217,.4)}
+  .rule-num{font-size:10px;font-weight:800;color:var(--accent);min-width:18px;margin-top:1px}
+  .rule-text{font-size:12px;color:var(--tm);line-height:1.5}
+  .rule-text strong{color:#fff}
+
+  /* prize info */
+  .prize-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .prize-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:12px;text-align:center}
+  .prize-medal{font-size:24px;margin-bottom:4px}
+  .prize-place{font-size:11px;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .prize-val{font-size:15px;font-weight:800;color:var(--accent)}
+  .prize-desc{font-size:10px;color:var(--td);margin-top:2px}
+
+  /* tip box */
+  .tip{background:rgba(74,144,217,.07);border:1px solid rgba(74,144,217,.2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--al);line-height:1.6;margin-top:10px}
+  .tip strong{color:#fff}
+
+  /* tiebreaker */
+  .tb-list{display:flex;flex-direction:column;gap:6px}
+  .tb-item{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--tm)}
+  .tb-n{font-size:10px;font-weight:800;color:var(--accent);min-width:18px;text-align:center}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <a href="04-dashboard.html" class="hdr-logo">
+    <div class="ltype"><span class="lnum">26</span><span class="lfifa">FIFA</span><span class="lwc">WORLD CUP™</span></div>
+    <div class="ldiv"></div>
+    <div><div class="lname">Bolão Copa 2026</div><div class="lsub">EUA · CAN · MEX · 11 jun – 19 jul</div></div>
+  </a>
+  <nav class="hdr-nav">
+    <a href="04-dashboard.html" class="nl">Dashboard</a>
+    <a href="05-tabela.html"    class="nl">Tabela</a>
+    <a href="06-palpites.html"  class="nl">Palpites</a>
+    <a href="07-ranking.html"   class="nl">Ranking</a>
+    <a href="08-instrucoes.html" class="nl on">Instruções</a>
+  </nav>
+  <div class="hdr-user"><span class="uname">Renato P.</span><div class="av">RP</div></div>
+</header>
+
+<div class="hero">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="dot"></div>
+    <span class="pill">Fase de grupos · Rodada 2</span>
+    <span style="color:var(--tm);font-size:11px">18 de 48 jogos realizados</span>
+  </div>
+  <span style="color:var(--td);font-size:10px">11 jun – 19 jul 2026</span>
+</div>
+
+<main class="main">
+  <div class="page-title">Instruções do bolão</div>
+  <div class="page-sub">Tudo que você precisa saber pra participar e ganhar</div>
+
+  <div class="two">
+
+    <!-- COMO FUNCIONA -->
+    <div class="card">
+      <div class="ct"><span class="ct-icon">⚽</span> Como funciona</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Crie sua conta</div>
+            <div class="step-desc">Cadastre-se com nome, email e WhatsApp. O acesso à plataforma é <strong>gratuito</strong> — você pode acompanhar a Copa sem pagar nada.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Crie um palpite e dê um nome</div>
+            <div class="step-desc">Cada palpite precisa de um nome único — esse nome vai aparecer no ranking pra todo mundo ver. Você pode criar quantos palpites quiser.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Preencha todos os jogos da fase de grupos</div>
+            <div class="step-desc">Chute o placar de cada partida, mais o <strong>campeão</strong>, <strong>vice-campeão</strong> e <strong>artilheiro</strong> da Copa. Esses três ficam travados após o início.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Ative pagando R$ 40,00 via PIX</div>
+            <div class="step-desc">Palpites não pagos não valem pra competição. <strong>Após o início da Copa não é mais possível ativar.</strong> Não perca o prazo!</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <div class="step-title">Continue no mata-mata</div>
+            <div class="step-desc">Conforme cada fase avança, você edita seu palpite pra adicionar os próximos jogos. É possível editar até <strong>1 hora antes</strong> de cada partida.</div>
+          </div>
+        </div>
+      </div>
+      <div class="tip"><strong>Dica:</strong> escolha um nome criativo pro seu palpite — ele vai aparecer no ranking e todo mundo vai ver!</div>
+    </div>
+
+    <!-- PAGAMENTO -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="ct"><span class="ct-icon">💳</span> Pagamento e ativação</div>
+        <div class="pay-box">
+          <div class="pay-item">
+            <div class="pay-icon">📱</div>
+            <div>
+              <div class="pay-title">PIX via QR Code</div>
+              <div class="pay-desc">Ao clicar em "Pagar e ativar", um QR code PIX é gerado. Valor: <strong>R$ 40,00 por palpite</strong>.</div>
+            </div>
+          </div>
+          <div class="pay-item">
+            <div class="pay-icon">✅</div>
+            <div>
+              <div class="pay-title">Ativação do palpite</div>
+              <div class="pay-desc">Após confirmação do pagamento, seu palpite é ativado automaticamente e passa a valer no ranking.</div>
+            </div>
+          </div>
+          <div class="pay-item">
+            <div class="pay-icon">⏰</div>
+            <div>
+              <div class="pay-title">Prazo de ativação</div>
+              <div class="pay-desc">Palpites não pagos <strong>não podem ser ativados após o início da Copa</strong> (11 de junho). Não deixe pra última hora.</div>
+            </div>
+          </div>
+          <div class="pay-item">
+            <div class="pay-icon">♾️</div>
+            <div>
+              <div class="pay-title">Mata-mata incluso</div>
+              <div class="pay-desc">Um único pagamento cobre todas as fases. Conforme a Copa avança, você edita o mesmo palpite sem pagar novamente.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PREMIAÇÃO -->
+      <div class="card">
+        <div class="ct"><span class="ct-icon">🏆</span> Premiação</div>
+        <div class="prize-grid">
+          <div class="prize-card">
+            <div class="prize-medal">🥇</div>
+            <div class="prize-place">1º lugar</div>
+            <div class="prize-val">60%</div>
+            <div class="prize-desc">do total arrecadado</div>
+          </div>
+          <div class="prize-card">
+            <div class="prize-medal">🥈</div>
+            <div class="prize-place">2º lugar</div>
+            <div class="prize-val">25%</div>
+            <div class="prize-desc">do total arrecadado</div>
+          </div>
+          <div class="prize-card">
+            <div class="prize-medal">🥉</div>
+            <div class="prize-place">3º lugar</div>
+            <div class="prize-val">15%</div>
+            <div class="prize-desc">do total arrecadado</div>
+          </div>
+        </div>
+        <div class="tip" style="margin-top:10px">O vencedor será contactado pelo WhatsApp cadastrado.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PONTUAÇÃO -->
+  <div class="full">
+    <div class="card">
+      <div class="ct"><span class="ct-icon">📊</span> Sistema de pontuação</div>
+      <table class="score-table">
+        <thead>
+          <tr>
+            <th>Fase</th>
+            <th>Placar exato</th>
+            <th>Vencedor / Empate</th>
+            <th>Campeão</th>
+            <th>Vice-campeão</th>
+            <th>Artilheiro</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="phase-row">
+            <td>Fase de grupos</td>
+            <td>10 pts</td>
+            <td>5 pts</td>
+            <td rowspan="5" style="vertical-align:middle;font-size:14px">50 pts</td>
+            <td rowspan="5" style="vertical-align:middle;font-size:14px">30 pts</td>
+            <td rowspan="5" style="vertical-align:middle;font-size:14px">40 pts</td>
+          </tr>
+          <tr class="phase-row highlight">
+            <td>Oitavas de final</td>
+            <td>20 pts</td>
+            <td>10 pts</td>
+          </tr>
+          <tr class="phase-row">
+            <td>Quartas de final</td>
+            <td>40 pts</td>
+            <td>20 pts</td>
+          </tr>
+          <tr class="phase-row highlight">
+            <td>Semifinais</td>
+            <td>60 pts</td>
+            <td>30 pts</td>
+          </tr>
+          <tr class="phase-row">
+            <td>Final</td>
+            <td>100 pts</td>
+            <td>50 pts</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="tip" style="margin-top:14px">Os pontos dobram a cada fase — quem não foi bem nos grupos ainda pode virar o jogo no mata-mata!</div>
+    </div>
+  </div>
+
+  <div class="two">
+
+    <!-- REGRAS FIFA -->
+    <div class="card">
+      <div class="ct"><span class="ct-icon">📋</span> Regras oficiais da Copa 2026</div>
+      <div style="font-size:11px;color:var(--td);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Formato do torneio</div>
+      <div class="rules-list" style="margin-bottom:14px">
+        <div class="rule-item"><span class="rule-num">48</span><span class="rule-text"><strong>seleções</strong> divididas em 12 grupos de 4 times cada (grupos A a L)</span></div>
+        <div class="rule-item"><span class="rule-num">32</span><span class="rule-text"><strong>classificados</strong> — os 2 primeiros de cada grupo + os 8 melhores 3ºs colocados</span></div>
+        <div class="rule-item"><span class="rule-num">104</span><span class="rule-text"><strong>jogos no total</strong> — 48 na fase de grupos + 56 no mata-mata</span></div>
+      </div>
+
+      <div style="font-size:11px;color:var(--td);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Critérios de classificação nos grupos</div>
+      <div class="tb-list">
+        <div class="tb-item"><span class="tb-n">1</span><span>Pontos (vitória = 3 pts · empate = 1 pt · derrota = 0)</span></div>
+        <div class="tb-item"><span class="tb-n">2</span><span>Saldo de gols</span></div>
+        <div class="tb-item"><span class="tb-n">3</span><span>Gols marcados</span></div>
+        <div class="tb-item"><span class="tb-n">4</span><span>Resultado do confronto direto</span></div>
+        <div class="tb-item"><span class="tb-n">5</span><span>Fair play (menor número de cartões)</span></div>
+        <div class="tb-item"><span class="tb-n">6</span><span>Sorteio</span></div>
+      </div>
+    </div>
+
+    <!-- DÚVIDAS FREQUENTES -->
+    <div class="card">
+      <div class="ct"><span class="ct-icon">❓</span> Dúvidas frequentes</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:3px">Posso editar meu palpite após criar?</div>
+          <div style="font-size:12px;color:var(--tm);line-height:1.5">Sim. Na fase de grupos você edita livremente. No mata-mata, até 1 hora antes de cada jogo. Campeão, vice e artilheiro são travados no início da Copa.</div>
+        </div>
+        <div style="border-top:1px solid rgba(255,255,255,.06);padding-top:12px">
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:3px">Quantos palpites posso ter?</div>
+          <div style="font-size:12px;color:var(--tm);line-height:1.5">Ilimitados. Cada palpite pago custa R$ 40,00 e concorre de forma independente no ranking. Você pode fazer pra sua família também.</div>
+        </div>
+        <div style="border-top:1px solid rgba(255,255,255,.06);padding-top:12px">
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:3px">Palpite não pago vale alguma coisa?</div>
+          <div style="font-size:12px;color:var(--tm);line-height:1.5">Não. Apenas palpites ativos (pagos) são contabilizados no ranking e podem ganhar prêmios.</div>
+        </div>
+        <div style="border-top:1px solid rgba(255,255,255,.06);padding-top:12px">
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:3px">Como funciona o empate no ranking?</div>
+          <div style="font-size:12px;color:var(--tm);line-height:1.5">Em caso de empate em pontos, vence quem tiver mais acertos de placar exato. Se ainda empatar, vence quem se cadastrou primeiro.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+</body>
+</html>

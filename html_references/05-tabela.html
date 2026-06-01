@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Tabela Oficial — Bolão Copa 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#020F2A;--card:#0D1E3D;--accent:#4A90D9;--al:#7BB8F0;--border:rgba(74,144,217,.15);--tm:rgba(255,255,255,.45);--td:rgba(255,255,255,.25);--ok:#4ade80;--err:rgba(255,100,100,.75)}
+  html,body{height:100%;background:var(--bg);font-family:'Inter',sans-serif;color:#fff}
+  body::before{content:'';position:fixed;inset:0;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.02) 0,rgba(255,255,255,.02) 1px,transparent 1px,transparent 80px),repeating-linear-gradient(0deg,rgba(255,255,255,.02) 0,rgba(255,255,255,.02) 1px,transparent 1px,transparent 80px);pointer-events:none;z-index:0}
+  .hdr{position:sticky;top:0;z-index:100;background:rgba(2,15,42,.96);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);height:60px;display:flex;align-items:center;padding:0 24px;gap:20px}
+  .hdr-logo{display:flex;align-items:center;gap:12px;text-decoration:none;flex-shrink:0}
+  .ltype{display:flex;flex-direction:column;align-items:center;line-height:1}
+  .lnum{font-family:'Bebas Neue',sans-serif;font-size:30px;color:#fff;letter-spacing:-2px;line-height:1}
+  .lfifa{font-family:'Bebas Neue',sans-serif;font-size:9px;color:#fff;letter-spacing:3px}
+  .lwc{font-size:7px;color:var(--td);letter-spacing:1.5px;font-weight:500}
+  .ldiv{width:1px;height:28px;background:rgba(255,255,255,.12)}
+  .lname{color:#fff;font-size:13px;font-weight:700}
+  .lsub{color:var(--td);font-size:9px;margin-top:1px}
+  .hdr-nav{display:flex;gap:2px;flex:1;justify-content:center}
+  .nl{color:var(--tm);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;padding:6px 12px;border-radius:6px;text-decoration:none;transition:all .15s}
+  .nl:hover{color:#fff;background:rgba(255,255,255,.05)}
+  .nl.on{color:#fff;background:rgba(255,255,255,.08)}
+  .hdr-user{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .uname{font-size:12px;color:var(--tm)}
+  .av{width:34px;height:34px;background:linear-gradient(135deg,#4A90D9,#1a5ca8);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700}
+  .hero{background:linear-gradient(90deg,#04143a,#091d50,#0a1f4e);border-bottom:1px solid rgba(74,144,217,.18);padding:9px 24px;display:flex;align-items:center;justify-content:space-between}
+  .dot{width:6px;height:6px;background:var(--ok);border-radius:50%}
+  .pill{background:rgba(74,144,217,.18);border:1px solid rgba(74,144,217,.35);color:var(--al);font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
+  .main{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:20px 24px 40px}
+  .page-title{font-size:18px;font-weight:800;color:#fff;margin-bottom:4px}
+  .page-sub{font-size:12px;color:var(--tm);margin-bottom:18px}
+
+  /* groups grid */
+  .grupos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .gc{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .gh{background:linear-gradient(90deg,#0a1f4e,#091a42);padding:7px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(74,144,217,.2)}
+  .gname{font-family:'Bebas Neue',sans-serif;font-size:17px;color:#fff;letter-spacing:1px}
+  .gfase{font-size:9px;color:var(--td);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .th{display:grid;grid-template-columns:16px 1fr 22px 22px 22px 22px 28px;gap:2px;padding:5px 10px;font-size:8px;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.5px;text-align:center;border-bottom:1px solid rgba(255,255,255,.05)}
+  .th span:nth-child(2){text-align:left}
+  .tr{display:grid;grid-template-columns:16px 1fr 22px 22px 22px 22px 28px;gap:2px;padding:6px 10px;align-items:center;font-size:11px;color:rgba(255,255,255,.85);text-align:center;border-bottom:1px solid rgba(255,255,255,.04)}
+  .tr:last-child{border-bottom:none}
+  .tr.hl{background:rgba(74,144,217,.07)}
+  .pos{font-size:9px;font-weight:700;color:var(--td)}
+  .pos.q{color:var(--accent)}
+  .team{display:flex;align-items:center;gap:5px;text-align:left}
+  .flag{width:18px;height:12px;border-radius:1px;object-fit:cover}
+  .tn{font-size:10px;font-weight:600;color:#fff}
+  .pts{font-weight:700;color:var(--accent);font-size:11px}
+  .n{font-size:10px;color:rgba(255,255,255,.5)}
+  .sp{color:rgba(255,255,255,.6)}
+  .sn{color:rgba(255,100,100,.75)}
+
+  /* footer legend */
+  .legend{margin-top:14px;padding:10px 16px;background:var(--card);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:space-between}
+  .leg-items{display:flex;align-items:center;gap:18px}
+  .leg-i{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--tm)}
+  .leg-dot{width:8px;height:8px;border-radius:2px}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <a href="04-dashboard.html" class="hdr-logo">
+    <div class="ltype"><span class="lnum">26</span><span class="lfifa">FIFA</span><span class="lwc">WORLD CUP™</span></div>
+    <div class="ldiv"></div>
+    <div><div class="lname">Bolão Copa 2026</div><div class="lsub">EUA · CAN · MEX · 11 jun – 19 jul</div></div>
+  </a>
+  <nav class="hdr-nav">
+    <a href="04-dashboard.html" class="nl">Dashboard</a>
+    <a href="05-tabela.html"    class="nl on">Tabela</a>
+    <a href="06-palpites.html"  class="nl">Palpites</a>
+    <a href="07-ranking.html"   class="nl">Ranking</a>
+    <a href="08-instrucoes.html" class="nl">Instruções</a>
+  </nav>
+  <div class="hdr-user"><span class="uname">Renato P.</span><div class="av">RP</div></div>
+</header>
+<div class="hero">
+  <div style="display:flex;align-items:center;gap:10px"><div class="dot"></div><span class="pill">Fase de grupos · Rodada 2</span><span style="color:var(--tm);font-size:11px">18 de 48 jogos realizados</span></div>
+  <span style="color:var(--td);font-size:10px">11 jun – 19 jul 2026</span>
+</div>
+<main class="main">
+  <div class="page-title">Tabela oficial</div>
+  <div class="page-sub">Classificação atualizada após cada rodada · Critérios FIFA</div>
+
+  <div class="grupos">
+
+    <!-- A -->
+    <div class="gc"><div class="gh"><span class="gname">Grupo A</span><span class="gfase">Fase de grupos</span></div>
+    <div class="th"><span>#</span><span>Seleção</span><span>J</span><span>V</span><span>SG</span><span>GP</span><span>Pts</span></div>
+    <div class="tr hl"><span class="pos q">1</span><span class="team"><img class="flag" src="https://flagcdn.com/mx.svg" alt=""/><span class="tn">México</span></span><span class="n">2</span><span class="n">2</span><span class="sp">+3</span><span class="n">4</span><span class="pts">6</span></div>
+    <div class="tr"><span class="pos q">2</span><span class="team"><img class="flag" src="https://flagcdn.com/za.svg" alt=""/><span class="tn">África do Sul</span></span><span class="n">2</span><span class="n">1</span><span class="sp">+1</span><span class="n">2</span><span class="pts">3</span></div>
+    <div class="tr"><span class="pos">3</span><span class="team"><img class="flag" src="https://flagcdn.com/kr.svg" alt=""/><span class="tn">Coreia do Sul</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-1</span><span class="n">2</span><span class="pts">2</span></div>
+    <div class="tr"><span class="pos">4</span><span class="team"><img class="flag" src="https://flagcdn.com/cz.svg" alt=""/><span class="tn">Rep. Tcheca</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-3</span><span class="n">1</span><span class="pts">0</span></div></div>
+
+    <!-- B -->
+    <div class="gc"><div class="gh"><span class="gname">Grupo B</span><span class="gfase">Fase de grupos</span></div>
+    <div class="th"><span>#</span><span>Seleção</span><span>J</span><span>V</span><span>SG</span><span>GP</span><span>Pts</span></div>
+    <div class="tr hl"><span class="pos q">1</span><span class="team"><img class="flag" src="https://flagcdn.com/es.svg" alt=""/><span class="tn">Espanha</span></span><span class="n">2</span><span class="n">2</span><span class="sp">+4</span><span class="n">5</span><span class="pts">6</span></div>
+    <div class="tr"><span class="pos q">2</span><span class="team"><img class="flag" src="https://flagcdn.com/jp.svg" alt=""/><span class="tn">Japão</span></span><span class="n">2</span><span class="n">1</span><span class="sp">+1</span><span class="n">3</span><span class="pts">3</span></div>
+    <div class="tr"><span class="pos">3</span><span class="team"><img class="flag" src="https://flagcdn.com/ca.svg" alt=""/><span class="tn">Canadá</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-2</span><span class="n">1</span><span class="pts">1</span></div>
+    <div class="tr"><span class="pos">4</span><span class="team"><img class="flag" src="https://flagcdn.com/it.svg" alt=""/><span class="tn">Itália</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-3</span><span class="n">1</span><span class="pts">0</span></div></div>
+
+    <!-- C -->
+    <div class="gc"><div class="gh"><span class="gname">Grupo C</span><span class="gfase">Fase de grupos</span></div>
+    <div class="th"><span>#</span><span>Seleção</span><span>J</span><span>V</span><span>SG</span><span>GP</span><span>Pts</span></div>
+    <div class="tr hl"><span class="pos q">1</span><span class="team"><img class="flag" src="https://flagcdn.com/br.svg" alt=""/><span class="tn">Brasil</span></span><span class="n">2</span><span class="n">2</span><span class="sp">+4</span><span class="n">5</span><span class="pts">6</span></div>
+    <div class="tr"><span class="pos q">2</span><span class="team"><img class="flag" src="https://flagcdn.com/ma.svg" alt=""/><span class="tn">Marrocos</span></span><span class="n">2</span><span class="n">1</span><span class="sp">0</span><span class="n">2</span><span class="pts">3</span></div>
+    <div class="tr"><span class="pos">3</span><span class="team"><img class="flag" src="https://flagcdn.com/hr.svg" alt=""/><span class="tn">Croácia</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-1</span><span class="n">2</span><span class="pts">2</span></div>
+    <div class="tr"><span class="pos">4</span><span class="team"><img class="flag" src="https://flagcdn.com/uz.svg" alt=""/><span class="tn">Uzbequistão</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-3</span><span class="n">1</span><span class="pts">0</span></div></div>
+
+    <!-- D -->
+    <div class="gc"><div class="gh"><span class="gname">Grupo D</span><span class="gfase">Fase de grupos</span></div>
+    <div class="th"><span>#</span><span>Seleção</span><span>J</span><span>V</span><span>SG</span><span>GP</span><span>Pts</span></div>
+    <div class="tr hl"><span class="pos q">1</span><span class="team"><img class="flag" src="https://flagcdn.com/fr.svg" alt=""/><span class="tn">França</span></span><span class="n">2</span><span class="n">1</span><span class="sp">+2</span><span class="n">3</span><span class="pts">4</span></div>
+    <div class="tr"><span class="pos q">2</span><span class="team"><img class="flag" src="https://flagcdn.com/au.svg" alt=""/><span class="tn">Austrália</span></span><span class="n">2</span><span class="n">1</span><span class="sp">+1</span><span class="n">2</span><span class="pts">3</span></div>
+    <div class="tr"><span class="pos">3</span><span class="team"><img class="flag" src="https://flagcdn.com/tr.svg" alt=""/><span class="tn">Turquia</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-1</span><span class="n">1</span><span class="pts">2</span></div>
+    <div class="tr"><span class="pos">4</span><span class="team"><img class="flag" src="https://flagcdn.com/qa.svg" alt=""/><span class="tn">Catar</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-2</span><span class="n">0</span><span class="pts">0</span></div></div>
+
+    <!-- E -->
+    <div class="gc"><div class="gh"><span class="gname">Grupo E</span><span class="gfase">Fase de grupos</span></div>
+    <div class="th"><span>#</span><span>Seleção</span><span>J</span><span>V</span><span>SG</span><span>GP</span><span>Pts</span></div>
+    <div class="tr hl"><span class="pos q">1</span><span class="team"><img class="flag" src="https://flagcdn.com/de.svg" alt=""/><span class="tn">Alemanha</span></span><span class="n">2</span><span class="n">2</span><span class="sp">+5</span><span class="n">6</span><span class="pts">6</span></div>
+    <div class="tr"><span class="pos q">2</span><span class="team"><img class="flag" src="https://flagcdn.com/nl.svg" alt=""/><span class="tn">Holanda</span></span><span class="n">2</span><span class="n">1</span><span class="sp">+2</span><span class="n">3</span><span class="pts">3</span></div>
+    <div class="tr"><span class="pos">3</span><span class="team"><img class="flag" src="https://flagcdn.com/ci.svg" alt=""/><span class="tn">Costa do Marfim</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-2</span><span class="n">1</span><span class="pts">1</span></div>
+    <div class="tr"><span class="pos">4</span><span class="team"><img class="flag" src="https://flagcdn.com/ng.svg" alt=""/><span class="tn">Nigéria</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-5</span><span class="n">0</span><span class="pts">0</span></div></div>
+
+    <!-- F -->
+    <div class="gc"><div class="gh"><span class="gname">Grupo F</span><span class="gfase">Fase de grupos</span></div>
+    <div class="th"><span>#</span><span>Seleção</span><span>J</span><span>V</span><span>SG</span><span>GP</span><span>Pts</span></div>
+    <div class="tr hl"><span class="pos q">1</span><span class="team"><img class="flag" src="https://flagcdn.com/ar.svg" alt=""/><span class="tn">Argentina</span></span><span class="n">2</span><span class="n">2</span><span class="sp">+3</span><span class="n">4</span><span class="pts">6</span></div>
+    <div class="tr"><span class="pos q">2</span><span class="team"><img class="flag" src="https://flagcdn.com/ec.svg" alt=""/><span class="tn">Equador</span></span><span class="n">2</span><span class="n">1</span><span class="sp">+1</span><span class="n">2</span><span class="pts">3</span></div>
+    <div class="tr"><span class="pos">3</span><span class="team"><img class="flag" src="https://flagcdn.com/tn.svg" alt=""/><span class="tn">Tunísia</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-1</span><span class="n">1</span><span class="pts">2</span></div>
+    <div class="tr"><span class="pos">4</span><span class="team"><img class="flag" src="https://flagcdn.com/ua.svg" alt=""/><span class="tn">Ucrânia</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-3</span><span class="n">0</span><span class="pts">0</span></div></div>
+
+    <!-- G -->
+    <div class="gc"><div class="gh"><span class="gname">Grupo G</span><span class="gfase">Fase de grupos</span></div>
+    <div class="th"><span>#</span><span>Seleção</span><span>J</span><span>V</span><span>SG</span><span>GP</span><span>Pts</span></div>
+    <div class="tr hl"><span class="pos q">1</span><span class="team"><img class="flag" src="https://flagcdn.com/pt.svg" alt=""/><span class="tn">Portugal</span></span><span class="n">2</span><span class="n">2</span><span class="sp">+4</span><span class="n">5</span><span class="pts">6</span></div>
+    <div class="tr"><span class="pos q">2</span><span class="team"><img class="flag" src="https://flagcdn.com/us.svg" alt=""/><span class="tn">EUA</span></span><span class="n">2</span><span class="n">1</span><span class="sp">+1</span><span class="n">3</span><span class="pts">4</span></div>
+    <div class="tr"><span class="pos">3</span><span class="team"><img class="flag" src="https://flagcdn.com/uy.svg" alt=""/><span class="tn">Uruguai</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-2</span><span class="n">1</span><span class="pts">1</span></div>
+    <div class="tr"><span class="pos">4</span><span class="team"><img class="flag" src="https://flagcdn.com/gh.svg" alt=""/><span class="tn">Gana</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-3</span><span class="n">0</span><span class="pts">0</span></div></div>
+
+    <!-- H -->
+    <div class="gc"><div class="gh"><span class="gname">Grupo H</span><span class="gfase">Fase de grupos</span></div>
+    <div class="th"><span>#</span><span>Seleção</span><span>J</span><span>V</span><span>SG</span><span>GP</span><span>Pts</span></div>
+    <div class="tr hl"><span class="pos q">1</span><span class="team"><img class="flag" src="https://flagcdn.com/gb-eng.svg" alt=""/><span class="tn">Inglaterra</span></span><span class="n">2</span><span class="n">1</span><span class="sp">+2</span><span class="n">3</span><span class="pts">4</span></div>
+    <div class="tr"><span class="pos q">2</span><span class="team"><img class="flag" src="https://flagcdn.com/sn.svg" alt=""/><span class="tn">Senegal</span></span><span class="n">2</span><span class="n">1</span><span class="sp">+1</span><span class="n">2</span><span class="pts">3</span></div>
+    <div class="tr"><span class="pos">3</span><span class="team"><img class="flag" src="https://flagcdn.com/cm.svg" alt=""/><span class="tn">Camarões</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-1</span><span class="n">1</span><span class="pts">1</span></div>
+    <div class="tr"><span class="pos">4</span><span class="team"><img class="flag" src="https://flagcdn.com/gb-sct.svg" alt=""/><span class="tn">Escócia</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-2</span><span class="n">0</span><span class="pts">0</span></div></div>
+
+    <!-- I -->
+    <div class="gc"><div class="gh"><span class="gname">Grupo I</span><span class="gfase">Fase de grupos</span></div>
+    <div class="th"><span>#</span><span>Seleção</span><span>J</span><span>V</span><span>SG</span><span>GP</span><span>Pts</span></div>
+    <div class="tr hl"><span class="pos q">1</span><span class="team"><img class="flag" src="https://flagcdn.com/no.svg" alt=""/><span class="tn">Noruega</span></span><span class="n">2</span><span class="n">2</span><span class="sp">+3</span><span class="n">4</span><span class="pts">6</span></div>
+    <div class="tr"><span class="pos q">2</span><span class="team"><img class="flag" src="https://flagcdn.com/co.svg" alt=""/><span class="tn">Colômbia</span></span><span class="n">2</span><span class="n">1</span><span class="sp">+1</span><span class="n">2</span><span class="pts">3</span></div>
+    <div class="tr"><span class="pos">3</span><span class="team"><img class="flag" src="https://flagcdn.com/dz.svg" alt=""/><span class="tn">Argélia</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-1</span><span class="n">1</span><span class="pts">1</span></div>
+    <div class="tr"><span class="pos">4</span><span class="team"><img class="flag" src="https://flagcdn.com/jo.svg" alt=""/><span class="tn">Jordânia</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-3</span><span class="n">0</span><span class="pts">0</span></div></div>
+
+    <!-- J -->
+    <div class="gc"><div class="gh"><span class="gname">Grupo J</span><span class="gfase">Fase de grupos</span></div>
+    <div class="th"><span>#</span><span>Seleção</span><span>J</span><span>V</span><span>SG</span><span>GP</span><span>Pts</span></div>
+    <div class="tr hl"><span class="pos q">1</span><span class="team"><img class="flag" src="https://flagcdn.com/ch.svg" alt=""/><span class="tn">Suíça</span></span><span class="n">2</span><span class="n">2</span><span class="sp">+2</span><span class="n">3</span><span class="pts">6</span></div>
+    <div class="tr"><span class="pos q">2</span><span class="team"><img class="flag" src="https://flagcdn.com/be.svg" alt=""/><span class="tn">Bélgica</span></span><span class="n">2</span><span class="n">1</span><span class="sp">+1</span><span class="n">2</span><span class="pts">3</span></div>
+    <div class="tr"><span class="pos">3</span><span class="team"><img class="flag" src="https://flagcdn.com/eg.svg" alt=""/><span class="tn">Egito</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-1</span><span class="n">1</span><span class="pts">1</span></div>
+    <div class="tr"><span class="pos">4</span><span class="team"><img class="flag" src="https://flagcdn.com/sa.svg" alt=""/><span class="tn">Arábia Saudita</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-2</span><span class="n">0</span><span class="pts">0</span></div></div>
+
+    <!-- K -->
+    <div class="gc"><div class="gh"><span class="gname">Grupo K</span><span class="gfase">Fase de grupos</span></div>
+    <div class="th"><span>#</span><span>Seleção</span><span>J</span><span>V</span><span>SG</span><span>GP</span><span>Pts</span></div>
+    <div class="tr hl"><span class="pos q">1</span><span class="team"><img class="flag" src="https://flagcdn.com/at.svg" alt=""/><span class="tn">Áustria</span></span><span class="n">2</span><span class="n">1</span><span class="sp">+2</span><span class="n">3</span><span class="pts">4</span></div>
+    <div class="tr"><span class="pos q">2</span><span class="team"><img class="flag" src="https://flagcdn.com/ir.svg" alt=""/><span class="tn">Irã</span></span><span class="n">2</span><span class="n">1</span><span class="sp">+1</span><span class="n">2</span><span class="pts">3</span></div>
+    <div class="tr"><span class="pos">3</span><span class="team"><img class="flag" src="https://flagcdn.com/cv.svg" alt=""/><span class="tn">Cabo Verde</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-1</span><span class="n">1</span><span class="pts">1</span></div>
+    <div class="tr"><span class="pos">4</span><span class="team"><img class="flag" src="https://flagcdn.com/nz.svg" alt=""/><span class="tn">Nova Zelândia</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-2</span><span class="n">0</span><span class="pts">0</span></div></div>
+
+    <!-- L -->
+    <div class="gc"><div class="gh"><span class="gname">Grupo L</span><span class="gfase">Fase de grupos</span></div>
+    <div class="th"><span>#</span><span>Seleção</span><span>J</span><span>V</span><span>SG</span><span>GP</span><span>Pts</span></div>
+    <div class="tr hl"><span class="pos q">1</span><span class="team"><img class="flag" src="https://flagcdn.com/py.svg" alt=""/><span class="tn">Paraguai</span></span><span class="n">2</span><span class="n">2</span><span class="sp">+2</span><span class="n">3</span><span class="pts">6</span></div>
+    <div class="tr"><span class="pos q">2</span><span class="team"><img class="flag" src="https://flagcdn.com/ve.svg" alt=""/><span class="tn">Venezuela</span></span><span class="n">2</span><span class="n">1</span><span class="sp">0</span><span class="n">1</span><span class="pts">3</span></div>
+    <div class="tr"><span class="pos">3</span><span class="team"><img class="flag" src="https://flagcdn.com/cd.svg" alt=""/><span class="tn">DR Congo</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-1</span><span class="n">0</span><span class="pts">1</span></div>
+    <div class="tr"><span class="pos">4</span><span class="team"><img class="flag" src="https://flagcdn.com/iq.svg" alt=""/><span class="tn">Iraque</span></span><span class="n">2</span><span class="n">0</span><span class="sn">-1</span><span class="n">0</span><span class="pts">0</span></div></div>
+
+  </div><!-- /grupos -->
+
+  <div class="legend">
+    <div class="leg-items">
+      <div class="leg-i"><div class="leg-dot" style="background:rgba(74,144,217,.5)"></div>Classifica para o mata-mata (1º e 2º de cada grupo)</div>
+      <div class="leg-i"><div class="leg-dot" style="background:rgba(255,255,255,.1)"></div>Disputa vaga (8 melhores 3ºs colocados)</div>
+    </div>
+    <span style="font-size:10px;color:var(--td)">Critérios FIFA: Pts → SG → GP → Confronto direto → Fair play</span>
+  </div>
+</main>
+</body>
+</html>

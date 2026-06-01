@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard — Bolão Copa 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#020F2A;--card:#0D1E3D;--accent:#4A90D9;--accent-l:#7BB8F0;--border:rgba(74,144,217,.15);--border-a:rgba(74,144,217,.40);--tm:rgba(255,255,255,.45);--td:rgba(255,255,255,.25);--ok:#4ade80;--err:rgba(255,100,100,.75)}
+  html,body{height:100%;background:var(--bg);font-family:'Inter',sans-serif;color:#fff}
+  body::before{content:'';position:fixed;inset:0;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.02) 0,rgba(255,255,255,.02) 1px,transparent 1px,transparent 80px),repeating-linear-gradient(0deg,rgba(255,255,255,.02) 0,rgba(255,255,255,.02) 1px,transparent 1px,transparent 80px);pointer-events:none;z-index:0}
+
+  /* header */
+  .hdr{position:sticky;top:0;z-index:100;background:rgba(2,15,42,.96);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);height:60px;display:flex;align-items:center;padding:0 24px;gap:20px}
+  .hdr-logo{display:flex;align-items:center;gap:12px;text-decoration:none;flex-shrink:0}
+  .ltype{display:flex;flex-direction:column;align-items:center;line-height:1}
+  .lnum{font-family:'Bebas Neue',sans-serif;font-size:30px;color:#fff;letter-spacing:-2px;line-height:1}
+  .lfifa{font-family:'Bebas Neue',sans-serif;font-size:9px;color:#fff;letter-spacing:3px}
+  .lwc{font-size:7px;color:var(--td);letter-spacing:1.5px;font-weight:500}
+  .ldiv{width:1px;height:28px;background:rgba(255,255,255,.12)}
+  .lname{color:#fff;font-size:13px;font-weight:700}
+  .lsub{color:var(--td);font-size:9px;margin-top:1px}
+  .hdr-nav{display:flex;gap:2px;flex:1;justify-content:center}
+  .nl{color:var(--tm);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;padding:6px 12px;border-radius:6px;text-decoration:none;transition:all .15s}
+  .nl:hover{color:#fff;background:rgba(255,255,255,.05)}
+  .nl.on{color:#fff;background:rgba(255,255,255,.08)}
+  .hdr-user{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .uname{font-size:12px;color:var(--tm)}
+  .av{width:34px;height:34px;background:linear-gradient(135deg,#4A90D9,#1a5ca8);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700}
+
+  /* hero */
+  .hero{background:linear-gradient(90deg,#04143a,#091d50,#0a1f4e);border-bottom:1px solid rgba(74,144,217,.18);padding:9px 24px;display:flex;align-items:center;justify-content:space-between}
+  .dot{width:6px;height:6px;background:var(--ok);border-radius:50%}
+  .pill{background:rgba(74,144,217,.18);border:1px solid rgba(74,144,217,.35);color:var(--accent-l);font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
+
+  /* main */
+  .main{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:20px 24px 40px}
+
+  /* metrics */
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+  .mc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden}
+  .mc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#4A90D9,#1a5ca8)}
+  .mc-label{font-size:10px;font-weight:600;color:var(--td);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+  .mc-val{font-size:24px;font-weight:700;color:#fff;line-height:1}
+  .mc-val.sm{font-size:15px;padding-top:3px}
+  .mc-sub{font-size:10px;color:var(--td);margin-top:3px}
+  .mc-sub.blue{color:var(--accent)}
+
+  /* two col */
+  .two{display:grid;grid-template-columns:1.5fr 1fr;gap:12px;margin-bottom:12px}
+
+  /* card */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+  .ct{font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .ct a{font-size:10px;color:var(--accent);font-weight:500;text-decoration:none;text-transform:none;letter-spacing:0}
+
+  /* tabela grupo */
+  .glabel{font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;padding-bottom:6px;border-bottom:1px solid rgba(74,144,217,.18);margin-bottom:6px}
+  .th{display:grid;grid-template-columns:16px 1fr 22px 22px 22px 22px 28px;gap:2px;padding:0 4px 5px;font-size:8px;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.5px;text-align:center;border-bottom:1px solid rgba(255,255,255,.05)}
+  .th span:nth-child(2){text-align:left}
+  .tr{display:grid;grid-template-columns:16px 1fr 22px 22px 22px 22px 28px;gap:2px;padding:6px 4px;align-items:center;font-size:11px;text-align:center;border-bottom:1px solid rgba(255,255,255,.04);color:rgba(255,255,255,.85)}
+  .tr:last-child{border-bottom:none}
+  .tr.hl{background:rgba(74,144,217,.07);border-radius:4px}
+  .pos{font-size:9px;font-weight:700;color:var(--td)}
+  .pos.q{color:var(--accent)}
+  .team{display:flex;align-items:center;gap:5px;text-align:left}
+  .flag{width:18px;height:12px;border-radius:1px;object-fit:cover}
+  .tn{font-size:10px;font-weight:600;color:#fff}
+  .pts{font-weight:700;color:var(--accent);font-size:11px}
+  .sg-p{color:rgba(255,255,255,.6)}
+  .sg-n{color:var(--err)}
+
+  /* jogos */
+  .jlist{display:flex;flex-direction:column;gap:6px}
+  .ji{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:7px}
+  .ji.hl{border-color:rgba(74,144,217,.35);background:rgba(74,144,217,.06)}
+  .jteam{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600}
+  .jscore{font-size:13px;font-weight:700;color:var(--accent);min-width:38px;text-align:center}
+  .jmeta{font-size:9px;color:var(--td);text-align:center;margin-top:2px}
+  .badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.3px}
+  .b-done{background:rgba(74,144,217,.15);color:var(--accent-l)}
+  .b-today{background:rgba(74,222,128,.15);color:#4ade80}
+  .b-soon{background:rgba(255,255,255,.07);color:rgba(255,255,255,.5)}
+
+  /* ranking */
+  .rlist{display:flex;flex-direction:column;gap:5px}
+  .ri{display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:7px}
+  .ri.me{border-color:rgba(74,144,217,.40);background:rgba(74,144,217,.07)}
+  .rpos{font-size:13px;font-weight:700;min-width:22px;color:var(--td);text-align:center}
+  .rinfo{flex:1}
+  .rpalpite{font-size:12px;font-weight:600;color:#fff}
+  .ruser{font-size:10px;color:var(--td)}
+  .rbar{width:56px;height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+  .rbar-fill{height:3px;background:linear-gradient(90deg,#4A90D9,#7BB8F0);border-radius:2px}
+  .rpts{font-size:13px;font-weight:700;color:var(--accent);min-width:52px;text-align:right}
+  .me-tag{font-size:8px;background:rgba(74,144,217,.2);color:var(--accent-l);padding:1px 5px;border-radius:6px;font-weight:600;margin-left:5px}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <a href="#" class="hdr-logo">
+    <div class="ltype"><span class="lnum">26</span><span class="lfifa">FIFA</span><span class="lwc">WORLD CUP™</span></div>
+    <div class="ldiv"></div>
+    <div><div class="lname">Bolão Copa 2026</div><div class="lsub">EUA · CAN · MEX · 11 jun – 19 jul</div></div>
+  </a>
+  <nav class="hdr-nav">
+    <a href="04-dashboard.html" class="nl on">Dashboard</a>
+    <a href="05-tabela.html"    class="nl">Tabela</a>
+    <a href="06-palpites.html"  class="nl">Palpites</a>
+    <a href="07-ranking.html"   class="nl">Ranking</a>
+    <a href="08-instrucoes.html" class="nl">Instruções</a>
+  </nav>
+  <div class="hdr-user"><span class="uname">Renato P.</span><div class="av">RP</div></div>
+</header>
+
+<div class="hero">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="dot"></div>
+    <span class="pill">Fase de grupos · Rodada 2</span>
+    <span style="color:var(--tm);font-size:11px">18 de 48 jogos realizados</span>
+  </div>
+  <span style="color:var(--td);font-size:10px">11 jun – 19 jul 2026</span>
+</div>
+
+<main class="main">
+
+  <!-- METRICS -->
+  <div class="metrics">
+    <div class="mc">
+      <div class="mc-label">Palpites ativos</div>
+      <div class="mc-val">47</div>
+      <div class="mc-sub">de 52 cadastrados</div>
+    </div>
+    <div class="mc">
+      <div class="mc-label">Jogos realizados</div>
+      <div class="mc-val">18<span style="font-size:14px;font-weight:400;color:var(--td)">/104</span></div>
+      <div class="mc-sub">fase de grupos</div>
+    </div>
+    <div class="mc">
+      <div class="mc-label">Líder do bolão</div>
+      <div class="mc-val sm">Esquadrão Imortal</div>
+      <div class="mc-sub blue">142 pts · João Paulo</div>
+    </div>
+    <div class="mc">
+      <div class="mc-label">Próxima partida</div>
+      <div class="mc-val sm" style="display:flex;align-items:center;gap:6px;margin-top:3px">
+        <img class="flag" style="width:20px;height:14px" src="https://flagcdn.com/br.svg" alt="BRA"/>
+        <span style="color:var(--td)">×</span>
+        <img class="flag" style="width:20px;height:14px" src="https://flagcdn.com/ma.svg" alt="MAR"/>
+      </div>
+      <div class="mc-sub blue">Hoje · 19h · Nova York</div>
+    </div>
+  </div>
+
+  <!-- TWO COL -->
+  <div class="two">
+
+    <!-- TABELA GRUPO C -->
+    <div class="card">
+      <div class="ct">Tabela oficial — grupos <a href="05-tabela.html">ver todos →</a></div>
+      <div class="glabel">Grupo C</div>
+      <div class="th"><span>#</span><span>Seleção</span><span>J</span><span>V</span><span>SG</span><span>GP</span><span>Pts</span></div>
+      <div class="tr hl">
+        <span class="pos q">1</span>
+        <span class="team"><img class="flag" src="https://flagcdn.com/br.svg" alt=""/><span class="tn">Brasil</span></span>
+        <span>2</span><span>2</span><span class="sg-p">+4</span><span>5</span><span class="pts">6</span>
+      </div>
+      <div class="tr">
+        <span class="pos q">2</span>
+        <span class="team"><img class="flag" src="https://flagcdn.com/ma.svg" alt=""/><span class="tn">Marrocos</span></span>
+        <span>2</span><span>1</span><span class="sg-p">0</span><span>2</span><span class="pts">3</span>
+      </div>
+      <div class="tr">
+        <span class="pos">3</span>
+        <span class="team"><img class="flag" src="https://flagcdn.com/hr.svg" alt=""/><span class="tn">Croácia</span></span>
+        <span>2</span><span>0</span><span class="sg-n">-1</span><span>2</span><span class="pts">2</span>
+      </div>
+      <div class="tr">
+        <span class="pos">4</span>
+        <span class="team"><img class="flag" src="https://flagcdn.com/uz.svg" alt=""/><span class="tn">Uzbequistão</span></span>
+        <span>2</span><span>0</span><span class="sg-n">-3</span><span>1</span><span class="pts">0</span>
+      </div>
+    </div>
+
+    <!-- JOGOS -->
+    <div class="card">
+      <div class="ct">Partidas</div>
+      <div class="jlist">
+        <div class="ji">
+          <div><div class="jteam"><img class="flag" src="https://flagcdn.com/br.svg" alt=""/> BRA</div><div class="jmeta">11 jun · Nova York</div></div>
+          <div style="text-align:center"><div class="jscore">3 – 0</div><span class="badge b-done">Encerrado</span></div>
+          <div style="text-align:right"><div class="jteam">UZB <img class="flag" src="https://flagcdn.com/uz.svg" alt=""/></div><div class="jmeta">Nova York</div></div>
+        </div>
+        <div class="ji">
+          <div><div class="jteam"><img class="flag" src="https://flagcdn.com/ar.svg" alt=""/> ARG</div><div class="jmeta">12 jun · Dallas</div></div>
+          <div style="text-align:center"><div class="jscore">2 – 1</div><span class="badge b-done">Encerrado</span></div>
+          <div style="text-align:right"><div class="jteam">MEX <img class="flag" src="https://flagcdn.com/mx.svg" alt=""/></div><div class="jmeta">Dallas</div></div>
+        </div>
+        <div class="ji hl">
+          <div><div class="jteam"><img class="flag" src="https://flagcdn.com/br.svg" alt=""/> BRA</div><div class="jmeta">13 jun · Nova York</div></div>
+          <div style="text-align:center"><div class="jscore">– –</div><span class="badge b-today">Hoje 19h</span></div>
+          <div style="text-align:right"><div class="jteam">MAR <img class="flag" src="https://flagcdn.com/ma.svg" alt=""/></div><div class="jmeta">Nova York</div></div>
+        </div>
+        <div class="ji">
+          <div><div class="jteam"><img class="flag" src="https://flagcdn.com/fr.svg" alt=""/> FRA</div><div class="jmeta">14 jun · Houston</div></div>
+          <div style="text-align:center"><div class="jscore">– –</div><span class="badge b-soon">Amanhã</span></div>
+          <div style="text-align:right"><div class="jteam">ALE <img class="flag" src="https://flagcdn.com/de.svg" alt=""/></div><div class="jmeta">Houston</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RANKING PARCIAL -->
+  <div class="card">
+    <div class="ct">Ranking do bolão <a href="07-ranking.html">ranking completo →</a></div>
+    <div class="rlist">
+      <div class="ri"><span class="rpos">🥇</span><div class="rinfo"><div class="rpalpite">Esquadrão Imortal</div><div class="ruser">João Paulo</div></div><div class="rbar"><div class="rbar-fill" style="width:100%"></div></div><span class="rpts">142 pts</span></div>
+      <div class="ri"><span class="rpos">🥈</span><div class="rinfo"><div class="rpalpite">Penta é Pouco</div><div class="ruser">Mariana C.</div></div><div class="rbar"><div class="rbar-fill" style="width:88%"></div></div><span class="rpts">128 pts</span></div>
+      <div class="ri"><span class="rpos">🥉</span><div class="rinfo"><div class="rpalpite">Hexa Vem!</div><div class="ruser">Carlos R.</div></div><div class="rbar"><div class="rbar-fill" style="width:78%"></div></div><span class="rpts">115 pts</span></div>
+      <div class="ri me"><span class="rpos" style="color:var(--accent)">4</span><div class="rinfo"><div class="rpalpite">Hexa é Agora <span class="me-tag">você</span></div><div class="ruser">Renato P.</div></div><div class="rbar"><div class="rbar-fill" style="width:65%"></div></div><span class="rpts">98 pts</span></div>
+      <div class="ri"><span class="rpos">5</span><div class="rinfo"><div class="rpalpite">Goleada Garantida</div><div class="ruser">Ana Beatriz</div></div><div class="rbar"><div class="rbar-fill" style="width:55%"></div></div><span class="rpts">82 pts</span></div>
+    </div>
+  </div>
+
+</main>
+</body>
+</html>

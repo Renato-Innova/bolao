@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Mobile Cadastro — Bolão Copa 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#020F2A;--card:#0D1E3D;--accent:#4A90D9;--al:#7BB8F0;--border:rgba(74,144,217,.18);--ba:rgba(74,144,217,.50);--tm:rgba(255,255,255,.45);--td:rgba(255,255,255,.25)}
+  html,body{height:100%;background:var(--bg);font-family:'Inter',sans-serif;color:#fff}
+  body::before{content:'';position:fixed;inset:0;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.025) 0,rgba(255,255,255,.025) 1px,transparent 1px,transparent 60px),repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0,rgba(255,255,255,.025) 1px,transparent 1px,transparent 60px);pointer-events:none;z-index:0}
+  .page{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 16px;max-width:390px;margin:0 auto}
+  .logo{display:flex;flex-direction:column;align-items:center;margin-bottom:24px}
+  .logo-mark{display:flex;align-items:flex-end;line-height:1}
+  .logo-26{font-family:'Bebas Neue',sans-serif;font-size:48px;color:#fff;letter-spacing:-3px;line-height:1}
+  .logo-trophy{font-size:28px;margin-bottom:3px;margin-left:-4px;filter:drop-shadow(0 0 10px rgba(255,215,0,.4))}
+  .logo-fifa{font-family:'Bebas Neue',sans-serif;font-size:11px;color:#fff;letter-spacing:4px;margin-top:2px}
+  .logo-wc{font-size:8px;color:var(--td);letter-spacing:2px;font-weight:500}
+  .logo-bolao{margin-top:6px;font-size:11px;font-weight:600;color:rgba(255,255,255,.45)}
+  .card{width:100%;background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;position:relative}
+  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#4A90D9,#7BB8F0,#4A90D9)}
+  .tabs{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border)}
+  .tab{padding:13px;text-align:center;font-size:13px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.5px;text-decoration:none;display:block}
+  .tab.on{color:#fff;background:rgba(74,144,217,.08);border-bottom:2px solid var(--accent)}
+  .body{padding:22px 20px 20px}
+  .title{font-size:19px;font-weight:800;color:#fff;margin-bottom:4px}
+  .sub{font-size:13px;color:var(--tm);margin-bottom:18px;line-height:1.5}
+  .info-box{background:rgba(74,144,217,.07);border:1px solid rgba(74,144,217,.2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--al);margin-bottom:16px;line-height:1.5}
+  .field{margin-bottom:13px}
+  .field label{display:block;font-size:10px;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+  .field input{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:13px 14px;font-size:15px;color:#fff;font-family:'Inter',sans-serif;outline:none;-webkit-appearance:none}
+  .field input:focus{border-color:var(--ba);background:rgba(74,144,217,.07)}
+  .field input::placeholder{color:rgba(255,255,255,.2)}
+  .field-hint{font-size:10px;color:var(--td);margin-top:4px}
+  .btn{width:100%;background:linear-gradient(90deg,#4A90D9,#1a5ca8);color:#fff;border:none;border-radius:10px;padding:15px;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;cursor:pointer;font-family:'Inter',sans-serif;margin-top:4px}
+  .login-link{text-align:center;font-size:13px;color:var(--tm);margin-top:14px}
+  .login-link a{color:var(--al);text-decoration:none;font-weight:700}
+  .footer{margin-top:18px;font-size:10px;color:rgba(255,255,255,.2);text-align:center}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="logo">
+    <div class="logo-mark"><span class="logo-26">2</span><span class="logo-trophy">🏆</span><span class="logo-26">6</span></div>
+    <div class="logo-fifa">FIFA</div>
+    <div class="logo-wc">World Cup™ 2026</div>
+    <div class="logo-bolao">Bolão Oficial dos Amigos</div>
+  </div>
+  <div class="card">
+    <div class="tabs">
+      <a href="m-01-login.html" class="tab">Entrar</a>
+      <a href="#" class="tab on">Cadastrar</a>
+    </div>
+    <div class="body">
+      <div class="title">Criar conta</div>
+      <div class="sub">Preencha seus dados pra participar.</div>
+      <div class="info-box">Acesso gratuito · Palpite ativo custa R$ 40,00 via PIX</div>
+      <form>
+        <div class="field">
+          <label>Nome completo</label>
+          <input type="text" placeholder="Seu nome" autocomplete="name"/>
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" placeholder="seu@email.com" autocomplete="email"/>
+        </div>
+        <div class="field">
+          <label>WhatsApp</label>
+          <input type="tel" placeholder="(11) 99999-9999"/>
+          <div class="field-hint">Para contato em caso de premiação</div>
+        </div>
+        <div class="field">
+          <label>Senha</label>
+          <input type="password" placeholder="••••••••" autocomplete="new-password"/>
+        </div>
+        <div class="field">
+          <label>Confirmar senha</label>
+          <input type="password" placeholder="••••••••" autocomplete="new-password"/>
+        </div>
+        <button type="submit" class="btn">Criar conta</button>
+      </form>
+      <div class="login-link">Já tem conta? <a href="m-01-login.html">Entrar</a></div>
+    </div>
+  </div>
+  <div class="footer">FIFA World Cup 2026™ · EUA · Canadá · México</div>
+</div>
+</body>
+</html>

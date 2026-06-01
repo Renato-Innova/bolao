@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Layout Reference — Bolão Copa 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-primary:    #020F2A;
+    --bg-card:       #0D1E3D;
+    --bg-hero:       #091a42;
+    --accent:        #4A90D9;
+    --accent-light:  #7BB8F0;
+    --border:        rgba(74,144,217,0.15);
+    --border-active: rgba(74,144,217,0.45);
+    --text-primary:  #FFFFFF;
+    --text-secondary:rgba(255,255,255,0.45);
+    --text-muted:    rgba(255,255,255,0.25);
+    --success:       #4ade80;
+    --danger:        rgba(255,100,100,0.75);
+  }
+  html, body { height: 100%; background: var(--bg-primary); font-family: 'Inter', sans-serif; color: var(--text-primary); }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image:
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 80px),
+      repeating-linear-gradient(0deg,  rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 80px);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ════════════════════════════════
+     HEADER
+  ════════════════════════════════ */
+  .site-header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(2,15,42,0.96);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    height: 60px;
+    display: flex; align-items: center;
+    padding: 0 24px;
+    gap: 20px;
+  }
+
+  /* logo */
+  .header-logo {
+    display: flex; align-items: center; gap: 12px;
+    text-decoration: none; flex-shrink: 0;
+  }
+  .logo-type {
+    display: flex; flex-direction: column; align-items: center; line-height: 1;
+  }
+  .logo-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 30px; color: white; letter-spacing: -2px; line-height: 1;
+  }
+  .logo-fifa-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 9px; color: white; letter-spacing: 3px;
+  }
+  .logo-wc-label {
+    font-size: 7px; color: var(--text-muted); letter-spacing: 1.5px; font-weight: 500;
+  }
+  .logo-divider {
+    width: 1px; height: 28px; background: rgba(255,255,255,0.12);
+  }
+  .logo-bolao-name { color: white; font-size: 13px; font-weight: 700; letter-spacing: 0.2px; }
+  .logo-bolao-sub  { color: var(--text-muted); font-size: 9px; letter-spacing: 0.3px; margin-top: 1px; }
+
+  /* nav */
+  .header-nav {
+    display: flex; gap: 2px; flex: 1; justify-content: center;
+  }
+  .nav-link {
+    color: var(--text-secondary);
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.6px;
+    padding: 6px 12px; border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .nav-link:hover  { color: white; background: rgba(255,255,255,0.05); }
+  .nav-link.active { color: white; background: rgba(255,255,255,0.08); }
+
+  /* user area */
+  .header-user { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .user-name { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+  .avatar {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, #4A90D9, #1a5ca8);
+    border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; color: white; font-size: 13px; font-weight: 700;
+    cursor: pointer; flex-shrink: 0;
+  }
+
+  /* ════════════════════════════════
+     HERO STRIP
+  ════════════════════════════════ */
+  .hero-strip {
+    background: linear-gradient(90deg, #04143a 0%, #091d50 50%, #0a1f4e 100%);
+    border-bottom: 1px solid rgba(74,144,217,0.18);
+    padding: 9px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .hero-left  { display: flex; align-items: center; gap: 10px; }
+  .hero-right { font-size: 10px; color: var(--text-muted); font-weight: 500; }
+  .live-dot   { width: 6px; height: 6px; background: var(--success); border-radius: 50%; flex-shrink: 0; }
+  .phase-pill {
+    background: rgba(74,144,217,0.18);
+    border: 1px solid rgba(74,144,217,0.35);
+    color: var(--accent-light);
+    font-size: 10px; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .hero-text { color: var(--text-secondary); font-size: 11px; }
+
+  /* ════════════════════════════════
+     MAIN LAYOUT
+  ════════════════════════════════ */
+  .site-main {
+    position: relative; z-index: 1;
+    max-width: 1200px; margin: 0 auto;
+    padding: 20px 24px 40px;
+  }
+
+  /* ════════════════════════════════
+     SHARED CARD
+  ════════════════════════════════ */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    position: relative; overflow: hidden;
+  }
+  .card-accent::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, #4A90D9, #1a5ca8);
+  }
+  .card-pad { padding: 16px 18px; }
+
+  .card-title {
+    font-size: 11px; font-weight: 700; color: white;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .card-title a { font-size: 10px; color: var(--accent); font-weight: 500; text-decoration: none; text-transform: none; letter-spacing: 0; }
+  .card-title a:hover { text-decoration: underline; }
+
+  /* ════════════════════════════════
+     BADGES
+  ════════════════════════════════ */
+  .badge {
+    font-size: 9px; font-weight: 700;
+    padding: 2px 8px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    display: inline-block;
+  }
+  .badge-active   { background: rgba(74,222,128,0.15); color: #4ade80; }
+  .badge-inactive { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.4); }
+  .badge-phase    { background: rgba(74,144,217,0.18); border: 1px solid rgba(74,144,217,0.35); color: var(--accent-light); }
+  .badge-done     { background: rgba(74,144,217,0.15); color: var(--accent-light); }
+  .badge-today    { background: rgba(74,222,128,0.15); color: #4ade80; }
+  .badge-soon     { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.5); }
+
+  /* ════════════════════════════════
+     DEMO CONTENT AREA
+  ════════════════════════════════ */
+  .demo-notice {
+    background: rgba(74,144,217,0.07);
+    border: 1px dashed rgba(74,144,217,0.3);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin-top: 20px;
+  }
+  .demo-notice strong { color: white; }
+
+  /* ════════════════════════════════
+     FLAG HELPER
+  ════════════════════════════════ */
+  .flag {
+    width: 20px; height: 14px;
+    border-radius: 2px; object-fit: cover;
+    display: inline-block; flex-shrink: 0;
+  }
+  .flag-sm { width: 18px; height: 12px; }
+  .flag-lg { width: 28px; height: 20px; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     HEADER — copy this into every page
+════════════════════════════════════════ -->
+<header class="site-header">
+  <a href="04-dashboard.html" class="header-logo">
+    <div class="logo-type">
+      <span class="logo-num">26</span>
+      <span class="logo-fifa-label">FIFA</span>
+      <span class="logo-wc-label">WORLD CUP™</span>
+    </div>
+    <div class="logo-divider"></div>
+    <div>
+      <div class="logo-bolao-name">Bolão Copa 2026</div>
+      <div class="logo-bolao-sub">EUA · CAN · MEX · 11 jun – 19 jul</div>
+    </div>
+  </a>
+
+  <nav class="header-nav">
+    <a href="04-dashboard.html" class="nav-link">Dashboard</a>
+    <a href="05-tabela.html"    class="nav-link active">Tabela</a>
+    <a href="06-palpites.html"  class="nav-link">Palpites</a>
+    <a href="07-ranking.html"   class="nav-link">Ranking</a>
+    <a href="08-instrucoes.html" class="nav-link">Instruções</a>
+  </nav>
+
+  <div class="header-user">
+    <span class="user-name">Renato P.</span>
+    <div class="avatar">RP</div>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════
+     HERO STRIP — copy this into every page
+════════════════════════════════════════ -->
+<div class="hero-strip">
+  <div class="hero-left">
+    <div class="live-dot"></div>
+    <span class="phase-pill">Fase de grupos · Rodada 2</span>
+    <span class="hero-text">18 de 48 jogos realizados</span>
+  </div>
+  <div class="hero-right">11 jun – 19 jul 2026</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MAIN CONTENT
+════════════════════════════════════════ -->
+<main class="site-main">
+  <div class="demo-notice">
+    <strong>03 — Layout Reference</strong><br/>
+    Este arquivo documenta o header, hero strip e tokens de design.<br/>
+    Copie o &lt;header&gt; e o .hero-strip em todas as páginas.
+  </div>
+</main>
+
+</body>
+</html>
