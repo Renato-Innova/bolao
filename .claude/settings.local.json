@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\renat\\\\projetos\\\\bolao\\\\src\\\\components\\\\admin\")",
-      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\renat\\\\projetos\\\\bolao\\\\supabase\")"
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\renat\\\\projetos\\\\bolao\\\\supabase\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }
