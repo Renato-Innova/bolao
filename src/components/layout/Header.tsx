@@ -47,6 +47,8 @@ export function Header() {
     window.location.href = '/auth/login'
   }
 
+  if (pathname.startsWith('/auth')) return null
+
   const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
 
   return (

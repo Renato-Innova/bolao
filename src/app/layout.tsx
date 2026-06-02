@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Bebas_Neue } from 'next/font/google'
 import './globals.css'
 import { Header } from '@/components/layout/Header'
+import { HeroStripWrapper } from '@/components/layout/HeroStripWrapper'
 import { HeroStrip } from '@/components/layout/HeroStrip'
 import { BottomNav } from '@/components/layout/BottomNav'
 
@@ -18,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR" className={`${inter.variable} ${bebasNeue.variable}`}>
       <body style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Header />
-        <HeroStrip />
+        <HeroStripWrapper><HeroStrip /></HeroStripWrapper>
         <main style={{ flex: 1, position: 'relative', zIndex: 1 }}>{children}</main>
         <BottomNav />
       </body>

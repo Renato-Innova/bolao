@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 function Flag({ codigo }: { codigo: string }) {
   return (
     <Image src={`https://flagcdn.com/w40/${codigo}.png`} alt={codigo} width={18} height={12}
-      style={{ borderRadius: 1 }} unoptimized />
+      style={{ borderRadius: 1 }} unoptimized draggable={false} />
   )
 }
 

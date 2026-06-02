@@ -55,7 +55,7 @@ function Flag({ codigo, size = 24 }: { codigo: string; size?: number }) {
   return (
     <Image src={`https://flagcdn.com/w40/${codigo}.png`} alt={codigo}
       width={size} height={Math.round(size * 0.67)}
-      style={{ borderRadius: 2 }} unoptimized />
+      style={{ borderRadius: 2 }} unoptimized draggable={false} />
   )
 }
 
@@ -114,14 +114,28 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
   const days = groupByDay(todosJogos)
 
   useEffect(() => {
-    if (selected?.palpites_jogos) {
-      setMatchStates(initStates(selected.palpites_jogos))
-      setArtilheiro(selected.artilheiro ?? '')
+    const palpite = palpites.find(p => p.id === selectedId)
+    if (palpite?.palpites_jogos) {
+      const states = initStates(palpite.palpites_jogos)
+      setMatchStates(states)
+      setArtilheiro(palpite.artilheiro ?? '')
+
+      // Expand days up to and including the first day that has a pending game,
+      // so the user lands directly on the next game to fill in.
+      const dayGroups = groupByDay(todosJogos)
+      let targetDay = 1
+      for (let i = 0; i < dayGroups.length; i++) {
+        if (dayGroups[i].matches.some(m => !states[m.id]?.submitted)) {
+          targetDay = i + 1
+          break
+        }
+      }
+      setVisibleDays(targetDay)
     } else {
       setMatchStates({})
       setArtilheiro('')
+      setVisibleDays(1)
     }
-    setVisibleDays(1)
     setAccOpen({})
   }, [selectedId]) // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -16,6 +16,7 @@ export function FlagImg({ codigo, size = 20, className = '' }: FlagImgProps) {
       className={className}
       style={{ borderRadius: '2px' }}
       unoptimized
+      draggable={false}
     />
   )
 }

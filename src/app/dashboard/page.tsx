@@ -11,7 +11,7 @@ function Flag({ codigo, size = 18 }: { codigo: string; size?: number }) {
     <Image
       src={`https://flagcdn.com/w40/${codigo}.png`}
       alt={codigo} width={size} height={Math.round(size * 0.67)}
-      style={{ borderRadius: 1 }} unoptimized
+      style={{ borderRadius: 1 }} unoptimized draggable={false}
     />
   )
 }
