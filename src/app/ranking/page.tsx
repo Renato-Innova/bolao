@@ -42,10 +42,10 @@ export default async function RankingPage() {
   const { data: { user } } = await supabase.auth.getUser()
   const ranking = await getRanking()
 
-  let myPalpiteIds: string[] = []
+  let myPalpiteIds: number[] = []
   if (user) {
     const { data: myPalpites } = await supabase.from('palpites').select('id').eq('usuario_id', user.id)
-    myPalpiteIds = (myPalpites ?? []).map((p: { id: string }) => p.id)
+    myPalpiteIds = (myPalpites ?? []).map((p: { id: number }) => p.id)
   }
 
   return (

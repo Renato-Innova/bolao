@@ -1,18 +1,35 @@
 import { createClient } from '@/lib/supabase/server'
 
+const FASES_LABEL: Record<string, string> = {
+  grupos:  'Fase de grupos',
+  oitavas: 'Oitavas de final',
+  quartas: 'Quartas de final',
+  semis:   'Semifinais',
+  final:   'Final',
+}
+
 export async function HeroStrip() {
   const supabase = await createClient()
 
-  const { count: totalJogos } = await supabase
-    .from('jogos_copa')
-    .select('*', { count: 'exact', head: true })
+  const [
+    { count: totalJogos },
+    { count: jogosRealizados },
+    { data: ultimoJogo },
+  ] = await Promise.all([
+    supabase.from('jogos_copa').select('*', { count: 'exact', head: true }),
+    supabase.from('resultados').select('*', { count: 'exact', head: true }),
+    supabase.from('jogos_copa')
+      .select('fase')
+      .order('data', { ascending: false })
+      .order('horario', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ])
 
-  const { count: jogosRealizados } = await supabase
-    .from('resultados')
-    .select('*', { count: 'exact', head: true })
-
-  const total = totalJogos ?? 0
+  const total     = totalJogos ?? 0
   const realizados = jogosRealizados ?? 0
+  const faseAtual = ultimoJogo?.fase ?? 'grupos'
+  const faseLabel = FASES_LABEL[faseAtual] ?? 'Fase de grupos'
 
   return (
     <div style={{
@@ -29,7 +46,7 @@ export async function HeroStrip() {
           color: '#7BB8F0', fontSize: 10, fontWeight: 700,
           padding: '3px 10px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5,
         }}>
-          Fase de grupos
+          {faseLabel}
         </span>
         <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
           {realizados} de {total} jogos realizados

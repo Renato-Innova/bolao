@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { PIX_VALOR, PIX_CHAVE, GRUPOS } from '@/utils/constants'
+import { PIX_VALOR, PIX_CHAVE, GRUPOS, TEAM_ABBR } from '@/utils/constants'
 import type { Palpite, JogoCopa, PalpiteJogo } from '@/types'
 
 /* ─── helpers ──────────────────────────────────────────────── */
@@ -47,8 +47,8 @@ function groupByDay(matches: JogoCopa[]): DayGroup[] {
   })
 }
 
-function abbr(name: string) {
-  return name.split(' ').map(w => w[0]).slice(0, 3).join('').toUpperCase().slice(0, 3)
+function abbr(name: string): string {
+  return TEAM_ABBR[name] ?? name.replace(/\s+/g, '').slice(0, 3).toUpperCase()
 }
 
 function Flag({ codigo, size = 24 }: { codigo: string; size?: number }) {
@@ -73,7 +73,7 @@ interface MatchState {
 function initStates(pjs: PalpiteJogo[]): Record<string, MatchState> {
   const out: Record<string, MatchState> = {}
   for (const pj of pjs) {
-    out[pj.jogo_id] = {
+    out[String(pj.jogo_id)] = {
       scoreA: pj.placar_palpite_a ?? 0,
       scoreB: pj.placar_palpite_b ?? 0,
       submitted: !!pj.submitted_at,
@@ -101,7 +101,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
 
   /* core */
   const [palpites, setPalpites] = useState<Palpite[]>(palpitesIniciais)
-  const [selectedId, setSelectedId] = useState<string | null>(palpitesIniciais[0]?.id ?? null)
+  const [selectedId, setSelectedId] = useState<number | null>(palpitesIniciais[0]?.id ?? null)
 
   /* create */
   const [novoNome, setNovoNome] = useState('')
@@ -113,8 +113,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
   const [showPix, setShowPix] = useState(false)
 
   /* delete menu */
-  const [cardMenuOpen, setCardMenuOpen] = useState<string | null>(null)
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [cardMenuOpen, setCardMenuOpen] = useState<number | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
   const [deleting, setDeleting] = useState(false)
   const cardMenuRef = useRef<HTMLDivElement>(null)
 
@@ -158,7 +158,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
       const dayGroups = groupByDay(todosJogos)
       let targetDay = 1
       for (let i = 0; i < dayGroups.length; i++) {
-        if (dayGroups[i].matches.some(m => !states[m.id]?.submitted)) { targetDay = i + 1; break }
+        if (dayGroups[i].matches.some(m => !states[String(m.id)]?.submitted)) { targetDay = i + 1; break }
       }
       setVisibleDays(targetDay)
     } else {
@@ -230,7 +230,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
     setAccOpen(prev => ({ ...prev, [date]: !prev[date] }))
   }
 
-  async function deletePalpite(id: string) {
+  async function deletePalpite(id: number) {
     setDeleting(true)
     const res = await fetch(`/api/palpites/${id}`, { method: 'DELETE' })
     setDeleting(false)
@@ -272,7 +272,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
     if (!st || !selectedId) return
     updateState(jogoId, { saving: true, error: null })
     const { error } = await supabase.from('palpites_jogos').upsert({
-      palpite_id: selectedId, jogo_id: jogoId,
+      palpite_id: selectedId, jogo_id: parseInt(jogoId, 10),
       placar_palpite_a: st.scoreA, placar_palpite_b: st.scoreB,
       submitted_at: new Date().toISOString(), pontos: 0,
     }, { onConflict: 'palpite_id,jogo_id' })
@@ -498,8 +498,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
               </div>
 
               {days.slice(0, visibleDays).map(group => {
-                const submitted = group.matches.filter(m => matchStates[m.id]?.submitted)
-                const pending   = group.matches.filter(m => !matchStates[m.id]?.submitted)
+                const submitted = group.matches.filter(m => matchStates[String(m.id)]?.submitted)
+                const pending   = group.matches.filter(m => !matchStates[String(m.id)]?.submitted)
                 const allDone   = pending.length === 0
                 const hasSome   = submitted.length > 0
                 const isOpen    = !!accOpen[group.date]
@@ -520,9 +520,9 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
                         <div className="match-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
                           {group.matches.map(jogo => (
                             <MatchCard key={jogo.id} jogo={jogo}
-                              state={matchStates[jogo.id] ?? { scoreA: 0, scoreB: 0, submitted: false, submittedAt: null, saving: false, error: null }}
-                              onScoreChange={(side, val) => !matchStates[jogo.id]?.submitted && updateState(jogo.id, side === 'A' ? { scoreA: val } : { scoreB: val })}
-                              onSubmit={() => submitMatch(jogo.id)} onEdit={() => editMatch(jogo.id)} />
+                              state={matchStates[String(jogo.id)] ?? { scoreA: 0, scoreB: 0, submitted: false, submittedAt: null, saving: false, error: null }}
+                              onScoreChange={(side, val) => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
+                              onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))} />
                           ))}
                         </div>
                       </>
@@ -531,9 +531,9 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
                       <Accordion isOpen={isOpen} onToggle={() => toggleAcc(group.date)} dayNum={group.dayNum} label={group.label} labelShort={group.labelShort} sentCount={submitted.length} pendingCount={0} col={green}>
                         <div className="match-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, paddingTop: 2 }}>
                           {submitted.map(jogo => (
-                            <MatchCard key={jogo.id} jogo={jogo} state={matchStates[jogo.id]}
-                              onScoreChange={(side, val) => updateState(jogo.id, side === 'A' ? { scoreA: val } : { scoreB: val })}
-                              onSubmit={() => submitMatch(jogo.id)} onEdit={() => editMatch(jogo.id)} />
+                            <MatchCard key={jogo.id} jogo={jogo} state={matchStates[String(jogo.id)]}
+                              onScoreChange={(side, val) => updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
+                              onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))} />
                           ))}
                         </div>
                       </Accordion>
@@ -543,9 +543,9 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
                         <Accordion isOpen={isOpen} onToggle={() => toggleAcc(group.date)} dayNum={group.dayNum} label={group.label} labelShort={group.labelShort} sentCount={submitted.length} pendingCount={pending.length} col={col}>
                           <div className="match-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, paddingTop: 2 }}>
                             {submitted.map(jogo => (
-                              <MatchCard key={jogo.id} jogo={jogo} state={matchStates[jogo.id]}
-                                onScoreChange={(side, val) => updateState(jogo.id, side === 'A' ? { scoreA: val } : { scoreB: val })}
-                                onSubmit={() => submitMatch(jogo.id)} onEdit={() => editMatch(jogo.id)} />
+                              <MatchCard key={jogo.id} jogo={jogo} state={matchStates[String(jogo.id)]}
+                                onScoreChange={(side, val) => updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
+                                onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))} />
                             ))}
                           </div>
                         </Accordion>
@@ -553,9 +553,9 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
                         <div className="match-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
                           {pending.map(jogo => (
                             <MatchCard key={jogo.id} jogo={jogo}
-                              state={matchStates[jogo.id] ?? { scoreA: 0, scoreB: 0, submitted: false, submittedAt: null, saving: false, error: null }}
-                              onScoreChange={(side, val) => !matchStates[jogo.id]?.submitted && updateState(jogo.id, side === 'A' ? { scoreA: val } : { scoreB: val })}
-                              onSubmit={() => submitMatch(jogo.id)} onEdit={() => editMatch(jogo.id)} />
+                              state={matchStates[String(jogo.id)] ?? { scoreA: 0, scoreB: 0, submitted: false, submittedAt: null, saving: false, error: null }}
+                              onScoreChange={(side, val) => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
+                              onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))} />
                           ))}
                         </div>
                       </>
@@ -658,10 +658,92 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
 
 /* ─── TabelaDoPalpite ────────────────────────────────────── */
 
+// Row type includes seedOrder so that the drawing-of-lots fallback preserves
+// the original order teams appeared in the schedule (stable, deterministic).
+type PalpiteRow = {
+  time: string; codigo: string; seedOrder: number
+  j:number; v:number; e:number; d:number; gp:number; gc:number; sg:number; pts:number
+}
+
+// Compute head-to-head sub-standings among a set of teams using only the
+// matches played between them and only predictions the user has submitted.
+function h2hStats(
+  group: PalpiteRow[],
+  jogos: JogoCopa[],
+  submittedMap: Record<string, PalpiteJogo>
+): Record<string, { pts:number; sg:number; gp:number }> {
+  const names = new Set(group.map(r => r.time))
+  const stats: Record<string, { pts:number; sg:number; gp:number }> = {}
+  for (const r of group) stats[r.time] = { pts:0, sg:0, gp:0 }
+
+  for (const j of jogos) {
+    if (!names.has(j.time_a) || !names.has(j.time_b)) continue
+    const pj = submittedMap[String(j.id)]
+    if (!pj) continue
+    const ga = pj.placar_palpite_a ?? 0
+    const gb = pj.placar_palpite_b ?? 0
+    stats[j.time_a].gp += ga; stats[j.time_b].gp += gb
+    stats[j.time_a].sg += ga - gb; stats[j.time_b].sg += gb - ga
+    if (ga > gb)      { stats[j.time_a].pts += 3 }
+    else if (ga < gb) { stats[j.time_b].pts += 3 }
+    else              { stats[j.time_a].pts += 1; stats[j.time_b].pts += 1 }
+  }
+  return stats
+}
+
+// Full FIFA group-stage sort:
+// 1. Overall pts → sg → gp
+// 2. Tied teams: h2h pts → h2h sg → h2h gp
+// 3. Still tied: drawing of lots (seedOrder — the order they first appeared in the schedule)
+function fifaSort(
+  rows: PalpiteRow[],
+  jogos: JogoCopa[],
+  submittedMap: Record<string, PalpiteJogo>
+): PalpiteRow[] {
+  // Initial overall sort
+  const sorted = [...rows].sort((a, b) =>
+    b.pts - a.pts || b.sg - a.sg || b.gp - a.gp || a.seedOrder - b.seedOrder
+  )
+
+  const result: PalpiteRow[] = []
+  let i = 0
+
+  while (i < sorted.length) {
+    // Collect the tie group (same pts + sg + gp)
+    let j = i + 1
+    while (
+      j < sorted.length &&
+      sorted[j].pts === sorted[i].pts &&
+      sorted[j].sg  === sorted[i].sg  &&
+      sorted[j].gp  === sorted[i].gp
+    ) j++
+
+    const group = sorted.slice(i, j)
+
+    if (group.length === 1) {
+      result.push(group[0])
+    } else {
+      // Break tie with head-to-head among this group
+      const h2h = h2hStats(group, jogos, submittedMap)
+      const broken = [...group].sort((a, b) =>
+        h2h[b.time].pts - h2h[a.time].pts ||
+        h2h[b.time].sg  - h2h[a.time].sg  ||
+        h2h[b.time].gp  - h2h[a.time].gp  ||
+        a.seedOrder - b.seedOrder           // drawing of lots
+      )
+      result.push(...broken)
+    }
+
+    i = j
+  }
+
+  return result
+}
+
 function TabelaDoPalpite({ palpite, todosJogos }: { palpite: Palpite; todosJogos: JogoCopa[] }) {
   const submittedMap: Record<string, PalpiteJogo> = {}
   for (const pj of palpite.palpites_jogos ?? []) {
-    if (pj.submitted_at) submittedMap[pj.jogo_id] = pj
+    if (pj.submitted_at) submittedMap[String(pj.jogo_id)] = pj
   }
 
   const grupoJogos: Record<string, JogoCopa[]> = {}
@@ -671,17 +753,16 @@ function TabelaDoPalpite({ palpite, todosJogos }: { palpite: Palpite; todosJogos
     grupoJogos[j.grupo].push(j)
   }
 
-  type Row = { time: string; codigo: string; j:number; v:number; e:number; d:number; gp:number; gc:number; sg:number; pts:number }
-
   const grupos = GRUPOS.map(g => {
     const jogos = grupoJogos[g] ?? []
-    const standings: Record<string, Row> = {}
+    const standings: Record<string, PalpiteRow> = {}
+    let seed = 0
 
     for (const jogo of jogos) {
-      if (!standings[jogo.time_a]) standings[jogo.time_a] = { time: jogo.time_a, codigo: jogo.codigo_pais_a, j:0,v:0,e:0,d:0,gp:0,gc:0,sg:0,pts:0 }
-      if (!standings[jogo.time_b]) standings[jogo.time_b] = { time: jogo.time_b, codigo: jogo.codigo_pais_b, j:0,v:0,e:0,d:0,gp:0,gc:0,sg:0,pts:0 }
+      if (!standings[jogo.time_a]) standings[jogo.time_a] = { time: jogo.time_a, codigo: jogo.codigo_pais_a ?? '', seedOrder: seed++, j:0,v:0,e:0,d:0,gp:0,gc:0,sg:0,pts:0 }
+      if (!standings[jogo.time_b]) standings[jogo.time_b] = { time: jogo.time_b, codigo: jogo.codigo_pais_b ?? '', seedOrder: seed++, j:0,v:0,e:0,d:0,gp:0,gc:0,sg:0,pts:0 }
 
-      const pj = submittedMap[jogo.id]
+      const pj = submittedMap[String(jogo.id)]
       if (!pj) continue
 
       const ga = pj.placar_palpite_a ?? 0
@@ -698,7 +779,8 @@ function TabelaDoPalpite({ palpite, todosJogos }: { palpite: Palpite; todosJogos
       else { ta.e++; ta.pts++; tb.e++; tb.pts++ }
     }
 
-    const times = Object.values(standings).sort((a, b) => b.pts - a.pts || b.sg - a.sg || b.gp - a.gp)
+    // Apply full FIFA tiebreaker sort
+    const times = fifaSort(Object.values(standings), jogos, submittedMap)
     return { grupo: g, times }
   }).filter(g => g.times.length > 0)
 
@@ -868,7 +950,7 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit }: MatchCardPr
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          <Flag codigo={jogo.codigo_pais_a} size={24} />
+          <Flag codigo={jogo.codigo_pais_a ?? ''} size={24} />
           <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{abbr(jogo.time_a)}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -877,7 +959,7 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit }: MatchCardPr
           <ScoreControl value={state.scoreB} onChange={v => onScoreChange('B', v)} />
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          <Flag codigo={jogo.codigo_pais_b} size={24} />
+          <Flag codigo={jogo.codigo_pais_b ?? ''} size={24} />
           <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{abbr(jogo.time_b)}</span>
         </div>
       </div>

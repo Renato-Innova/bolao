@@ -1,5 +1,5 @@
 export interface User {
-  id: string
+  id: string           // UUID — auth.users
   email: string
   nome: string
   telefone?: string
@@ -9,25 +9,27 @@ export interface User {
 }
 
 export interface JogoCopa {
-  id: string
-  fase: 'grupos' | 'oitavas' | 'quartas' | 'semis' | 'final'
+  id: number           // SERIAL
+  numero_jogo?: number
+  fase: 'grupos' | 'oitavas' | 'quartas' | 'semis' | 'terceiro' | 'final'
   grupo?: string
-  rodada: number
+  rodada?: number
   data: string
   horario: string
   time_a: string
   time_b: string
-  codigo_pais_a: string
-  codigo_pais_b: string
-  estadio: string
-  cidade: string
+  codigo_pais_a?: string
+  codigo_pais_b?: string
+  estadio?: string
+  cidade?: string
+  pais_sede?: string
   criado_em: string
   resultado?: Resultado
 }
 
 export interface Resultado {
-  id: string
-  jogo_id: string
+  id: number           // SERIAL
+  jogo_id: number
   placar_real_a: number
   placar_real_b: number
   artilheiro_copa?: string
@@ -36,11 +38,11 @@ export interface Resultado {
 }
 
 export interface Palpite {
-  id: string
-  usuario_id: string
+  id: number           // SERIAL
+  usuario_id: string   // UUID — foreign key to users
   nome: string
   status: 'ativo' | 'inativo'
-  artilheiro: string
+  artilheiro?: string
   json_backup?: Record<string, unknown>
   criado_em: string
   atualizado_em: string
@@ -49,9 +51,9 @@ export interface Palpite {
 }
 
 export interface PalpiteJogo {
-  id: string
-  palpite_id: string
-  jogo_id: string
+  id: number           // SERIAL
+  palpite_id: number
+  jogo_id: number
   placar_palpite_a?: number
   placar_palpite_b?: number
   pontos: number
@@ -62,39 +64,38 @@ export interface PalpiteJogo {
 }
 
 export interface ConfiguracaoPontuacao {
-  id: string
+  id: number           // SERIAL
   fase: string
   tipo_acerto: 'placar_exato' | 'vencedor'
   pontos: number
   atualizado_em: string
 }
 
+export interface ClassificacaoGrupo {
+  id: number
+  grupo: string
+  pais_nome: string
+  pais_codigo: string
+  j: number
+  c: number
+  e: number
+  d: number
+  m: number
+  s: number
+  dg: number
+  pts: number
+  ultimos_resultados: string
+  atualizado_em: string
+}
+
 export interface RankingEntry {
   posicao: number
-  palpite_id: string
+  palpite_id: number
   nome: string
   usuario_nome: string
-  usuario_id: string
+  usuario_id: string   // UUID
   total_pontos: number
   acertos_exatos: number
   acertos_vencedor: number
   variacao: number
-}
-
-export interface GrupoStanding {
-  grupo: string
-  times: TeamStanding[]
-}
-
-export interface TeamStanding {
-  time: string
-  codigo_pais: string
-  jogos: number
-  vitorias: number
-  empates: number
-  derrotas: number
-  gols_pro: number
-  gols_contra: number
-  saldo_gols: number
-  pontos: number
 }

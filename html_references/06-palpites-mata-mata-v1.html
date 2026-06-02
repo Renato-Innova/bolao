@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<!--
+  REFERENCE FILE: 06-palpites-mata-mata-v1.html
+  VERSION: 1.0
+  TAB: Mata-Mata (inside /palpites page, second tab)
+  REPLACES: The locked "Mata-Mata" tab placeholder from v4
+
+  INSTRUCTIONS FOR CLAUDE CODE:
+  ─────────────────────────────────────────────────────────────────────────────
+  This file defines the behavior and layout for the "Mata-Mata" tab inside the
+  /palpites page. It does NOT replace the whole palpites page — only the content
+  rendered when the user clicks the "Mata-Mata" tab.
+
+  IMPORTANT CHANGES FROM PREVIOUS BEHAVIOR:
+  1. The Mata-Mata tab now has TWO sub-tabs inside it:
+     - "Mata-Mata"  → list of knockout games grouped by phase (this file)
+     - "Chave"      → visual bracket for read-only tracking (see 06-chave-v1.html)
+
+  2. Games are grouped by phase in this order:
+     - Segundas de Final  (16 games, Jun 29 – Jul 3)
+     - Oitavas de Final   (8 games,  Jul 4 – Jul 7)
+     - Quartas de Final   (4 games,  Jul 9 – Jul 11)
+     - Semifinal          (2 games,  Jul 14 – Jul 15)
+     - Final              (2 games:  Decisão do 3º Lugar Jul 18 + Final Jul 19)
+
+  3. PHASE LOCKING RULE:
+     A phase only opens for predictions when ALL games in the PREVIOUS phase
+     have been submitted by the user (submitted_at IS NOT NULL for all games
+     in that phase). The group stage must be 100% submitted before Segundas de
+     Final opens. Segundas de Final must be 100% submitted before Oitavas opens,
+     and so on.
+
+  4. When a team is not yet classified, show "A definir" in place of the team name.
+     Show the flag placeholder as a gray circle with a "?" icon.
+
+  5. Each phase section has a header showing:
+     - Phase name (e.g. "Segundas de Final")
+     - Date range (e.g. "29 Jun – 03 Jul")
+     - Progress badge: "X/Y jogos preenchidos" (e.g. "0/16 jogos preenchidos")
+     - Lock icon + "Disponível após [previous phase name]" when locked
+
+  6. Within each phase, games are displayed in chronological order grouped by day
+     (same accordion/day-group pattern as Fase de Grupos tab).
+
+  7. Prediction input behavior is IDENTICAL to Fase de Grupos:
+     - [−] [score] [+] × [−] [score] [+] buttons
+     - Individual "Enviar palpite" button per game
+     - After submit: green border on score, checkmark, edit menu (⋮) available
+       until 1 hour before match start
+     - Minimum score: 0 (no negatives)
+
+  DATABASE NOTES:
+  - Knockout games already exist in the `matches` table with phase codes:
+    'R32' = Segundas de Final (round of 32)
+    'R16' = Oitavas de Final  (round of 16)
+    'QF'  = Quartas de Final
+    'SF'  = Semifinal
+    'TPL' = Decisão do 3º Lugar
+    'F'   = Final
+  - home_team and away_team will be NULL until teams qualify — show "A definir"
+  - Predictions stored in `predictions` table same as group stage
+  - Lock check: query count of predictions where phase = previous phase AND
+    palpite_id = current palpite AND submitted_at IS NOT NULL, compare to
+    total games in that phase
+
+  STYLING:
+  - Locked phase: section header shows lock icon, body is hidden or grayed out
+    with a centered message "Disponível após [X]" inside the collapsed section
+  - Active phase: same card style as group stage games
+  - Completed game (result exists): show actual score, gray out input
+  - "A definir" team: gray italic text, circular gray flag placeholder
+  ─────────────────────────────────────────────────────────────────────────────
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mata-Mata — Palpites [REFERÊNCIA]</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ── Design tokens ─────────────────────────────────────────── */
+  :root {
+    --bg:          #020F2A;
+    --surface:     rgba(255,255,255,0.06);
+    --surface-2:   rgba(255,255,255,0.10);
+    --border:      rgba(255,255,255,0.10);
+    --accent:      #4A90D9;
+    --accent-dim:  rgba(74,144,217,0.18);
+    --success:     #22c55e;
+    --warning:     #f59e0b;
+    --text:        #ffffff;
+    --text-dim:    rgba(255,255,255,0.55);
+    --text-faint:  rgba(255,255,255,0.30);
+    --lock-bg:     rgba(255,255,255,0.04);
+    --radius:      12px;
+    --radius-sm:   8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+
+  /* ── Sub-tabs (Mata-Mata | Chave) ─────────────────────────── */
+  .sub-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .sub-tab {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dim);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+    margin-bottom: -1px;
+  }
+  .sub-tab.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+  .sub-tab:hover:not(.active) { color: var(--text); }
+
+  /* ── Phase section ─────────────────────────────────────────── */
+  .phase-section { margin-bottom: 20px; }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+  }
+  .phase-header:hover { background: var(--surface-2); }
+  .phase-header.locked { cursor: default; opacity: 0.6; }
+  .phase-header.locked:hover { background: var(--surface); }
+
+  .phase-icon { font-size: 18px; flex-shrink: 0; }
+
+  .phase-title-group { flex: 1; }
+  .phase-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 0.5px;
+    line-height: 1.1;
+  }
+  .phase-dates {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .phase-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    background: var(--surface-2);
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .phase-badge.complete { color: var(--success); }
+  .phase-badge.in-progress { color: var(--accent); }
+
+  .phase-chevron {
+    font-size: 14px;
+    color: var(--text-dim);
+    transition: transform 0.25s;
+    flex-shrink: 0;
+  }
+  .phase-section.open .phase-chevron { transform: rotate(180deg); }
+
+  /* ── Locked state body ─────────────────────────────────────── */
+  .phase-locked-body {
+    display: none;
+    background: var(--lock-bg);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    padding: 32px 20px;
+    text-align: center;
+  }
+  .phase-section.locked-open .phase-locked-body { display: block; }
+  .lock-icon { font-size: 32px; margin-bottom: 12px; }
+  .lock-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .lock-sub { font-size: 13px; color: var(--text-faint); }
+
+  /* ── Phase body (unlocked) ─────────────────────────────────── */
+  .phase-body {
+    display: none;
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    overflow: hidden;
+  }
+  .phase-section.open .phase-body { display: block; }
+
+  /* ── Day group ─────────────────────────────────────────────── */
+  .day-group { border-bottom: 1px solid var(--border); }
+  .day-group:last-child { border-bottom: none; }
+
+  .day-header {
+    padding: 10px 20px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Game card ─────────────────────────────────────────────── */
+  .game-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    transition: background 0.15s;
+  }
+  .game-card:last-child { border-bottom: none; }
+  .game-card:hover { background: var(--surface); }
+  .game-card.submitted { background: rgba(34,197,94,0.04); }
+
+  /* team side */
+  .team-side {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+  }
+  .team-side.right { flex-direction: row-reverse; }
+
+  .flag {
+    width: 28px;
+    height: 20px;
+    border-radius: 3px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .flag-placeholder {
+    width: 28px;
+    height: 20px;
+    border-radius: 3px;
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--text-faint);
+    flex-shrink: 0;
+  }
+
+  .team-name {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .team-name.tbd {
+    color: var(--text-faint);
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  /* score input */
+  .score-center {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .score-side {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .score-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, border-color 0.15s;
+    line-height: 1;
+  }
+  .score-btn:hover { background: var(--surface-2); border-color: var(--accent); }
+  .score-btn:active { background: var(--accent-dim); }
+
+  .score-value {
+    width: 32px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: 700;
+    font-family: 'Bebas Neue', sans-serif;
+    color: var(--text);
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 2px;
+    transition: border-color 0.2s;
+  }
+  .score-value.has-value { border-color: var(--accent); }
+  .score-value.submitted-val { border-color: var(--success); color: var(--success); }
+
+  .score-separator {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-dim);
+    padding: 0 2px;
+  }
+
+  /* submit / confirm area */
+  .game-action {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-submit {
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+  }
+  .btn-submit:hover { opacity: 0.85; }
+  .btn-submit:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .check-icon {
+    color: var(--success);
+    font-size: 18px;
+    display: none;
+  }
+  .game-card.submitted .check-icon { display: block; }
+  .game-card.submitted .btn-submit { display: none; }
+
+  .menu-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    display: none; /* show only when submitted */
+  }
+  .game-card.submitted .menu-btn { display: flex; }
+
+  /* match time */
+  .match-time {
+    font-size: 11px;
+    color: var(--text-faint);
+    text-align: center;
+    min-width: 40px;
+    flex-shrink: 0;
+  }
+
+  /* ── Mobile adjustments ─────────────────────────────────────── */
+  @media (max-width: 768px) {
+    body { padding: 16px 12px; }
+
+    .game-card {
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 14px 14px;
+    }
+
+    /* row 1: team names + score */
+    .team-side { flex: 1; min-width: 0; }
+    .team-name { font-size: 12px; }
+
+    .score-btn { width: 32px; height: 32px; font-size: 18px; }
+    .score-value { width: 28px; font-size: 18px; }
+
+    /* row 2: match time + action — full width */
+    .match-time { display: none; } /* included in day header on mobile */
+    .game-action { width: 100%; justify-content: flex-end; }
+
+    .btn-submit { padding: 8px 16px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Sub-tabs inside the Mata-Mata main tab ──────────────── -->
+<div class="sub-tabs">
+  <button class="sub-tab active">Mata-Mata</button>
+  <button class="sub-tab">Chave</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PHASE 1 — Segundas de Final (ACTIVE — example: 3/16 done) -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="phase-section open">
+  <div class="phase-header" onclick="togglePhase(this)">
+    <span class="phase-icon">⚽</span>
+    <div class="phase-title-group">
+      <div class="phase-name">Segundas de Final</div>
+      <div class="phase-dates">29 Jun – 03 Jul</div>
+    </div>
+    <div class="phase-badge in-progress">3 / 16 preenchidos</div>
+    <span class="phase-chevron">▼</span>
+  </div>
+
+  <div class="phase-body">
+
+    <!-- Day: 29 Jun -->
+    <div class="day-group">
+      <div class="day-header">Domingo · 29 de Junho</div>
+
+      <!-- Game: submitted example -->
+      <div class="game-card submitted">
+        <div class="team-side">
+          <img class="flag" src="https://flagcdn.com/w40/us.png" alt="EUA" />
+          <span class="team-name">Estados Unidos</span>
+        </div>
+        <div class="score-center">
+          <div class="score-side">
+            <button class="score-btn">−</button>
+            <div class="score-value submitted-val">2</div>
+            <button class="score-btn">+</button>
+          </div>
+          <span class="score-separator">×</span>
+          <div class="score-side">
+            <button class="score-btn">−</button>
+            <div class="score-value submitted-val">1</div>
+            <button class="score-btn">+</button>
+          </div>
+        </div>
+        <div class="team-side right">
+          <span class="team-name">México</span>
+          <img class="flag" src="https://flagcdn.com/w40/mx.png" alt="México" />
+        </div>
+        <div class="game-action">
+          <span class="check-icon">✓</span>
+          <button class="menu-btn">⋮</button>
+        </div>
+        <div class="match-time">17:30</div>
+      </div>
+
+      <!-- Game: empty — teams TBD -->
+      <div class="game-card">
+        <div class="team-side">
+          <div class="flag-placeholder">?</div>
+          <span class="team-name tbd">A definir</span>
+        </div>
+        <div class="score-center">
+          <div class="score-side">
+            <button class="score-btn">−</button>
+            <div class="score-value">0</div>
+            <button class="score-btn">+</button>
+          </div>
+          <span class="score-separator">×</span>
+          <div class="score-side">
+            <button class="score-btn">−</button>
+            <div class="score-value">0</div>
+            <button class="score-btn">+</button>
+          </div>
+        </div>
+        <div class="team-side right">
+          <span class="team-name tbd">A definir</span>
+          <div class="flag-placeholder">?</div>
+        </div>
+        <div class="game-action">
+          <button class="btn-submit" disabled>Enviar</button>
+        </div>
+        <div class="match-time">21:00</div>
+      </div>
+    </div>
+
+    <!-- Day: 30 Jun -->
+    <div class="day-group">
+      <div class="day-header">Segunda-feira · 30 de Junho</div>
+
+      <div class="game-card">
+        <div class="team-side">
+          <img class="flag" src="https://flagcdn.com/w40/br.png" alt="Brasil" />
+          <span class="team-name">Brasil</span>
+        </div>
+        <div class="score-center">
+          <div class="score-side">
+            <button class="score-btn">−</button>
+            <div class="score-value has-value">3</div>
+            <button class="score-btn">+</button>
+          </div>
+          <span class="score-separator">×</span>
+          <div class="score-side">
+            <button class="score-btn">−</button>
+            <div class="score-value has-value">0</div>
+            <button class="score-btn">+</button>
+          </div>
+        </div>
+        <div class="team-side right">
+          <span class="team-name tbd">A definir</span>
+          <div class="flag-placeholder">?</div>
+        </div>
+        <div class="game-action">
+          <button class="btn-submit">Enviar</button>
+        </div>
+        <div class="match-time">18:00</div>
+      </div>
+    </div>
+
+  </div><!-- /phase-body -->
+</div><!-- /phase-section -->
+
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PHASE 2 — Oitavas de Final (LOCKED)                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="phase-section locked-open">
+  <div class="phase-header locked">
+    <span class="phase-icon">🔒</span>
+    <div class="phase-title-group">
+      <div class="phase-name">Oitavas de Final</div>
+      <div class="phase-dates">04 Jul – 07 Jul</div>
+    </div>
+    <div class="phase-badge">0 / 8 preenchidos</div>
+  </div>
+  <div class="phase-locked-body">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-title">Disponível após Segundas de Final</div>
+    <div class="lock-sub">Preencha todos os 16 jogos das Segundas de Final para liberar.</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PHASE 3 — Quartas de Final (LOCKED)                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="phase-section locked-open">
+  <div class="phase-header locked">
+    <span class="phase-icon">🔒</span>
+    <div class="phase-title-group">
+      <div class="phase-name">Quartas de Final</div>
+      <div class="phase-dates">09 Jul – 11 Jul</div>
+    </div>
+    <div class="phase-badge">0 / 4 preenchidos</div>
+  </div>
+  <div class="phase-locked-body">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-title">Disponível após Oitavas de Final</div>
+    <div class="lock-sub">Preencha todos os 8 jogos das Oitavas de Final para liberar.</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PHASE 4 — Semifinal (LOCKED)                              -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="phase-section locked-open">
+  <div class="phase-header locked">
+    <span class="phase-icon">🔒</span>
+    <div class="phase-title-group">
+      <div class="phase-name">Semifinal</div>
+      <div class="phase-dates">14 Jul – 15 Jul</div>
+    </div>
+    <div class="phase-badge">0 / 2 preenchidos</div>
+  </div>
+  <div class="phase-locked-body">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-title">Disponível após Quartas de Final</div>
+    <div class="lock-sub">Preencha todos os 4 jogos das Quartas de Final para liberar.</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PHASE 5 — Final (LOCKED)                                  -->
+<!-- Includes: Decisão do 3º Lugar (Jul 18) + Final (Jul 19)  -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="phase-section locked-open">
+  <div class="phase-header locked">
+    <span class="phase-icon">🔒</span>
+    <div class="phase-title-group">
+      <div class="phase-name">Final</div>
+      <div class="phase-dates">18 Jul – 19 Jul</div>
+    </div>
+    <div class="phase-badge">0 / 2 preenchidos</div>
+  </div>
+  <div class="phase-locked-body">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-title">Disponível após Semifinal</div>
+    <div class="lock-sub">Preencha os 2 jogos da Semifinal para liberar.</div>
+  </div>
+</div>
+
+<script>
+  function togglePhase(header) {
+    if (header.classList.contains('locked')) return;
+    const section = header.closest('.phase-section');
+    section.classList.toggle('open');
+  }
+
+  // Score button logic
+  document.querySelectorAll('.score-side').forEach(side => {
+    const minus = side.querySelector('.score-btn:first-child');
+    const plus  = side.querySelector('.score-btn:last-child');
+    const val   = side.querySelector('.score-value');
+    if (!val) return;
+
+    minus.addEventListener('click', () => {
+      const n = parseInt(val.textContent) || 0;
+      if (n > 0) {
+        val.textContent = n - 1;
+        val.classList.toggle('has-value', n - 1 > 0);
+      }
+    });
+    plus.addEventListener('click', () => {
+      const n = parseInt(val.textContent) || 0;
+      val.textContent = n + 1;
+      val.classList.add('has-value');
+    });
+  });
+</script>
+</body>
+</html>

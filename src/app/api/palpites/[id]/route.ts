@@ -5,7 +5,11 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params
+  const { id: idStr } = await params
+  const id = parseInt(idStr, 10)
+  if (isNaN(id)) {
+    return NextResponse.json({ error: 'ID inválido.' }, { status: 400 })
+  }
 
   // Identify the caller
   const userClient = await createClient()
@@ -14,7 +18,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
   }
 
-  // Validate ownership and inactive status using the admin client (bypasses missing DELETE RLS)
+  // Validate ownership and inactive status via admin client (bypasses RLS)
   const admin = await createAdminClient()
   const { data: palpite } = await admin
     .from('palpites')
@@ -32,7 +36,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Palpites ativos não podem ser excluídos.' }, { status: 400 })
   }
 
-  // ON DELETE CASCADE in palpites_jogos handles child rows automatically
+  // ON DELETE CASCADE on palpites_jogos handles child rows automatically
   const { error } = await admin.from('palpites').delete().eq('id', id)
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

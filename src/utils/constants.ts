@@ -1,77 +1,141 @@
 export const GRUPOS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']
 
 export const FASES = {
-  grupos: 'Fase de Grupos',
-  oitavas: 'Oitavas de Final',
-  quartas: 'Quartas de Final',
-  semis: 'Semifinais',
-  final: 'Final',
+  grupos:   'Fase de Grupos',
+  oitavas:  'Oitavas de Final',
+  quartas:  'Quartas de Final',
+  semis:    'Semifinais',
+  terceiro: 'Terceiro Lugar',
+  final:    'Final',
 }
 
 export const TEAMS: Record<string, { nome: string; codigo: string }> = {
   // Grupo A
-  'México': { nome: 'México', codigo: 'mx' },
-  'Canadá': { nome: 'Canadá', codigo: 'ca' },
-  'Equador': { nome: 'Equador', codigo: 'ec' },
-  'Colômbia': { nome: 'Colômbia', codigo: 'co' },
+  'México':          { nome: 'México',          codigo: 'mx' },
+  'África do Sul':   { nome: 'África do Sul',   codigo: 'za' },
+  'Coreia do Sul':   { nome: 'Coreia do Sul',   codigo: 'kr' },
+  'Tchéquia':        { nome: 'Tchéquia',        codigo: 'cz' },
   // Grupo B
-  'Brasil': { nome: 'Brasil', codigo: 'br' },
-  'Argentina': { nome: 'Argentina', codigo: 'ar' },
-  'Paraguai': { nome: 'Paraguai', codigo: 'py' },
-  'Venezuela': { nome: 'Venezuela', codigo: 've' },
+  'Canadá':                  { nome: 'Canadá',                  codigo: 'ca' },
+  'Bósnia e Herzegovina':    { nome: 'Bósnia e Herzegovina',    codigo: 'ba' },
+  'Suíça':                   { nome: 'Suíça',                   codigo: 'ch' },
+  'Catar':                   { nome: 'Catar',                   codigo: 'qa' },
   // Grupo C
-  'Espanha': { nome: 'Espanha', codigo: 'es' },
-  'Portugal': { nome: 'Portugal', codigo: 'pt' },
-  'Turquia': { nome: 'Turquia', codigo: 'tr' },
-  'Geórgia': { nome: 'Geórgia', codigo: 'ge' },
-  // Grupo D
-  'Alemanha': { nome: 'Alemanha', codigo: 'de' },
-  'França': { nome: 'França', codigo: 'fr' },
-  'Bélgica': { nome: 'Bélgica', codigo: 'be' },
-  'Suíça': { nome: 'Suíça', codigo: 'ch' },
-  // Grupo E
-  'Inglaterra': { nome: 'Inglaterra', codigo: 'gb-eng' },
-  'Holanda': { nome: 'Holanda', codigo: 'nl' },
-  'Dinamarca': { nome: 'Dinamarca', codigo: 'dk' },
-  'Sérvia': { nome: 'Sérvia', codigo: 'rs' },
-  // Grupo F
-  'EUA': { nome: 'EUA', codigo: 'us' },
-  'Uruguai': { nome: 'Uruguai', codigo: 'uy' },
-  'Chile': { nome: 'Chile', codigo: 'cl' },
-  'Bolívia': { nome: 'Bolívia', codigo: 'bo' },
-  // Grupo G
-  'Itália': { nome: 'Itália', codigo: 'it' },
-  'Croácia': { nome: 'Croácia', codigo: 'hr' },
-  'Eslováquia': { nome: 'Eslováquia', codigo: 'sk' },
-  'Romênia': { nome: 'Romênia', codigo: 'ro' },
-  // Grupo H
-  'Japão': { nome: 'Japão', codigo: 'jp' },
-  'Coreia do Sul': { nome: 'Coreia do Sul', codigo: 'kr' },
-  'Austrália': { nome: 'Austrália', codigo: 'au' },
-  'Indonésia': { nome: 'Indonésia', codigo: 'id' },
-  // Grupo I
+  'Brasil':   { nome: 'Brasil',   codigo: 'br' },
   'Marrocos': { nome: 'Marrocos', codigo: 'ma' },
-  'Senegal': { nome: 'Senegal', codigo: 'sn' },
-  'África do Sul': { nome: 'África do Sul', codigo: 'za' },
-  'Benin': { nome: 'Benin', codigo: 'bj' },
-  // Grupo J
-  'Egito': { nome: 'Egito', codigo: 'eg' },
-  'Argélia': { nome: 'Argélia', codigo: 'dz' },
+  'Haiti':    { nome: 'Haiti',    codigo: 'ht' },
+  'Escócia':  { nome: 'Escócia',  codigo: 'gb-sct' },
+  // Grupo D
+  'EUA':       { nome: 'EUA',       codigo: 'us' },
+  'Paraguai':  { nome: 'Paraguai',  codigo: 'py' },
+  'Austrália': { nome: 'Austrália', codigo: 'au' },
+  'Turquia':   { nome: 'Turquia',   codigo: 'tr' },
+  // Grupo E
+  'Alemanha':        { nome: 'Alemanha',        codigo: 'de' },
+  'Curaçao':         { nome: 'Curaçao',         codigo: 'cw' },
   'Costa do Marfim': { nome: 'Costa do Marfim', codigo: 'ci' },
-  'Tanzânia': { nome: 'Tanzânia', codigo: 'tz' },
+  'Equador':         { nome: 'Equador',         codigo: 'ec' },
+  // Grupo F
+  'Holanda': { nome: 'Holanda', codigo: 'nl' },
+  'Japão':   { nome: 'Japão',   codigo: 'jp' },
+  'Suécia':  { nome: 'Suécia',  codigo: 'se' },
+  'Tunísia': { nome: 'Tunísia', codigo: 'tn' },
+  // Grupo G
+  'Bélgica':      { nome: 'Bélgica',      codigo: 'be' },
+  'Egito':        { nome: 'Egito',        codigo: 'eg' },
+  'Irã':          { nome: 'Irã',          codigo: 'ir' },
+  'Nova Zelândia':{ nome: 'Nova Zelândia',codigo: 'nz' },
+  // Grupo H
+  'Espanha':       { nome: 'Espanha',       codigo: 'es' },
+  'Cabo Verde':    { nome: 'Cabo Verde',    codigo: 'cv' },
+  'Arábia Saudita':{ nome: 'Arábia Saudita',codigo: 'sa' },
+  'Uruguai':       { nome: 'Uruguai',       codigo: 'uy' },
+  // Grupo I
+  'França':  { nome: 'França',  codigo: 'fr' },
+  'Senegal': { nome: 'Senegal', codigo: 'sn' },
+  'Iraque':  { nome: 'Iraque',  codigo: 'iq' },
+  'Noruega': { nome: 'Noruega', codigo: 'no' },
+  // Grupo J
+  'Argentina': { nome: 'Argentina', codigo: 'ar' },
+  'Argélia':   { nome: 'Argélia',   codigo: 'dz' },
+  'Áustria':   { nome: 'Áustria',   codigo: 'at' },
+  'Jordânia':  { nome: 'Jordânia',  codigo: 'jo' },
   // Grupo K
-  'Arábia Saudita': { nome: 'Arábia Saudita', codigo: 'sa' },
-  'Irã': { nome: 'Irã', codigo: 'ir' },
-  'Iraque': { nome: 'Iraque', codigo: 'iq' },
-  'Jordânia': { nome: 'Jordânia', codigo: 'jo' },
+  'Portugal':          { nome: 'Portugal',          codigo: 'pt' },
+  'Rep. Dem. do Congo':{ nome: 'Rep. Dem. do Congo',codigo: 'cd' },
+  'Uzbequistão':       { nome: 'Uzbequistão',       codigo: 'uz' },
+  'Colômbia':          { nome: 'Colômbia',           codigo: 'co' },
   // Grupo L
-  'Nova Zelândia': { nome: 'Nova Zelândia', codigo: 'nz' },
-  'China': { nome: 'China', codigo: 'cn' },
-  'Barein': { nome: 'Barein', codigo: 'bh' },
-  'Taiti': { nome: 'Taiti', codigo: 'pf' },
+  'Inglaterra': { nome: 'Inglaterra', codigo: 'gb-eng' },
+  'Croácia':    { nome: 'Croácia',    codigo: 'hr' },
+  'Gana':       { nome: 'Gana',       codigo: 'gh' },
+  'Panamá':     { nome: 'Panamá',     codigo: 'pa' },
 }
 
 export const ALL_TEAMS = Object.keys(TEAMS)
+
+export const TEAM_ABBR: Record<string, string> = {
+  // Grupo A
+  'México':          'MEX',
+  'África do Sul':   'AFS',
+  'Coreia do Sul':   'COR',
+  'Tchéquia':        'TCH',
+  // Grupo B
+  'Canadá':                'CAN',
+  'Bósnia e Herzegovina':  'BOS',
+  'Suíça':                 'SUI',
+  'Catar':                 'CAT',
+  // Grupo C
+  'Brasil':   'BRA',
+  'Marrocos': 'MAR',
+  'Haiti':    'HAI',
+  'Escócia':  'ESC',
+  // Grupo D
+  'EUA':       'EUA',
+  'Paraguai':  'PAR',
+  'Austrália': 'AUS',
+  'Turquia':   'TUR',
+  // Grupo E
+  'Alemanha':        'ALE',
+  'Curaçao':         'CUR',
+  'Costa do Marfim': 'CDM',
+  'Equador':         'EQU',
+  // Grupo F
+  'Holanda': 'HOL',
+  'Japão':   'JAP',
+  'Suécia':  'SUE',
+  'Tunísia': 'TUN',
+  // Grupo G
+  'Bélgica':       'BEL',
+  'Egito':         'EGI',
+  'Irã':           'IRN',
+  'Nova Zelândia': 'NZL',
+  // Grupo H
+  'Espanha':        'ESP',
+  'Cabo Verde':     'CPV',
+  'Arábia Saudita': 'SAU',
+  'Uruguai':        'URU',
+  // Grupo I
+  'França':  'FRA',
+  'Senegal': 'SEN',
+  'Iraque':  'IRQ',
+  'Noruega': 'NOR',
+  // Grupo J
+  'Argentina': 'ARG',
+  'Argélia':   'ALG',
+  'Áustria':   'AUT',
+  'Jordânia':  'JOR',
+  // Grupo K
+  'Portugal':           'POR',
+  'Rep. Dem. do Congo': 'RDC',
+  'Uzbequistão':        'UZB',
+  'Colômbia':           'COL',
+  // Grupo L
+  'Inglaterra': 'ING',
+  'Croácia':    'CRO',
+  'Gana':       'GAN',
+  'Panamá':     'PAN',
+}
 
 export const PIX_VALOR = 40
 export const PIX_CHAVE = 'renatoclpereira@gmail.com'

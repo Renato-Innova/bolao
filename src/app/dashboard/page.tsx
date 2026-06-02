@@ -2,7 +2,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import { getRanking } from '@/services/ranking'
-import type { JogoCopa } from '@/types'
+import { TEAM_ABBR } from '@/utils/constants'
+import type { JogoCopa, ClassificacaoGrupo } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,27 +49,25 @@ export default async function DashboardPage() {
     supabase.from('jogos_copa').select('*, resultado:resultados(*)').gte('data', new Date().toISOString().split('T')[0]).order('data').order('horario').limit(5),
     supabase.from('jogos_copa').select('*, resultado:resultados(*)').lt('data', new Date().toISOString().split('T')[0]).not('resultado', 'is', null).order('data', { ascending: false }).order('horario', { ascending: false }).limit(4),
     getRanking(),
-    supabase.from('jogos_copa').select('*, resultado:resultados(*)').eq('fase', 'grupos').order('data').order('horario'),
+    supabase.from('classificacao_grupos').select('*').order('grupo').order('pts', { ascending: false }).order('dg', { ascending: false }).order('m', { ascending: false }),
   ])
 
-  // Build standings for the first group that has results, or fall back to the first seeded group
-  type GrupoRow = { time: string; codigo: string; j: number; v: number; sg: number; gp: number; pts: number }
+  // Pick the group with the most games played (most active), fall back to group A
+  const classRows = (grupoJogos ?? []) as ClassificacaoGrupo[]
   const grupoPreview = (() => {
-    const jogos = grupoJogos ?? []
-    const activeGrupo = jogos.find((j: JogoCopa) => j.resultado)?.grupo ?? jogos[0]?.grupo ?? 'A'
-    const standings: Record<string, GrupoRow> = {}
-    for (const jogo of jogos.filter((j: JogoCopa) => j.grupo === activeGrupo)) {
-      if (!standings[jogo.time_a]) standings[jogo.time_a] = { time: jogo.time_a, codigo: jogo.codigo_pais_a, j:0,v:0,sg:0,gp:0,pts:0 }
-      if (!standings[jogo.time_b]) standings[jogo.time_b] = { time: jogo.time_b, codigo: jogo.codigo_pais_b, j:0,v:0,sg:0,gp:0,pts:0 }
-      const res = (jogo as JogoCopa).resultado
-      if (!res) continue
-      const ta = standings[jogo.time_a], tb = standings[jogo.time_b]
-      const ga = res.placar_real_a, gb = res.placar_real_b
-      ta.j++; tb.j++; ta.gp += ga; tb.gp += gb; ta.sg += ga - gb; tb.sg += gb - ga
-      if (ga > gb) { ta.v++; ta.pts += 3 } else if (ga < gb) { tb.v++; tb.pts += 3 } else { ta.pts++; tb.pts++ }
+    const byGrupo: Record<string, ClassificacaoGrupo[]> = {}
+    for (const row of classRows) {
+      if (!byGrupo[row.grupo]) byGrupo[row.grupo] = []
+      byGrupo[row.grupo].push(row)
     }
-    const times = Object.values(standings).sort((a, b) => b.pts - a.pts || b.sg - a.sg || b.gp - a.gp)
-    return { grupo: activeGrupo, times }
+    // Pick the group with the highest total j (games played)
+    let activeGrupo = 'A'
+    let maxJ = -1
+    for (const [g, rows] of Object.entries(byGrupo)) {
+      const totalJ = rows.reduce((s, r) => s + r.j, 0)
+      if (totalJ > maxJ) { maxJ = totalJ; activeGrupo = g }
+    }
+    return { grupo: activeGrupo, times: byGrupo[activeGrupo] ?? [] }
   })()
 
   const lider = ranking[0]
@@ -102,9 +101,9 @@ export default async function DashboardPage() {
           value={
             proximosJogos?.[0]
               ? <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                  <Flag codigo={(proximosJogos[0] as JogoCopa).codigo_pais_a} size={20} />
+                  {(proximosJogos[0] as JogoCopa).codigo_pais_a && <Flag codigo={(proximosJogos[0] as JogoCopa).codigo_pais_a!} size={20} />}
                   <span style={{ color: 'rgba(255,255,255,0.25)' }}>×</span>
-                  <Flag codigo={(proximosJogos[0] as JogoCopa).codigo_pais_b} size={20} />
+                  {(proximosJogos[0] as JogoCopa).codigo_pais_b && <Flag codigo={(proximosJogos[0] as JogoCopa).codigo_pais_b!} size={20} />}
                 </div>
               : <span style={{ fontSize: 14 }}>—</span>
           }
@@ -128,20 +127,20 @@ export default async function DashboardPage() {
           </div>
           {grupoPreview.times.length === 0 ? (
             <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 12, padding: '16px 0' }}>Jogos em breve</p>
-          ) : grupoPreview.times.map((row, idx) => {
+          ) : grupoPreview.times.map((row: ClassificacaoGrupo, idx) => {
             const q = idx < 2
-            const sgStr = row.sg > 0 ? `+${row.sg}` : String(row.sg)
+            const sgStr = row.dg > 0 ? `+${row.dg}` : String(row.dg)
             return (
-              <div key={row.time} className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '6px 4px', alignItems: 'center', fontSize: 11, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.85)', background: q ? 'rgba(74,144,217,0.07)' : 'transparent', borderRadius: q ? 4 : 0 }}>
+              <div key={row.pais_nome} className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '6px 4px', alignItems: 'center', fontSize: 11, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.85)', background: q ? 'rgba(74,144,217,0.07)' : 'transparent', borderRadius: q ? 4 : 0 }}>
                 <span style={{ fontSize: 9, fontWeight: 700, color: q ? '#4A90D9' : 'rgba(255,255,255,0.25)' }}>{idx + 1}</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 5, textAlign: 'left' }}>
-                  <Flag codigo={row.codigo} size={18} />
-                  <span style={{ fontSize: 10, fontWeight: 600, color: 'white' }}>{row.time}</span>
+                  <Flag codigo={row.pais_codigo} size={18} />
+                  <span style={{ fontSize: 10, fontWeight: 600, color: 'white' }}>{row.pais_nome}</span>
                 </span>
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.j}</span>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.v}</span>
-                <span style={{ fontSize: 10, color: row.sg < 0 ? 'rgba(255,100,100,0.75)' : 'rgba(255,255,255,0.6)' }}>{sgStr}</span>
-                <span className="rank-acertos" style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.gp}</span>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.c}</span>
+                <span style={{ fontSize: 10, color: row.dg < 0 ? 'rgba(255,100,100,0.75)' : 'rgba(255,255,255,0.6)' }}>{sgStr}</span>
+                <span className="rank-acertos" style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.m}</span>
                 <span style={{ fontWeight: 700, color: '#4A90D9', fontSize: 11 }}>{row.pts}</span>
               </div>
             )
@@ -165,7 +164,7 @@ export default async function DashboardPage() {
                 }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600 }}>
-                      <Flag codigo={j.codigo_pais_a} size={16} /> {j.time_a.split(' ')[0].slice(0,3).toUpperCase()}
+                      {j.codigo_pais_a && <Flag codigo={j.codigo_pais_a} size={16} />} {(TEAM_ABBR[j.time_a] ?? j.time_a.replace(/\s+/g,'').slice(0,3).toUpperCase())}
                     </div>
                     <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{formatDate(j.data)}</div>
                   </div>
@@ -183,7 +182,7 @@ export default async function DashboardPage() {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, justifyContent: 'flex-end' }}>
-                      {j.time_b.split(' ')[0].slice(0,3).toUpperCase()} <Flag codigo={j.codigo_pais_b} size={16} />
+                      {(TEAM_ABBR[j.time_b] ?? j.time_b.replace(/\s+/g,'').slice(0,3).toUpperCase())} {j.codigo_pais_b && <Flag codigo={j.codigo_pais_b} size={16} />}
                     </div>
                     <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{j.cidade}</div>
                   </div>

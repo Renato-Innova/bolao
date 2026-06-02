@@ -14,6 +14,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showConfirmation, setShowConfirmation] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -21,10 +22,22 @@ export default function RegisterPage() {
     if (password.length < 6) { setError('A senha deve ter pelo menos 6 caracteres.'); return }
     setLoading(true); setError('')
     const supabase = createClient()
-    const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    })
     if (signUpError) { setError(signUpError.message); setLoading(false); return }
     if (data.user) {
       await supabase.from('users').insert({ id: data.user.id, email, nome, telefone: telefone || null, is_admin: false })
+    }
+    // If email confirmation is required the session is null until the user clicks the link.
+    // Show a confirmation message instead of redirecting to a protected page.
+    if (!data.session) {
+      setLoading(false)
+      setError('')
+      setShowConfirmation(true)
+      return
     }
     router.push('/dashboard'); router.refresh()
   }
@@ -53,6 +66,21 @@ export default function RegisterPage() {
           <span style={{ padding: 14, textAlign: 'center', fontSize: 13, fontWeight: 600, color: 'white', textTransform: 'uppercase', letterSpacing: 0.5, background: 'rgba(74,144,217,0.08)', borderBottom: '2px solid #4A90D9' }}>Cadastrar</span>
         </div>
         <div style={{ padding: '22px 28px 24px' }}>
+          {showConfirmation ? (
+            <div style={{ textAlign: 'center', padding: '8px 0 16px' }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>📧</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'white', marginBottom: 8 }}>Confirme seu e-mail</div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, marginBottom: 20 }}>
+                Enviamos um link de confirmação para <strong style={{ color: 'white' }}>{email}</strong>.<br />
+                Clique no link para ativar sua conta e fazer login.
+              </div>
+              <Link href="/auth/login"
+                style={{ display: 'inline-block', background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', borderRadius: 8, padding: '10px 24px', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, textDecoration: 'none' }}>
+                Ir para o login
+              </Link>
+            </div>
+          ) : (
+          <>
           <div style={{ fontSize: 20, fontWeight: 700, color: 'white', marginBottom: 4 }}>Criar conta</div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.40)', marginBottom: 16, lineHeight: 1.5 }}>Preencha seus dados pra participar do bolão.</div>
 
@@ -105,6 +133,8 @@ export default function RegisterPage() {
             Já tem conta?{' '}
             <Link href="/auth/login" style={{ color: '#7BB8F0', textDecoration: 'none', fontWeight: 600 }}>Entrar</Link>
           </div>
+          </>
+          )}
         </div>
       </div>
 

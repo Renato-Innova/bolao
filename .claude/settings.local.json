@@ -6,7 +6,8 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(Remove-Item \"c:\\\\Users\\\\renat\\\\projetos\\\\bolao\\\\src\\\\components\\\\palpites\\\\JogoCard.tsx\")"
     ]
   }
 }

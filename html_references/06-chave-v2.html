@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<!--
+  REFERENCE FILE: 06-chave-v2.html
+  VERSION: 2.0
+  REPLACES: 06-chave-v1.html (bracket espelhado descartado)
+  TAB: "Chave" — sub-tab inside Mata-Mata, read-only bracket view
+
+  ═══════════════════════════════════════════════════════════════
+  INSTRUCTIONS FOR CLAUDE CODE
+  ═══════════════════════════════════════════════════════════════
+
+  WHAT CHANGED FROM v1:
+  The classic mirrored bracket was replaced by a LINEAR left-to-right
+  layout. Phases run in chronological order from left to right:
+    Seg. Final → Oitavas → Quartas → Semifinal → Final
+
+  This layout works for both desktop and mobile — no separate bracket
+  structure needed, only the number of columns visible changes.
+
+  ───────────────────────────────────────────────────────────────
+  DESKTOP (>= 1024px)
+  ───────────────────────────────────────────────────────────────
+  - All 5 phase columns visible simultaneously side by side
+  - Horizontal scroll if screen is narrower than content
+  - Phase pills hidden (not needed — all columns visible)
+  - Each column width: roughly 200px
+  - Connector arrows (→) between columns, vertically centered
+  - Column header: phase name + date range
+  - Match cards stack vertically inside each column
+  - No animations needed
+
+  ───────────────────────────────────────────────────────────────
+  MOBILE (< 1024px)
+  ───────────────────────────────────────────────────────────────
+  - Phase pills shown at top for navigation
+  - Maximum 2 columns visible at a time
+  - Tapping a pill selects that phase. Rules:
+      · If the phase is already one of the 2 visible → no change
+      · If only 1 column was visible → add the new one to the right
+      · If 2 columns visible → drop the LEFT one, slide the RIGHT
+        one to left position, bring new phase in from right
+  - Slide transition: CSS transform translateX with transition 0.28s
+    ease. Do NOT use display:none to hide columns — keep all 5 in
+    the DOM and use translateX to show/hide the correct pair.
+  - Each visible column occupies exactly 50% of the viewport width
+    minus half the gap (gap: 8px between columns)
+  - Active pill: filled blue (#4A90D9)
+  - When a single phase is selected and no second phase yet, that
+    column spans the full width
+
+  ───────────────────────────────────────────────────────────────
+  MATCH CARD STRUCTURE (same for both breakpoints)
+  ───────────────────────────────────────────────────────────────
+  Each match card shows:
+    · Match code + date + time  (small muted text, top)
+    · Team 1 row: flag + name + score
+    · "vs" micro-divider
+    · Team 2 row: flag + name + score
+    · Winner row: blue left accent border + subtle blue bg tint
+
+  When team is not yet qualified:
+    · Flag: gray rectangle placeholder with "?" text
+    · Name: "A definir" in muted italic
+    · Score: "–"
+
+  When match has official result (result_home / result_away NOT NULL):
+    · Show actual scores
+    · Winner row gets .winner class (blue accent)
+    · Card gets .done class (subtle blue border tint)
+
+  Special cards:
+    · "Decisão do 3º Lugar" (J103): label chip above card "3º Lugar"
+    · "Grande Final" (J104): larger card, blue border, label above,
+      "— Campeão Mundial —" tag below once completed
+
+  ───────────────────────────────────────────────────────────────
+  VIEW TOGGLE (top-right toolbar)
+  ───────────────────────────────────────────────────────────────
+  Two buttons: "Resultado Oficial" | "Meu Palpite"
+  - "Resultado Oficial" (default): shows official scores from admin
+  - "Meu Palpite": shows the user's predicted scores for the
+    currently selected palpite (from the predictions table)
+  - When in "Meu Palpite" mode and no prediction exists for a game,
+    show "–" for the score with a muted style
+
+  ───────────────────────────────────────────────────────────────
+  DATA / DATABASE
+  ───────────────────────────────────────────────────────────────
+  Query matches where phase IN ('R32','R16','QF','SF','TPL','F')
+  Phase mapping:
+    'R32' → Seg. de Final   (16 games, J74–J87 range)
+    'R16' → Oitavas         (8 games,  J89–J96)
+    'QF'  → Quartas         (4 games,  J97–J100)
+    'SF'  → Semifinal       (2 games,  J101–J102)
+    'TPL' → 3º Lugar        (1 game,   J103)
+    'F'   → Final           (1 game,   J104)
+
+  Group 'TPL' and 'F' together in the "Final" column.
+
+  Within each column, sort by match_date ASC, match_time ASC.
+
+  home_team / away_team NULL → show "A definir" + placeholder flag
+  result_home / result_away NOT NULL → show score + winner highlight
+
+  Flags: https://flagcdn.com/w40/{country_code}.png
+  Country code stored in teams.flag_code (ISO 3166-1 alpha-2)
+
+  ───────────────────────────────────────────────────────────────
+  CONNECTOR ARROWS (desktop only)
+  ───────────────────────────────────────────────────────────────
+  Between each pair of adjacent columns, render a narrow column
+  (~20px wide) containing a centered "→" arrow icon in
+  rgba(74,144,217,0.4). This visually communicates the left-to-right
+  flow of the tournament.
+
+  ───────────────────────────────────────────────────────────────
+  STYLING TOKENS (match the rest of the app)
+  ───────────────────────────────────────────────────────────────
+  --bg:        #020F2A
+  --surface:   rgba(255,255,255,0.06)
+  --surface-2: rgba(255,255,255,0.10)
+  --border:    rgba(255,255,255,0.10)
+  --accent:    #4A90D9
+  --accent-bg: rgba(74,144,217,0.08)
+  --text:      #ffffff
+  --text-dim:  rgba(255,255,255,0.55)
+  --text-faint:rgba(255,255,255,0.28)
+  Font: Inter (body) + Bebas Neue (phase column headers, scores)
+  Border radius: 8px (cards), 20px (pills)
+-->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chave Linear — Copa 2026 [REFERÊNCIA v2]</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:         #020F2A;
+    --surface:    rgba(255,255,255,0.06);
+    --surface-2:  rgba(255,255,255,0.10);
+    --border:     rgba(255,255,255,0.10);
+    --accent:     #4A90D9;
+    --accent-bg:  rgba(74,144,217,0.08);
+    --accent-dim: rgba(74,144,217,0.18);
+    --text:       #ffffff;
+    --text-dim:   rgba(255,255,255,0.55);
+    --text-faint: rgba(255,255,255,0.28);
+    --radius:     8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Sub-tabs (Mata-Mata | Chave) ─────────────────────── */
+  .sub-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+  }
+  .stab {
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .stab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+  /* ── Toolbar (toggle Oficial / Meu Palpite) ────────────── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .toolbar-label { font-size: 12px; color: var(--text-faint); }
+  .view-toggle {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+  .vbtn {
+    padding: 5px 13px;
+    font-size: 11px;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s, color 0.2s;
+  }
+  .vbtn.active { background: var(--accent); color: #fff; }
+
+  /* ── Phase pills (mobile only) ─────────────────────────── */
+  .pills-bar {
+    display: none;
+    gap: 5px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .pills-bar::-webkit-scrollbar { display: none; }
+  .pill {
+    padding: 5px 13px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: 0.3px;
+    transition: background 0.18s, color 0.18s, border-color 0.18s;
+  }
+  .pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ═══════════════════════════════════════════════════════
+     BRACKET CONTAINER
+     ═══════════════════════════════════════════════════════ */
+  .bracket-outer {
+    padding: 16px;
+    overflow-x: auto; /* desktop: scroll if needed */
+  }
+
+  /* Track holds all columns + connectors in a row */
+  .bracket-track {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    min-width: max-content; /* desktop: expand naturally */
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* ── Phase column ───────────────────────────────────────── */
+  .phase-col {
+    width: 200px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Final column is slightly wider */
+  .phase-col.col-final { width: 210px; }
+
+  .col-header {
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .col-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 17px;
+    letter-spacing: 0.5px;
+    line-height: 1.1;
+  }
+  .col-title.final-title { color: var(--accent); }
+  .col-dates {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 2px;
+  }
+
+  /* ── Connector arrow between columns ───────────────────── */
+  .col-arrow {
+    width: 28px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 40px; /* align with cards, not headers */
+    color: rgba(74, 144, 217, 0.35);
+    font-size: 16px;
+    user-select: none;
+  }
+
+  /* ── Match card ─────────────────────────────────────────── */
+  .mc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 9px 10px;
+    transition: background 0.15s;
+  }
+  .mc:hover { background: var(--surface-2); }
+  .mc.done { border-color: rgba(74,144,217,0.22); background: var(--accent-bg); }
+  .mc.final-card { border-color: var(--accent); }
+
+  .mc-meta {
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-bottom: 7px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .mc-chip {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 1px 6px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .team-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 0;
+  }
+  .team-row.winner {
+    background: var(--accent-bg);
+    border-radius: 5px;
+    padding: 4px 6px;
+    margin: 0 -6px;
+    border-left: 3px solid var(--accent);
+  }
+
+  .flag-img {
+    width: 22px;
+    height: 15px;
+    border-radius: 2px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .flag-ph {
+    width: 22px;
+    height: 15px;
+    border-radius: 2px;
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    color: var(--text-faint);
+    flex-shrink: 0;
+  }
+
+  .team-name {
+    flex: 1;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .team-name.tbd {
+    color: var(--text-faint);
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  .team-score {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    min-width: 14px;
+    text-align: right;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .team-score.winner-score { color: var(--accent); }
+
+  .vs-line {
+    text-align: center;
+    font-size: 9px;
+    color: var(--text-faint);
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 1px 0;
+  }
+
+  /* Final column special labels */
+  .special-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    text-align: center;
+    margin-top: 4px;
+  }
+  .champion-tag {
+    font-size: 10px;
+    color: var(--text-faint);
+    text-align: center;
+    letter-spacing: 0.8px;
+    margin-top: 5px;
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     MOBILE OVERRIDES  (< 1024px)
+     ═══════════════════════════════════════════════════════ */
+  @media (max-width: 1023px) {
+    .pills-bar { display: flex; }
+
+    .bracket-outer {
+      overflow: hidden; /* clip the sliding track */
+      padding: 12px 12px;
+    }
+
+    .bracket-track {
+      /* JS will set translateX to show correct pair */
+      will-change: transform;
+    }
+
+    /* On mobile each column = 50% viewport minus gap */
+    .phase-col,
+    .phase-col.col-final {
+      width: calc(50vw - 20px); /* 50% minus padding + half-gap */
+    }
+
+    /* Hide connector arrows on mobile — not enough space */
+    .col-arrow { display: none; }
+
+    /* Slightly smaller cards on mobile */
+    .mc { padding: 8px 9px; }
+    .team-name { font-size: 10px; }
+    .team-score { font-size: 14px; }
+    .col-title { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sub-tabs -->
+<div class="sub-tabs">
+  <button class="stab">Mata-Mata</button>
+  <button class="stab active">Chave</button>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <span class="toolbar-label">Acompanhe a chave do torneio</span>
+  <div class="view-toggle">
+    <button class="vbtn active" id="vbtn-oficial">Resultado Oficial</button>
+    <button class="vbtn" id="vbtn-palpite">Meu Palpite</button>
+  </div>
+</div>
+
+<!-- Phase pills (mobile only) -->
+<div class="pills-bar" id="pills-bar">
+  <button class="pill active" data-phase="0">Seg. Final</button>
+  <button class="pill"        data-phase="1">Oitavas</button>
+  <button class="pill"        data-phase="2">Quartas</button>
+  <button class="pill"        data-phase="3">Semifinal</button>
+  <button class="pill"        data-phase="4">Final</button>
+</div>
+
+<!-- Bracket -->
+<div class="bracket-outer" id="bracket-outer">
+  <div class="bracket-track" id="bracket-track">
+
+    <!-- ════════════════════════════════
+         FASE 0 — Segundas de Final
+         ════════════════════════════════ -->
+    <div class="phase-col" data-col="0">
+      <div class="col-header">
+        <div class="col-title">Seg. de Final</div>
+        <div class="col-dates">29 Jun – 03 Jul</div>
+      </div>
+
+      <!-- Exemplo: jogo com resultado -->
+      <div class="mc done">
+        <div class="mc-meta"><span>J74 · 29 Jun 17:30</span></div>
+        <div class="team-row winner">
+          <div class="flag-ph">?</div>
+          <span class="team-name tbd">A definir</span>
+          <span class="team-score winner-score">2</span>
+        </div>
+        <div class="vs-line">vs</div>
+        <div class="team-row">
+          <div class="flag-ph">?</div>
+          <span class="team-name tbd">A definir</span>
+          <span class="team-score">1</span>
+        </div>
+      </div>
+
+      <!-- Exemplo: time conhecido vs A definir -->
+      <div class="mc">
+        <div class="mc-meta"><span>J73 · 28 Jun 16:00</span></div>
+        <div class="team-row">
+          <img class="flag-img" src="https://flagcdn.com/w40/br.png" alt="Brasil" />
+          <span class="team-name">Brasil</span>
+          <span class="team-score">–</span>
+        </div>
+        <div class="vs-line">vs</div>
+        <div class="team-row">
+          <div class="flag-ph">?</div>
+          <span class="team-name tbd">A definir</span>
+          <span class="team-score">–</span>
+        </div>
+      </div>
+
+      <div class="mc">
+        <div class="mc-meta"><span>J77 · 30 Jun 18:00</span></div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+        <div class="vs-line">vs</div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+      </div>
+
+      <div class="mc">
+        <div class="mc-meta"><span>J75 · 29 Jun 22:00</span></div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+        <div class="vs-line">vs</div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+      </div>
+
+      <div class="mc">
+        <div class="mc-meta"><span>J83 · 02 Jul 20:00</span></div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+        <div class="vs-line">vs</div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+      </div>
+
+      <div class="mc">
+        <div class="mc-meta"><span>J84 · 02 Jul 16:00</span></div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+        <div class="vs-line">vs</div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+      </div>
+
+      <div class="mc">
+        <div class="mc-meta"><span>J81 · 01 Jul 21:00</span></div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+        <div class="vs-line">vs</div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+      </div>
+
+      <div class="mc">
+        <div class="mc-meta"><span>J82 · 01 Jul 17:00</span></div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+        <div class="vs-line">vs</div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+      </div>
+
+      <div class="mc">
+        <div class="mc-meta"><span>J76 · 29 Jun 14:00</span></div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+        <div class="vs-line">vs</div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+      </div>
+
+      <div class="mc">
+        <div class="mc-meta"><span>J78 · 30 Jun 14:00</span></div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+        <div class="vs-line">vs</div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+      </div>
+
+      <div class="mc">
+        <div class="mc-meta"><span>J79 · 30 Jun 22:00</span></div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+        <div class="vs-line">vs</div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+      </div>
+
+      <div class="mc">
+        <div class="mc-meta"><span>J80 · 01 Jul 13:00</span></div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+        <div class="vs-line">vs</div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+      </div>
+
+      <div class="mc">
+        <div class="mc-meta"><span>J86 · 03 Jul 19:00</span></div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+        <div class="vs-line">vs</div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+      </div>
+
+      <div class="mc">
+        <div class="mc-meta"><span>J88 · 03 Jul 15:00</span></div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+        <div class="vs-line">vs</div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+      </div>
+
+      <div class="mc">
+        <div class="mc-meta"><span>J85 · 03 Jul 00:00</span></div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+        <div class="vs-line">vs</div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+      </div>
+
+      <div class="mc">
+        <div class="mc-meta"><span>J87 · 03 Jul 22:30</span></div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+        <div class="vs-line">vs</div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+      </div>
+    </div><!-- /col-0 -->
+
+    <div class="col-arrow">→</div>
+
+    <!-- ════════════════════════════════
+         FASE 1 — Oitavas de Final
+         ════════════════════════════════ -->
+    <div class="phase-col" data-col="1">
+      <div class="col-header">
+        <div class="col-title">Oitavas de Final</div>
+        <div class="col-dates">04 Jul – 07 Jul</div>
+      </div>
+      <div class="mc"><div class="mc-meta"><span>J89 · 04 Jul 18:00</span></div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div><div class="vs-line">vs</div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div></div>
+      <div class="mc"><div class="mc-meta"><span>J90 · 04 Jul 14:00</span></div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div><div class="vs-line">vs</div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div></div>
+      <div class="mc"><div class="mc-meta"><span>J91 · 05 Jul 17:00</span></div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div><div class="vs-line">vs</div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div></div>
+      <div class="mc"><div class="mc-meta"><span>J92 · 05 Jul 21:00</span></div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div><div class="vs-line">vs</div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div></div>
+      <div class="mc"><div class="mc-meta"><span>J93 · 06 Jul 16:00</span></div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div><div class="vs-line">vs</div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div></div>
+      <div class="mc"><div class="mc-meta"><span>J94 · 06 Jul 21:00</span></div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div><div class="vs-line">vs</div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div></div>
+      <div class="mc"><div class="mc-meta"><span>J95 · 07 Jul 13:00</span></div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div><div class="vs-line">vs</div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div></div>
+      <div class="mc"><div class="mc-meta"><span>J96 · 07 Jul 17:00</span></div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div><div class="vs-line">vs</div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div></div>
+    </div><!-- /col-1 -->
+
+    <div class="col-arrow">→</div>
+
+    <!-- ════════════════════════════════
+         FASE 2 — Quartas de Final
+         ════════════════════════════════ -->
+    <div class="phase-col" data-col="2">
+      <div class="col-header">
+        <div class="col-title">Quartas de Final</div>
+        <div class="col-dates">09 Jul – 11 Jul</div>
+      </div>
+      <div class="mc"><div class="mc-meta"><span>J97 · 09 Jul 17:00</span></div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div><div class="vs-line">vs</div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div></div>
+      <div class="mc"><div class="mc-meta"><span>J98 · 10 Jul 16:00</span></div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div><div class="vs-line">vs</div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div></div>
+      <div class="mc"><div class="mc-meta"><span>J99 · 11 Jul 18:00</span></div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div><div class="vs-line">vs</div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div></div>
+      <div class="mc"><div class="mc-meta"><span>J100 · 11 Jul 22:00</span></div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div><div class="vs-line">vs</div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div></div>
+    </div><!-- /col-2 -->
+
+    <div class="col-arrow">→</div>
+
+    <!-- ════════════════════════════════
+         FASE 3 — Semifinal
+         ════════════════════════════════ -->
+    <div class="phase-col" data-col="3">
+      <div class="col-header">
+        <div class="col-title">Semifinal</div>
+        <div class="col-dates">14 Jul – 15 Jul</div>
+      </div>
+      <div class="mc"><div class="mc-meta"><span>J101 · 14 Jul 16:00</span></div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div><div class="vs-line">vs</div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div></div>
+      <div class="mc"><div class="mc-meta"><span>J102 · 15 Jul 16:00</span></div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div><div class="vs-line">vs</div><div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div></div>
+    </div><!-- /col-3 -->
+
+    <div class="col-arrow">→</div>
+
+    <!-- ════════════════════════════════
+         FASE 4 — Final
+         (inclui 3º lugar + grande final)
+         ════════════════════════════════ -->
+    <div class="phase-col col-final" data-col="4">
+      <div class="col-header">
+        <div class="col-title final-title">Final</div>
+        <div class="col-dates">18 Jul – 19 Jul</div>
+      </div>
+
+      <!-- Decisão do 3º Lugar -->
+      <div class="mc">
+        <div class="mc-meta">
+          <span>J103 · 18 Jul 18:00</span>
+          <span class="mc-chip">3º Lugar</span>
+        </div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+        <div class="vs-line">vs</div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+      </div>
+
+      <!-- Grande Final -->
+      <div class="special-label">🏆 Grande Final</div>
+      <div class="mc final-card">
+        <div class="mc-meta">
+          <span>J104 · 19 Jul 16:00</span>
+          <span class="mc-chip">Final</span>
+        </div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+        <div class="vs-line">vs</div>
+        <div class="team-row"><div class="flag-ph">?</div><span class="team-name tbd">A definir</span><span class="team-score">–</span></div>
+      </div>
+      <div class="champion-tag">— Campeão Mundial —</div>
+
+    </div><!-- /col-4 -->
+
+  </div><!-- /bracket-track -->
+</div><!-- /bracket-outer -->
+
+<script>
+  /* ─────────────────────────────────────────────────────────
+     MOBILE NAVIGATION — 2-column sliding logic
+     ─────────────────────────────────────────────────────────
+     State: visiblePair = [leftIndex, rightIndex | null]
+     On pill tap:
+       - Already visible → no-op
+       - Only 1 visible → add as right column
+       - 2 visible → drop left, shift right to left, add as right
+     Column width on mobile = (viewport - 2*padding - gap) / 2
+     The track translateX positions the correct pair in view.
+  ───────────────────────────────────────────────────────────*/
+
+  const PHASES = 5;
+  const GAP = 8;       // px gap between columns
+  const PADDING = 12;  // bracket-outer padding
+
+  let visiblePair = [0, null]; // start showing only col 0
+
+  const track   = document.getElementById('bracket-track');
+  const outer   = document.getElementById('bracket-outer');
+  const pillEls = document.querySelectorAll('.pill');
+  const cols    = document.querySelectorAll('[data-col]');
+
+  function isMobile() {
+    return window.innerWidth < 1024;
+  }
+
+  function colWidth() {
+    const vw = outer.offsetWidth;
+    return (vw - GAP) / 2;
+  }
+
+  function colOffset(idx) {
+    // On desktop, columns + arrows are natural flow — no transform needed.
+    // On mobile, each "slot" in the track is colWidth() + GAP.
+    // Arrows are hidden on mobile so we treat all 5 cols as consecutive.
+    return idx * (colWidth() + GAP);
+  }
+
+  function render() {
+    if (!isMobile()) {
+      // Desktop: reset any transform, show all cols naturally
+      track.style.transform = 'none';
+      cols.forEach(c => {
+        c.style.width = '';
+        c.style.display = '';
+      });
+      return;
+    }
+
+    const cw = colWidth();
+
+    // Set all columns to mobile width
+    cols.forEach((c, i) => {
+      c.style.width = cw + 'px';
+      c.style.display = 'flex';
+    });
+
+    // Calculate translateX so visiblePair[0] is at left edge
+    const leftIdx = visiblePair[0];
+    const tx = -(leftIdx * (cw + GAP));
+    track.style.transform = `translateX(${tx}px)`;
+
+    // Sync pills
+    pillEls.forEach((p, i) => {
+      const isActive = visiblePair[0] === i || visiblePair[1] === i;
+      p.classList.toggle('active', isActive);
+    });
+  }
+
+  function selectPhase(idx) {
+    if (!isMobile()) return;
+
+    // Already one of the visible cols → no-op
+    if (visiblePair[0] === idx || visiblePair[1] === idx) return;
+
+    if (visiblePair[1] === null) {
+      // Only 1 col visible: add to the right
+      // Ensure left is always the smaller index for left-to-right feel
+      if (idx > visiblePair[0]) {
+        visiblePair = [visiblePair[0], idx];
+      } else {
+        visiblePair = [idx, visiblePair[0]];
+      }
+    } else {
+      // 2 cols visible: drop left, shift right to left, new phase enters right
+      // Always expand rightward chronologically
+      const newLeft = Math.min(visiblePair[1], idx);
+      const newRight = Math.max(visiblePair[1], idx);
+      visiblePair = [newLeft, newRight];
+    }
+
+    render();
+  }
+
+  // Attach pill listeners
+  pillEls.forEach((pill, i) => {
+    pill.addEventListener('click', () => selectPhase(i));
+  });
+
+  // View toggle
+  document.getElementById('vbtn-oficial').addEventListener('click', function() {
+    this.classList.add('active');
+    document.getElementById('vbtn-palpite').classList.remove('active');
+    // Production: switch score data source to official results
+  });
+  document.getElementById('vbtn-palpite').addEventListener('click', function() {
+    this.classList.add('active');
+    document.getElementById('vbtn-oficial').classList.remove('active');
+    // Production: switch score data source to user's predictions
+  });
+
+  // Initial render + on resize
+  render();
+  window.addEventListener('resize', render);
+</script>
+</body>
+</html>

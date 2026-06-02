@@ -16,7 +16,7 @@ export async function getRanking(): Promise<RankingEntry[]> {
     const total = jogos.reduce((sum: number, j: { pontos: number }) => sum + (j.pontos ?? 0), 0)
     return {
       posicao: 0,
-      palpite_id: p.id as string,
+      palpite_id: p.id as number,
       nome: p.nome as string,
       usuario_nome: (p.usuario as { nome: string } | null)?.nome ?? '',
       usuario_id: p.usuario_id as string,
