@@ -40,6 +40,7 @@ export default async function DashboardPage() {
     { data: proximosJogos },
     { data: ultimosResultados },
     ranking,
+    { data: grupoJogos },
   ] = await Promise.all([
     supabase.from('palpites').select('*', { count: 'exact', head: true }).eq('status', 'ativo'),
     supabase.from('jogos_copa').select('*', { count: 'exact', head: true }),
@@ -47,7 +48,28 @@ export default async function DashboardPage() {
     supabase.from('jogos_copa').select('*, resultado:resultados(*)').gte('data', new Date().toISOString().split('T')[0]).order('data').order('horario').limit(5),
     supabase.from('jogos_copa').select('*, resultado:resultados(*)').lt('data', new Date().toISOString().split('T')[0]).not('resultado', 'is', null).order('data', { ascending: false }).order('horario', { ascending: false }).limit(4),
     getRanking(),
+    supabase.from('jogos_copa').select('*, resultado:resultados(*)').eq('fase', 'grupos').order('data').order('horario'),
   ])
+
+  // Build standings for the first group that has results, or fall back to the first seeded group
+  type GrupoRow = { time: string; codigo: string; j: number; v: number; sg: number; gp: number; pts: number }
+  const grupoPreview = (() => {
+    const jogos = grupoJogos ?? []
+    const activeGrupo = jogos.find((j: JogoCopa) => j.resultado)?.grupo ?? jogos[0]?.grupo ?? 'A'
+    const standings: Record<string, GrupoRow> = {}
+    for (const jogo of jogos.filter((j: JogoCopa) => j.grupo === activeGrupo)) {
+      if (!standings[jogo.time_a]) standings[jogo.time_a] = { time: jogo.time_a, codigo: jogo.codigo_pais_a, j:0,v:0,sg:0,gp:0,pts:0 }
+      if (!standings[jogo.time_b]) standings[jogo.time_b] = { time: jogo.time_b, codigo: jogo.codigo_pais_b, j:0,v:0,sg:0,gp:0,pts:0 }
+      const res = (jogo as JogoCopa).resultado
+      if (!res) continue
+      const ta = standings[jogo.time_a], tb = standings[jogo.time_b]
+      const ga = res.placar_real_a, gb = res.placar_real_b
+      ta.j++; tb.j++; ta.gp += ga; tb.gp += gb; ta.sg += ga - gb; tb.sg += gb - ga
+      if (ga > gb) { ta.v++; ta.pts += 3 } else if (ga < gb) { tb.v++; tb.pts += 3 } else { ta.pts++; tb.pts++ }
+    }
+    const times = Object.values(standings).sort((a, b) => b.pts - a.pts || b.sg - a.sg || b.gp - a.gp)
+    return { grupo: activeGrupo, times }
+  })()
 
   const lider = ranking[0]
   const hoje = new Date().toISOString().split('T')[0]
@@ -97,33 +119,33 @@ export default async function DashboardPage() {
         {/* Tabela grupo snapshot */}
         <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
-            Tabela oficial — grupos
+            Tabela oficial — grupo {grupoPreview.grupo}
             <Link href="/tabela" style={{ fontSize: 10, color: '#4A90D9', fontWeight: 500, textDecoration: 'none', textTransform: 'none', letterSpacing: 0 }}>ver todos →</Link>
           </div>
           {/* Table header */}
           <div className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '0 4px 5px', fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
             <span>#</span><span style={{ textAlign: 'left' }}>Seleção</span><span>J</span><span>V</span><span>SG</span><span className="rank-acertos">GP</span><span>Pts</span>
           </div>
-          {/* Placeholder rows */}
-          {[
-            { pos: 1, time: 'Brasil', codigo: 'br', j:2, v:2, sg:'+4', gp:5, pts:6, q:true },
-            { pos: 2, time: 'Marrocos', codigo: 'ma', j:2, v:1, sg:'0', gp:2, pts:3, q:true },
-            { pos: 3, time: 'Croácia', codigo: 'hr', j:2, v:0, sg:'-1', gp:2, pts:2, q:false },
-            { pos: 4, time: 'Uzbequistão', codigo: 'uz', j:2, v:0, sg:'-3', gp:1, pts:0, q:false },
-          ].map(row => (
-            <div key={row.time} className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '6px 4px', alignItems: 'center', fontSize: 11, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.85)', background: row.q ? 'rgba(74,144,217,0.07)' : 'transparent', borderRadius: row.q ? 4 : 0 }}>
-              <span style={{ fontSize: 9, fontWeight: 700, color: row.q ? '#4A90D9' : 'rgba(255,255,255,0.25)' }}>{row.pos}</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5, textAlign: 'left' }}>
-                <Flag codigo={row.codigo} size={18} />
-                <span style={{ fontSize: 10, fontWeight: 600, color: 'white' }}>{row.time}</span>
-              </span>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.j}</span>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.v}</span>
-              <span style={{ fontSize: 10, color: row.sg.startsWith('-') ? 'rgba(255,100,100,0.75)' : 'rgba(255,255,255,0.6)' }}>{row.sg}</span>
-              <span className="rank-acertos" style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.gp}</span>
-              <span style={{ fontWeight: 700, color: '#4A90D9', fontSize: 11 }}>{row.pts}</span>
-            </div>
-          ))}
+          {grupoPreview.times.length === 0 ? (
+            <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 12, padding: '16px 0' }}>Jogos em breve</p>
+          ) : grupoPreview.times.map((row, idx) => {
+            const q = idx < 2
+            const sgStr = row.sg > 0 ? `+${row.sg}` : String(row.sg)
+            return (
+              <div key={row.time} className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '6px 4px', alignItems: 'center', fontSize: 11, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.85)', background: q ? 'rgba(74,144,217,0.07)' : 'transparent', borderRadius: q ? 4 : 0 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: q ? '#4A90D9' : 'rgba(255,255,255,0.25)' }}>{idx + 1}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5, textAlign: 'left' }}>
+                  <Flag codigo={row.codigo} size={18} />
+                  <span style={{ fontSize: 10, fontWeight: 600, color: 'white' }}>{row.time}</span>
+                </span>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.j}</span>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.v}</span>
+                <span style={{ fontSize: 10, color: row.sg < 0 ? 'rgba(255,100,100,0.75)' : 'rgba(255,255,255,0.6)' }}>{sgStr}</span>
+                <span className="rank-acertos" style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.gp}</span>
+                <span style={{ fontWeight: 700, color: '#4A90D9', fontSize: 11 }}>{row.pts}</span>
+              </div>
+            )
+          })}
         </div>
 
         {/* Matches */}

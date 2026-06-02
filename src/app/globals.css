@@ -52,6 +52,11 @@ input[type='number'] { -moz-appearance: textfield; }
 .hidden-mobile   { display: flex; }   /* nav shown on desktop */
 .show-mobile     { display: none; }   /* hamburger hidden on desktop */
 
+/* ── palpites carousel ── */
+.car-desktop { display: block; }
+.car-mobile  { display: none; }
+.tabela-palpite-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+
 /* ══════════════════════════════════════
    MOBILE  ≤ 768px
 ══════════════════════════════════════ */
@@ -121,20 +126,10 @@ input[type='number'] { -moz-appearance: textfield; }
   .grupos-grid { display: flex !important; flex-direction: column !important; }
   .legend-row  { flex-direction: column !important; gap: 6px !important; }
 
-  /* ── palpites entries ── */
-  .entries-grid {
-    display: flex !important;
-    flex-direction: row !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-    gap: 8px !important;
-    padding-bottom: 4px;
-    scrollbar-width: none;
-    margin-bottom: 16px !important;
-  }
-  .entries-grid::-webkit-scrollbar { display: none; }
-  .entries-grid > * { min-width: 160px !important; flex-shrink: 0; }
-  .entries-grid .ec-new-card { min-width: 120px !important; }
+  /* ── palpites carousel ── */
+  .car-desktop { display: none !important; }
+  .car-mobile  { display: block !important; }
+  .tabela-palpite-grid { grid-template-columns: 1fr !important; }
 
   /* match grid: 1 column */
   .match-grid { grid-template-columns: 1fr !important; }

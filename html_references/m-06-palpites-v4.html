@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Mobile Palpites v4 — Bolão Copa 2026</title>
+<!--
+  REFERENCE FILE: m-06-palpites-v4.html
+  VERSION: 4
+  REPLACES: m-06-palpites-v3.html
+
+  CHANGES FROM v3 (mobile):
+  - Entry cards replaced by CAROUSEL: horizontal swipe (touch), 1 card visible at a time
+    with partial peek of next card on the right. Dot indicators below.
+  - Navigation TABS added between carousel and content:
+      [ Fase de Grupos ]  [ Mata-Mata 🔒 ]  [ Tabela ]
+  - Mata-Mata tab disabled while group phase incomplete
+  - TAB 1 — Fase de Grupos: unchanged v3 accordion + single-column game cards
+  - TAB 2 — Mata-Mata: locked placeholder
+  - TAB 3 — Tabela do Palpite: groups stacked vertically (1 per row), same table style
+  - Artilheiro field and PIX sticky bar unchanged
+  - All v3 touch behaviors preserved (36px buttons, tap highlight off)
+-->
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#020F2A;--card:#0D1E3D;--accent:#4A90D9;--al:#7BB8F0;
+    --border:rgba(74,144,217,.15);--tm:rgba(255,255,255,.45);--td:rgba(255,255,255,.25);
+    --ok:#4ade80;--warn:#f97316;
+  }
+  html,body{background:var(--bg);font-family:'Inter',sans-serif;color:#fff;min-height:100vh}
+  body::before{content:'';position:fixed;inset:0;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.02) 0,rgba(255,255,255,.02) 1px,transparent 1px,transparent 60px),repeating-linear-gradient(0deg,rgba(255,255,255,.02) 0,rgba(255,255,255,.02) 1px,transparent 1px,transparent 60px);pointer-events:none;z-index:0}
+
+  .topnav{position:sticky;top:0;z-index:100;background:rgba(2,15,42,.97);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+  .tnlogo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .ltype{display:flex;flex-direction:column;align-items:center;line-height:1}
+  .lnum{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;letter-spacing:-2px;line-height:1}
+  .lfifa{font-family:'Bebas Neue',sans-serif;font-size:7px;color:#fff;letter-spacing:3px}
+  .lwc{font-size:6px;color:var(--td);letter-spacing:1px;font-weight:500}
+  .ldiv{width:1px;height:22px;background:rgba(255,255,255,.12)}
+  .lname{color:#fff;font-size:12px;font-weight:700}
+  .lsub{color:var(--td);font-size:8px;margin-top:1px}
+  .av{width:30px;height:30px;background:linear-gradient(135deg,#4A90D9,#1a5ca8);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700}
+
+  .hero{background:linear-gradient(90deg,#04143a,#091d50);border-bottom:1px solid rgba(74,144,217,.18);padding:8px 16px;display:flex;align-items:center;gap:8px}
+  .dot{width:5px;height:5px;background:var(--ok);border-radius:50%}
+  .pill{background:rgba(74,144,217,.18);border:1px solid rgba(74,144,217,.35);color:var(--al);font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
+
+  .main{position:relative;z-index:1;padding:14px 0 160px}
+
+  .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:0 16px}
+  .pt{font-size:16px;font-weight:800;color:#fff}
+  .ps{font-size:11px;color:var(--tm);margin-top:1px}
+
+  /* ═══════════════════════════════════════
+     CAROUSEL — MOBILE (swipe, 1 visible + peek)
+  ═══════════════════════════════════════ */
+  .carousel-outer{overflow:hidden;padding:0 16px;margin-bottom:4px}
+  .carousel-track{display:flex;gap:10px;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform}
+  .ec{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px 15px;cursor:pointer;position:relative;overflow:hidden;flex-shrink:0;width:calc(100% - 30px);transition:border-color .2s,opacity .2s}
+  .ec::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:rgba(74,144,217,.2);transition:background .2s}
+  .ec.sel{border-color:var(--accent)}
+  .ec.sel::before{background:linear-gradient(90deg,#4A90D9,#7BB8F0)}
+  .ec:not(.sel){opacity:.6}
+  .ec-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+  .ec-name{font-size:13px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ec-user{font-size:10px;color:var(--td);margin-top:2px}
+  .badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0}
+  .b-on{background:rgba(74,222,128,.15);color:#4ade80}
+  .b-off{background:rgba(255,255,255,.07);color:rgba(255,255,255,.4)}
+  .ec-pts{font-size:22px;font-weight:800;color:var(--accent);line-height:1}
+  .ec-prog{display:flex;align-items:center;gap:6px;margin-top:8px}
+  .pb-wrap{flex:1;height:3px;background:rgba(255,255,255,.08);border-radius:2px}
+  .pb-fill{height:3px;background:linear-gradient(90deg,#4A90D9,#7BB8F0);border-radius:2px}
+  .pb-label{font-size:10px;color:var(--td);white-space:nowrap}
+  .ec-new{background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.12);border-radius:10px;flex-shrink:0;width:calc(100% - 30px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:90px;cursor:pointer;opacity:.7}
+
+  /* Dots */
+  .car-dots{display:flex;justify-content:center;gap:5px;margin:8px 0 14px;padding:0 16px}
+  .car-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.15);cursor:pointer;transition:background .2s,transform .2s}
+  .car-dot.on{background:var(--accent);transform:scale(1.3)}
+
+  /* ═══════════════════════════════════════
+     NAVIGATION TABS — MOBILE
+  ═══════════════════════════════════════ */
+  .tabs{display:flex;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 16px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{padding:10px 14px;font-size:10px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:.5px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;white-space:nowrap;user-select:none;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+  .tab.on{color:#fff;border-bottom-color:var(--accent)}
+  .tab.disabled{color:rgba(255,255,255,.2);cursor:not-allowed;pointer-events:none}
+  .tab-lock{font-size:9px;margin-left:3px;opacity:.5}
+
+  /* ═══════════════════════════════════════
+     TAB PANELS
+  ═══════════════════════════════════════ */
+  .tab-panel{display:none;padding:0 16px}
+  .tab-panel.on{display:block}
+
+  /* ═══════════════════════════════════════
+     TAB 2 — MATA-MATA LOCKED
+  ═══════════════════════════════════════ */
+  .locked-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;gap:10px;text-align:center}
+  .locked-icon{font-size:32px;opacity:.3}
+  .locked-title{font-size:13px;font-weight:700;color:rgba(255,255,255,.3)}
+  .locked-sub{font-size:11px;color:rgba(255,255,255,.2);max-width:280px;line-height:1.5}
+
+  /* ═══════════════════════════════════════
+     TAB 3 — TABELA DO PALPITE (mobile: 1 col)
+  ═══════════════════════════════════════ */
+  .tabela-stack{display:flex;flex-direction:column;gap:12px}
+  .grupo-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .grupo-header{padding:8px 12px;background:rgba(74,144,217,.08);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+  .grupo-letra{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--accent);letter-spacing:1px}
+  .grupo-title{font-size:10px;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.5px}
+  .grupo-table{width:100%;border-collapse:collapse}
+  .grupo-table th{font-size:8px;font-weight:700;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.5px;padding:5px 6px;text-align:center;border-bottom:1px solid rgba(255,255,255,.04)}
+  .grupo-table th:first-child,.grupo-table td:first-child{text-align:left;padding-left:10px}
+  .grupo-table td{font-size:10px;color:var(--tm);padding:7px 6px;text-align:center;border-bottom:1px solid rgba(255,255,255,.03)}
+  .grupo-table tr:last-child td{border-bottom:none}
+  .grupo-table tr.qualify td{background:rgba(74,144,217,.06)}
+  .grupo-table tr.qualify td:first-child{border-left:2px solid var(--accent)}
+  .grupo-table tr.maybe td{background:rgba(251,191,36,.04)}
+  .grupo-table tr.maybe td:first-child{border-left:2px solid rgba(251,191,36,.7)}
+  .grupo-table tr.maybe .pts-cell{color:#fbbf24}
+  .grupo-table tr.out td{opacity:.45}
+  .tabela-legend{display:flex;gap:12px;margin-top:10px;flex-wrap:wrap}
+  .leg-item{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--td);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .leg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .leg-dot.blue{background:var(--accent)}
+  .leg-dot.amber{background:#fbbf24}
+  .leg-dot.gray{background:rgba(255,255,255,.2)}
+  .team-cell{display:flex;align-items:center;gap:5px}
+  .pos-num{font-size:9px;font-weight:700;color:rgba(255,255,255,.3);width:10px;flex-shrink:0}
+  .team-flag{width:16px;height:11px;border-radius:1px;object-fit:cover;flex-shrink:0}
+  .team-name{font-size:10px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pts-cell{font-size:11px;font-weight:800;color:var(--accent)}
+
+  /* ═══════════════════════════════════════
+     v3 GAME AREA (Tab 1) — unchanged
+  ═══════════════════════════════════════ */
+  .sl{font-size:9px;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+  .day-group{margin-bottom:16px}
+  .day-label{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .day-title{font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+  .day-date{font-size:10px;color:var(--td);white-space:nowrap}
+  .day-line{flex:1;height:1px;background:rgba(255,255,255,.08)}
+  .day-count{font-size:9px;color:var(--td);white-space:nowrap}
+  .mgrid{display:flex;flex-direction:column;gap:10px}
+  .acc-wrap{margin-bottom:10px}
+  .acc-header{display:flex;align-items:center;gap:8px;background:rgba(74,222,128,.04);border:1px solid rgba(74,222,128,.25);border-radius:8px;padding:11px 14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .15s,border-color .15s}
+  .acc-header.has-pending{background:rgba(249,115,22,.04);border-color:rgba(249,115,22,.35)}
+  .acc-sent-label{font-size:10px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+  .acc-pending-label{font-size:10px;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+  .acc-line{flex:1;height:1px;background:rgba(74,222,128,.15)}
+  .acc-header.has-pending .acc-line{background:rgba(249,115,22,.2)}
+  .acc-chevron{font-size:11px;color:rgba(74,222,128,.7);transition:transform .25s,color .15s;flex-shrink:0}
+  .acc-header.has-pending .acc-chevron{color:rgba(249,115,22,.8)}
+  .acc-wrap.open .acc-chevron{transform:rotate(180deg)}
+  .acc-body{display:none;padding-top:8px}
+  .acc-wrap.open .acc-body{display:block}
+  .pending-label{font-size:9px;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:.7px;margin:6px 0 8px 2px}
+  .mc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;position:relative}
+  .mc.active{border-color:rgba(74,144,217,.3)}
+  .mc.submitted{border-color:rgba(74,222,128,.25)}
+  .mc.locked{opacity:.35;pointer-events:none}
+  .mc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .mm{font-size:9px;color:var(--td);font-weight:500;text-transform:uppercase;letter-spacing:.3px}
+  .mc-actions{display:flex;align-items:center;gap:5px;flex-shrink:0}
+  .check-icon{color:var(--ok);font-size:16px;display:none;font-weight:700}
+  .mc.submitted .check-icon{display:block}
+  .edit-menu{background:none;border:1px solid rgba(255,255,255,.12);border-radius:6px;color:var(--td);font-size:14px;width:28px;height:28px;cursor:pointer;display:none;align-items:center;justify-content:center;position:relative;-webkit-tap-highlight-color:transparent}
+  .mc.submitted .edit-menu{display:flex}
+  .edit-dropdown{position:absolute;top:32px;right:0;background:#1a2d50;border:1px solid rgba(74,144,217,.3);border-radius:8px;padding:4px;min-width:150px;z-index:10;display:none;flex-direction:column}
+  .edit-menu.open .edit-dropdown{display:flex}
+  .edit-opt{padding:10px 12px;font-size:12px;font-weight:600;color:rgba(255,255,255,.8);border-radius:6px;cursor:pointer}
+  .edit-opt:active{background:rgba(74,144,217,.2)}
+  .mteams{display:flex;align-items:center;justify-content:center;gap:4px}
+  .mside{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px}
+  .flag{width:32px;height:22px;border-radius:2px;object-fit:cover}
+  .abbr{font-size:11px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:.5px}
+  .scores-wrap{display:flex;align-items:center;gap:4px}
+  .score-side{display:flex;align-items:center;gap:4px}
+  .sc-btn{width:36px;height:36px;border:1px solid rgba(74,144,217,.35);border-radius:8px;background:rgba(74,144,217,.1);color:var(--accent);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;font-family:'Inter',sans-serif;flex-shrink:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation;padding:0}
+  .sc-btn:active{background:rgba(74,144,217,.4)}
+  .sc-val{width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;color:var(--accent);border-radius:8px;border:2px solid transparent;transition:border-color .3s,color .3s;user-select:none}
+  .mc.submitted .sc-val{border-color:rgba(74,222,128,.7);color:var(--ok)}
+  .score-x{font-size:16px;color:rgba(255,255,255,.2);padding:0 3px;font-weight:300}
+  .mc-footer{margin-top:12px}
+  .btn-send{width:100%;background:rgba(74,144,217,.14);border:1px solid rgba(74,144,217,.3);color:var(--al);padding:12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;text-transform:uppercase;letter-spacing:.4px;touch-action:manipulation}
+  .btn-send:active{background:rgba(74,144,217,.3)}
+  .mc.submitted .btn-send{display:none}
+  .lock-msg{font-size:9px;color:var(--td);text-align:center;margin-top:8px;text-transform:uppercase;letter-spacing:.3px}
+  .load-more-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;margin:4px 0 16px}
+  .btn-load{width:100%;background:rgba(74,144,217,.1);border:1px solid rgba(74,144,217,.25);color:var(--al);padding:14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;text-transform:uppercase;letter-spacing:.5px;touch-action:manipulation}
+  .load-label{font-size:10px;color:var(--td);text-align:center}
+
+  /* ARTILHEIRO */
+  .specials{margin-top:4px;margin-bottom:16px;padding:0 16px}
+  .spc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .spc-label{font-size:11px;color:var(--tm);font-weight:500;white-space:nowrap}
+  .spc-input{flex:1;border:1px solid rgba(74,144,217,.3);border-radius:8px;padding:10px;font-size:14px;font-weight:700;color:var(--accent);background:rgba(74,144,217,.07);font-family:'Inter',sans-serif;outline:none;text-align:right;-webkit-appearance:none}
+
+  /* PIX BAR */
+  .action-bar{position:fixed;bottom:60px;left:0;right:0;z-index:99;background:rgba(2,15,42,.98);border-top:1px solid rgba(74,144,217,.2);backdrop-filter:blur(12px);padding:10px 16px}
+  .btn-pix{width:100%;background:linear-gradient(90deg,#4A90D9,#1a5ca8);color:#fff;border:none;padding:13px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;text-transform:uppercase;letter-spacing:.5px;touch-action:manipulation}
+
+  /* BOTTOM NAV */
+  .bottomnav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(2,15,42,.97);border-top:1px solid var(--border);backdrop-filter:blur(12px);display:flex;padding:8px 0 20px}
+  .bn-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;padding:4px 0}
+  .bn-icon{font-size:20px;line-height:1}
+  .bn-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--td)}
+  .bn-item.on .bn-label{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <a href="m-04-dashboard.html" class="tnlogo">
+    <div class="ltype"><span class="lnum">26</span><span class="lfifa">FIFA</span><span class="lwc">WORLD CUP™</span></div>
+    <div class="ldiv"></div>
+    <div><div class="lname">Bolão Copa 2026</div><div class="lsub">EUA · CAN · MEX</div></div>
+  </a>
+  <div class="av">RP</div>
+</div>
+<div class="hero"><div class="dot"></div><span class="pill">Fase de grupos · Rodada 2</span></div>
+
+<main class="main">
+  <div class="ph">
+    <div><div class="pt">Meus palpites</div><div class="ps">Deslize para navegar entre palpites</div></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       CAROUSEL — touch swipe
+  ═══════════════════════════════════════ -->
+  <div class="carousel-outer" id="carOuter">
+    <div class="carousel-track" id="carTrack">
+      <div class="ec sel">
+        <div class="ec-top"><div style="min-width:0"><div class="ec-name">Hexa é Agora</div><div class="ec-user">Renato P.</div></div><span class="badge b-on">Ativo</span></div>
+        <div class="ec-pts">98 <span style="font-size:12px;font-weight:400;color:var(--td)">pts</span></div>
+        <div class="ec-prog"><div class="pb-wrap"><div class="pb-fill" style="width:42%"></div></div><span class="pb-label">42/104 jogos</span></div>
+      </div>
+      <div class="ec">
+        <div class="ec-top"><div style="min-width:0"><div class="ec-name">Palpite da Ana</div><div class="ec-user">Renato P.</div></div><span class="badge b-off">Inativo</span></div>
+        <div class="ec-pts" style="color:rgba(255,255,255,.2)">— <span style="font-size:12px;font-weight:400;color:var(--td)">pts</span></div>
+        <div class="ec-prog"><div class="pb-wrap"><div class="pb-fill" style="width:18%;background:rgba(255,255,255,.15)"></div></div><span class="pb-label">18/104 jogos</span></div>
+      </div>
+      <div class="ec-new">
+        <span style="font-size:22px;color:rgba(255,255,255,.2)">+</span>
+        <span style="font-size:11px;color:rgba(255,255,255,.25);font-weight:500">Criar novo palpite</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="car-dots" id="carDots">
+    <div class="car-dot on"></div>
+    <div class="car-dot"></div>
+    <div class="car-dot"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       NAVIGATION TABS
+  ═══════════════════════════════════════ -->
+  <div class="tabs">
+    <div class="tab on" onclick="switchTab(0)">Fase de Grupos</div>
+    <div class="tab disabled">Mata-Mata <span class="tab-lock">🔒</span></div>
+    <div class="tab" onclick="switchTab(2)">Tabela</div>
+  </div>
+
+  <!-- TAB 1 — FASE DE GRUPOS -->
+  <div class="tab-panel on" id="panel-0">
+    <div class="sl">Jogos por dia — envie cada placar individualmente</div>
+
+    <!-- DAY 1 — Mixed -->
+    <div class="day-group">
+      <div class="acc-wrap" id="acc-day1">
+        <div class="acc-header has-pending" onclick="toggleAcc('acc-day1')">
+          <span class="day-title">Dia 1</span>
+          <span class="day-date">11 jun</span>
+          <div class="acc-line"></div>
+          <span class="acc-sent-label">✓ 1 enviado</span>
+          <span class="acc-pending-label">⏳ 2 pendentes</span>
+          <span class="acc-chevron">▼</span>
+        </div>
+        <div class="acc-body">
+          <div class="mgrid">
+            <div class="mc submitted">
+              <div class="mc-top"><div class="mm">11 jun · 15h · Los Angeles</div>
+                <div class="mc-actions"><span class="check-icon">✓</span><div class="edit-menu" onclick="this.classList.toggle('open')">⋮<div class="edit-dropdown"><div class="edit-opt" onclick="editMatch(this)">✏️ Editar placar</div></div></div></div>
+              </div>
+              <div class="mteams">
+                <div class="mside"><img class="flag" src="https://flagcdn.com/mx.svg" alt=""/><span class="abbr">MEX</span></div>
+                <div class="scores-wrap">
+                  <div class="score-side"><button class="sc-btn" onclick="adj(this,-1)">−</button><div class="sc-val">2</div><button class="sc-btn" onclick="adj(this,1)">+</button></div>
+                  <span class="score-x">×</span>
+                  <div class="score-side"><button class="sc-btn" onclick="adj(this,-1)">−</button><div class="sc-val">1</div><button class="sc-btn" onclick="adj(this,1)">+</button></div>
+                </div>
+                <div class="mside"><img class="flag" src="https://flagcdn.com/za.svg" alt=""/><span class="abbr">RSA</span></div>
+              </div>
+              <div class="mc-footer"><button class="btn-send">Enviar placar</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pending-label">⏳ Aguardando palpite</div>
+      <div class="mgrid">
+        <div class="mc active">
+          <div class="mc-top"><div class="mm">11 jun · 18h · Nova York</div>
+            <div class="mc-actions"><span class="check-icon">✓</span><div class="edit-menu" onclick="this.classList.toggle('open')">⋮<div class="edit-dropdown"><div class="edit-opt" onclick="editMatch(this)">✏️ Editar placar</div></div></div></div>
+          </div>
+          <div class="mteams">
+            <div class="mside"><img class="flag" src="https://flagcdn.com/es.svg" alt=""/><span class="abbr">ESP</span></div>
+            <div class="scores-wrap">
+              <div class="score-side"><button class="sc-btn" onclick="adj(this,-1)">−</button><div class="sc-val">0</div><button class="sc-btn" onclick="adj(this,1)">+</button></div>
+              <span class="score-x">×</span>
+              <div class="score-side"><button class="sc-btn" onclick="adj(this,-1)">−</button><div class="sc-val">0</div><button class="sc-btn" onclick="adj(this,1)">+</button></div>
+            </div>
+            <div class="mside"><img class="flag" src="https://flagcdn.com/ca.svg" alt=""/><span class="abbr">CAN</span></div>
+          </div>
+          <div class="mc-footer"><button class="btn-send" onclick="submitMatch(this)">Enviar placar</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAY 2 — All submitted -->
+    <div class="day-group">
+      <div class="acc-wrap" id="acc-day2">
+        <div class="acc-header" onclick="toggleAcc('acc-day2')">
+          <span class="day-title">Dia 2</span><span class="day-date">12 jun</span>
+          <div class="acc-line"></div>
+          <span class="acc-sent-label">✓ 2 enviados</span>
+          <span class="acc-chevron">▼</span>
+        </div>
+        <div class="acc-body">
+          <div class="mgrid">
+            <div class="mc submitted">
+              <div class="mc-top"><div class="mm">12 jun · 14h · Seattle</div>
+                <div class="mc-actions"><span class="check-icon">✓</span><div class="edit-menu" onclick="this.classList.toggle('open')">⋮<div class="edit-dropdown"><div class="edit-opt" onclick="editMatch(this)">✏️ Editar placar</div></div></div></div>
+              </div>
+              <div class="mteams">
+                <div class="mside"><img class="flag" src="https://flagcdn.com/br.svg" alt=""/><span class="abbr">BRA</span></div>
+                <div class="scores-wrap">
+                  <div class="score-side"><button class="sc-btn" onclick="adj(this,-1)">−</button><div class="sc-val">3</div><button class="sc-btn" onclick="adj(this,1)">+</button></div>
+                  <span class="score-x">×</span>
+                  <div class="score-side"><button class="sc-btn" onclick="adj(this,-1)">−</button><div class="sc-val">0</div><button class="sc-btn" onclick="adj(this,1)">+</button></div>
+                </div>
+                <div class="mside"><img class="flag" src="https://flagcdn.com/uz.svg" alt=""/><span class="abbr">UZB</span></div>
+              </div>
+              <div class="mc-footer"><button class="btn-send">Enviar placar</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAY 3 — Pending -->
+    <div class="day-group">
+      <div class="day-label">
+        <span class="day-title">Dia 3</span><span class="day-date">13 jun</span>
+        <div class="day-line"></div><span class="day-count">3 jogos</span>
+      </div>
+      <div class="mgrid">
+        <div class="mc active">
+          <div class="mc-top"><div class="mm">13 jun · 12h · Houston</div>
+            <div class="mc-actions"><span class="check-icon">✓</span><div class="edit-menu" onclick="this.classList.toggle('open')">⋮<div class="edit-dropdown"><div class="edit-opt" onclick="editMatch(this)">✏️ Editar placar</div></div></div></div>
+          </div>
+          <div class="mteams">
+            <div class="mside"><img class="flag" src="https://flagcdn.com/de.svg" alt=""/><span class="abbr">GER</span></div>
+            <div class="scores-wrap">
+              <div class="score-side"><button class="sc-btn" onclick="adj(this,-1)">−</button><div class="sc-val">0</div><button class="sc-btn" onclick="adj(this,1)">+</button></div>
+              <span class="score-x">×</span>
+              <div class="score-side"><button class="sc-btn" onclick="adj(this,-1)">−</button><div class="sc-val">0</div><button class="sc-btn" onclick="adj(this,1)">+</button></div>
+            </div>
+            <div class="mside"><img class="flag" src="https://flagcdn.com/jp.svg" alt=""/><span class="abbr">JPN</span></div>
+          </div>
+          <div class="mc-footer"><button class="btn-send" onclick="submitMatch(this)">Enviar placar</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOAD MORE -->
+    <div class="load-more-wrap" id="loadMore">
+      <button class="btn-load" onclick="document.getElementById('loadMore').style.display='none'">Carregar próximo dia →</button>
+      <div class="load-label">Dia 4 · 14 de junho · 4 jogos</div>
+    </div>
+  </div><!-- /panel-0 -->
+
+  <!-- TAB 2 — MATA-MATA LOCKED -->
+  <div class="tab-panel" id="panel-1">
+    <div class="locked-panel">
+      <div class="locked-icon">🏆</div>
+      <div class="locked-title">Mata-Mata disponível após a fase de grupos</div>
+      <div class="locked-sub">Liberado quando todos os 48 jogos da fase de grupos forem concluídos.</div>
+    </div>
+  </div>
+
+  <!-- TAB 3 — TABELA DO PALPITE -->
+  <div class="tab-panel" id="panel-2">
+    <div style="font-size:10px;color:var(--td);margin-bottom:12px;font-weight:500">Classificação calculada a partir dos seus palpites · Critérios FIFA</div>
+    <div class="tabela-stack">
+
+      <div class="grupo-card">
+        <div class="grupo-header"><span class="grupo-letra">A</span><span class="grupo-title">Grupo A</span></div>
+        <table class="grupo-table">
+          <thead><tr><th style="width:45%">Seleção</th><th>J</th><th>V</th><th>E</th><th>D</th><th>SG</th><th>Pts</th></tr></thead>
+          <tbody>
+            <tr class="qualify"><td><div class="team-cell"><span class="pos-num">1</span><img class="team-flag" src="https://flagcdn.com/br.svg" alt=""/><span class="team-name">Brasil</span></div></td><td>2</td><td>2</td><td>0</td><td>0</td><td>+5</td><td class="pts-cell">6</td></tr>
+            <tr class="qualify"><td><div class="team-cell"><span class="pos-num">2</span><img class="team-flag" src="https://flagcdn.com/ar.svg" alt=""/><span class="team-name">Argentina</span></div></td><td>2</td><td>1</td><td>1</td><td>0</td><td>+2</td><td class="pts-cell">4</td></tr>
+            <tr class="maybe"><td><div class="team-cell"><span class="pos-num">3</span><img class="team-flag" src="https://flagcdn.com/mx.svg" alt=""/><span class="team-name">México</span></div></td><td>2</td><td>0</td><td>1</td><td>1</td><td>-2</td><td class="pts-cell">1</td></tr>
+            <tr class="out"><td><div class="team-cell"><span class="pos-num">4</span><img class="team-flag" src="https://flagcdn.com/ec.svg" alt=""/><span class="team-name">Equador</span></div></td><td>2</td><td>0</td><td>0</td><td>2</td><td>-5</td><td class="pts-cell">0</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grupo-card">
+        <div class="grupo-header"><span class="grupo-letra">B</span><span class="grupo-title">Grupo B</span></div>
+        <table class="grupo-table">
+          <thead><tr><th style="width:45%">Seleção</th><th>J</th><th>V</th><th>E</th><th>D</th><th>SG</th><th>Pts</th></tr></thead>
+          <tbody>
+            <tr class="qualify"><td><div class="team-cell"><span class="pos-num">1</span><img class="team-flag" src="https://flagcdn.com/fr.svg" alt=""/><span class="team-name">França</span></div></td><td>2</td><td>2</td><td>0</td><td>0</td><td>+4</td><td class="pts-cell">6</td></tr>
+            <tr class="qualify"><td><div class="team-cell"><span class="pos-num">2</span><img class="team-flag" src="https://flagcdn.com/de.svg" alt=""/><span class="team-name">Alemanha</span></div></td><td>2</td><td>1</td><td>0</td><td>1</td><td>+1</td><td class="pts-cell">3</td></tr>
+            <tr class="maybe"><td><div class="team-cell"><span class="pos-num">3</span><img class="team-flag" src="https://flagcdn.com/pt.svg" alt=""/><span class="team-name">Portugal</span></div></td><td>2</td><td>1</td><td>0</td><td>1</td><td>0</td><td class="pts-cell">3</td></tr>
+            <tr class="out"><td><div class="team-cell"><span class="pos-num">4</span><img class="team-flag" src="https://flagcdn.com/ng.svg" alt=""/><span class="team-name">Nigéria</span></div></td><td>2</td><td>0</td><td>0</td><td>2</td><td>-5</td><td class="pts-cell">0</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+    <div class="tabela-legend">
+      <div class="leg-item"><div class="leg-dot blue"></div> Classificado</div>
+      <div class="leg-item"><div class="leg-dot amber"></div> Depende dos 3ºs</div>
+      <div class="leg-item"><div class="leg-dot gray"></div> Eliminado</div>
+    </div>
+  </div><!-- /panel-2 -->
+
+  <!-- ARTILHEIRO -->
+  <div class="sl" style="margin-top:16px;padding:0 16px">Palpite especial</div>
+  <div class="specials">
+    <div class="spc">
+      <span class="spc-label">⚽ Artilheiro</span>
+      <input class="spc-input" type="text" placeholder="Nome do jogador" value="Vinicius Jr."/>
+    </div>
+  </div>
+
+</main>
+
+<div class="action-bar">
+  <button class="btn-pix">Pagar e ativar via PIX · R$ 40,00</button>
+</div>
+
+<nav class="bottomnav">
+  <a href="m-04-dashboard.html" class="bn-item"><span class="bn-icon">🏠</span><span class="bn-label">Início</span></a>
+  <a href="m-05-tabela.html"    class="bn-item"><span class="bn-icon">📊</span><span class="bn-label">Tabela</span></a>
+  <a href="#"                   class="bn-item on"><span class="bn-icon">✏️</span><span class="bn-label">Palpites</span></a>
+  <a href="m-07-ranking.html"   class="bn-item"><span class="bn-icon">🏆</span><span class="bn-label">Ranking</span></a>
+  <a href="m-08-instrucoes.html" class="bn-item"><span class="bn-icon">📋</span><span class="bn-label">Regras</span></a>
+</nav>
+
+<script>
+  /* ── CAROUSEL — touch swipe ── */
+  const track   = document.getElementById('carTrack')
+  const outer   = document.getElementById('carOuter')
+  const dotsEl  = Array.from(document.getElementById('carDots').children)
+  const cards   = Array.from(track.children)
+  const total   = cards.length
+  let current   = 0
+  let startX    = 0
+
+  function carGo(i) {
+    current = Math.max(0, Math.min(i, total - 1))
+    const w = outer.offsetWidth
+    track.style.transform = `translateX(${-current * (w - 16 + 10)}px)`
+    cards.forEach((c, j) => { c.classList.toggle('sel', j === current); c.style.opacity = j === current ? '1' : '0.6' })
+    dotsEl.forEach((d, j) => d.classList.toggle('on', j === current))
+  }
+
+  track.addEventListener('touchstart', e => { startX = e.touches[0].clientX }, { passive: true })
+  track.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - startX
+    if (Math.abs(dx) > 40) carGo(current + (dx < 0 ? 1 : -1))
+  })
+
+  dotsEl.forEach((d, i) => d.addEventListener('click', () => carGo(i)))
+
+  /* ── TABS ── */
+  const tabs   = Array.from(document.querySelectorAll('.tab'))
+  const panels = Array.from(document.querySelectorAll('.tab-panel'))
+  function switchTab(i) {
+    if (tabs[i].classList.contains('disabled')) return
+    tabs.forEach((t, j) => t.classList.toggle('on', j === i))
+    panels.forEach((p, j) => p.classList.toggle('on', j === i))
+  }
+
+  /* ── ACCORDION ── */
+  function toggleAcc(id) { document.getElementById(id).classList.toggle('open') }
+
+  /* ── SCORE ── */
+  function adj(btn, delta) {
+    const val = btn.closest('.score-side').querySelector('.sc-val')
+    let v = parseInt(val.textContent); if (isNaN(v)) v = 0
+    val.textContent = Math.max(0, v + delta)
+  }
+
+  /* ── SUBMIT / EDIT ── */
+  function submitMatch(btn) {
+    const c = btn.closest('.mc'); c.classList.remove('active'); c.classList.add('submitted')
+  }
+  function editMatch(opt) {
+    const c = opt.closest('.mc'); c.classList.remove('submitted'); c.classList.add('active')
+    opt.closest('.edit-menu').classList.remove('open')
+  }
+</script>
+</body>
+</html>
