@@ -62,6 +62,14 @@ export function Header() {
       display: 'flex', alignItems: 'center',
       padding: '0 24px', gap: 20,
     }}>
+      {/* Mobile hamburger — left side */}
+      <button onClick={() => setMenuOpen(!menuOpen)} className="show-mobile"
+        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'none', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 5, width: 36, height: 36, flexShrink: 0 }}>
+        <span style={{ display: 'block', width: 22, height: 2, borderRadius: 2, background: 'white' }} />
+        <span style={{ display: 'block', width: 22, height: 2, borderRadius: 2, background: 'white' }} />
+        <span style={{ display: 'block', width: 22, height: 2, borderRadius: 2, background: 'white' }} />
+      </button>
+
       {/* Logo */}
       <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', flexShrink: 0 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}>
@@ -129,13 +137,6 @@ export function Header() {
           }}>Cadastrar</Link>
         </div>
       )}
-
-      {/* Mobile hamburger */}
-      <button onClick={() => setMenuOpen(!menuOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'none' }} className="show-mobile">
-        <div style={{ width: 20, height: 2, background: 'white', marginBottom: 4 }} />
-        <div style={{ width: 20, height: 2, background: 'white', marginBottom: 4 }} />
-        <div style={{ width: 20, height: 2, background: 'white' }} />
-      </button>
 
       {/* Mobile menu */}
       {menuOpen && (

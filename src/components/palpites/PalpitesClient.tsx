@@ -490,9 +490,15 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
     <div className="page-main palpites-main" style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 24px 40px' }}>
 
       {/* Page header */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 18, fontWeight: 800, color: 'white' }}>Meus palpites</div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>Navegue entre seus palpites ou crie um novo</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: 'white' }}>Meus palpites</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>Navegue entre seus palpites ou crie um novo</div>
+        </div>
+        <button onClick={() => setShowNovo(true)}
+          style={{ background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', border: 'none', padding: '5px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+          <span style={{ fontSize: 13, lineHeight: 1 }}>+</span> Novo palpite
+        </button>
       </div>
 
       {/* Create form */}
