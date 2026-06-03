@@ -327,26 +327,68 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
     setNovoNome(''); setShowNovo(false); setCriando(false)
   }
 
+  // Keeps palpites.palpites_jogos in sync so TabelaDoPalpite re-renders
+  // immediately without a page reload whenever a match is submitted or cleared.
+  function syncPalpiteJogo(
+    jogoId: string,
+    patch: { placar_a?: number; placar_b?: number; submitted_at: string | null }
+  ) {
+    if (!selectedId) return
+    const jogoIdNum = parseInt(jogoId, 10)
+    setPalpites(prev => prev.map(p => {
+      if (p.id !== selectedId) return p
+      const pjs = p.palpites_jogos ?? []
+      const exists = pjs.some(pj => pj.jogo_id === jogoIdNum)
+      const updated = exists
+        ? pjs.map(pj => pj.jogo_id !== jogoIdNum ? pj : {
+            ...pj,
+            placar_palpite_a: patch.placar_a ?? pj.placar_palpite_a,
+            placar_palpite_b: patch.placar_b ?? pj.placar_palpite_b,
+            submitted_at: patch.submitted_at,
+          })
+        : [...pjs, {
+            id: 0, palpite_id: selectedId, jogo_id: jogoIdNum,
+            placar_palpite_a: patch.placar_a ?? 0,
+            placar_palpite_b: patch.placar_b ?? 0,
+            pontos: 0,
+            submitted_at: patch.submitted_at,
+            criado_em: '', atualizado_em: '',
+          }]
+      return { ...p, palpites_jogos: updated }
+    }))
+  }
+
   async function submitMatch(jogoId: string) {
     const st = matchStates[jogoId]
     if (!st || !selectedId) return
     updateState(jogoId, { saving: true, error: null })
+    const now = new Date().toISOString()
     const { error } = await supabase.from('palpites_jogos').upsert({
       palpite_id: selectedId, jogo_id: parseInt(jogoId, 10),
       placar_palpite_a: st.scoreA, placar_palpite_b: st.scoreB,
-      submitted_at: new Date().toISOString(), pontos: 0,
+      submitted_at: now, pontos: 0,
     }, { onConflict: 'palpite_id,jogo_id' })
-    if (error) updateState(jogoId, { saving: false, error: 'Erro ao salvar. Tente novamente.' })
-    else updateState(jogoId, { saving: false, submitted: true, submittedAt: new Date().toISOString() })
+    if (error) {
+      updateState(jogoId, { saving: false, error: 'Erro ao salvar. Tente novamente.' })
+    } else {
+      updateState(jogoId, { saving: false, submitted: true, submittedAt: now })
+      // Sync palpites state so TabelaDoPalpite re-renders immediately
+      syncPalpiteJogo(jogoId, { placar_a: st.scoreA, placar_b: st.scoreB, submitted_at: now })
+    }
   }
 
   async function editMatch(jogoId: string) {
     if (!selectedId) return
     const res = await fetch(`/api/palpites/${selectedId}/downstream-impact?jogoId=${jogoId}`)
-    if (!res.ok) { updateState(jogoId, { submitted: false }); return }
+    if (!res.ok) {
+      updateState(jogoId, { submitted: false })
+      syncPalpiteJogo(jogoId, { submitted_at: null })
+      return
+    }
     const { affectedCount, affectedPhases } = await res.json()
     if (affectedCount === 0) {
       updateState(jogoId, { submitted: false })
+      syncPalpiteJogo(jogoId, { submitted_at: null })
     } else {
       setCascadeModal({ jogoId, affectedCount, affectedPhases, confirming: false })
     }
@@ -362,6 +404,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
     })
     if (res.ok) {
       const { clearedJogoIds } = await res.json() as { clearedJogoIds: number[] }
+      // Clear matchStates
       setMatchStates(prev => {
         const next = { ...prev }
         next[cascadeModal.jogoId] = { ...next[cascadeModal.jogoId], submitted: false }
@@ -371,6 +414,11 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
         }
         return next
       })
+      // Sync palpites state so TabelaDoPalpite re-renders immediately
+      syncPalpiteJogo(cascadeModal.jogoId, { submitted_at: null })
+      for (const id of clearedJogoIds) {
+        syncPalpiteJogo(String(id), { submitted_at: null })
+      }
     }
     setCascadeModal(null)
   }
@@ -600,11 +648,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
           {/* Tab 1: Fase de Grupos */}
           {activeTab === 0 && (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                  Jogos em ordem cronológica — envie cada placar individualmente
-                </div>
-                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginBottom: 6 }}>
                   <button
                     onClick={() => {
                       const open: Record<string, boolean> = {}
@@ -619,6 +664,9 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
                     style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.4, whiteSpace: 'nowrap' }}>
                     Recolher todos
                   </button>
+                </div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                  Jogos em ordem cronológica — envie cada placar individualmente
                 </div>
               </div>
 
@@ -1486,6 +1534,17 @@ function TabelaDoPalpite({ palpite, todosJogos }: { palpite: Palpite; todosJogos
     return { grupo: g, times }
   }).filter(g => g.times.length > 0)
 
+  // Compute best-8 third-place teams from the user's predicted standings
+  const best8ThirdNames: Set<string> = (() => {
+    const thirds = grupos
+      .filter(g => g.times.length >= 3)
+      .map(g => g.times[2])
+    const best8 = [...thirds]
+      .sort((a, b) => b.pts - a.pts || b.sg - a.sg || b.gp - a.gp)
+      .slice(0, 8)
+    return new Set(best8.map(t => t.time))
+  })()
+
   return (
     <div>
       <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginBottom: 14, fontWeight: 500 }}>
@@ -1510,8 +1569,9 @@ function TabelaDoPalpite({ palpite, todosJogos }: { palpite: Palpite; todosJogos
               </thead>
               <tbody>
                 {times.map((row, idx) => {
-                  const qualify = idx < 2
-                  const maybe   = idx === 2
+                  const isThirdQualifies = idx === 2 && best8ThirdNames.has(row.time)
+                  const qualify = idx < 2 || isThirdQualifies
+                  const maybe   = idx === 2 && !isThirdQualifies
                   const out     = idx === 3
                   const sgStr   = row.sg > 0 ? `+${row.sg}` : String(row.sg)
                   const rowBg   = qualify ? 'rgba(74,144,217,0.06)' : maybe ? 'rgba(251,191,36,0.04)' : 'transparent'

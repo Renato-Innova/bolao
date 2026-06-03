@@ -214,6 +214,25 @@ function JogosTab({ todosJogos }: { todosJogos: JogoCopa[] }) {
 
 /* ─── CLASSIFICAÇÃO tab ───────────────────────────────────── */
 
+// Compute the set of pais_nome values for the best 8 third-place teams across
+// all groups, using FIFA criteria: pts → goal diff → goals scored.
+function computeBest8ThirdPlace(classificacao: ClassificacaoGrupo[]): Set<string> {
+  const grupoMap: Record<string, ClassificacaoGrupo[]> = {}
+  for (const row of classificacao) {
+    if (!grupoMap[row.grupo]) grupoMap[row.grupo] = []
+    grupoMap[row.grupo].push(row)
+  }
+  const thirds: ClassificacaoGrupo[] = []
+  for (const rows of Object.values(grupoMap)) {
+    if (rows.length >= 3) thirds.push(rows[2]) // already sorted by server (pts desc)
+  }
+  // Re-sort by FIFA criteria across groups
+  const best8 = [...thirds]
+    .sort((a, b) => b.pts - a.pts || b.dg - a.dg || b.m - a.m)
+    .slice(0, 8)
+  return new Set(best8.map(t => t.pais_nome))
+}
+
 function ClassificacaoTab({ classificacao }: { classificacao: ClassificacaoGrupo[] }) {
   // Build group map preserving sorted order from server
   const grupoMap: Record<string, ClassificacaoGrupo[]> = {}
@@ -222,6 +241,9 @@ function ClassificacaoTab({ classificacao }: { classificacao: ClassificacaoGrupo
     grupoMap[row.grupo].push(row)
   }
   const grupos = GRUPOS.map(g => ({ grupo: g, times: grupoMap[g] ?? [] })).filter(g => g.times.length > 0)
+
+  // Identify which 3rd-place teams qualify via best-8 rule
+  const best8Names = computeBest8ThirdPlace(classificacao)
 
   if (grupos.length === 0) {
     return (
@@ -249,7 +271,7 @@ function ClassificacaoTab({ classificacao }: { classificacao: ClassificacaoGrupo
                   <span>#</span><span style={{ textAlign: 'left' }}>Seleção</span><span>J</span><span>V</span><span>SG</span><span>GP</span><span>Pts</span>
                 </div>
                 {times.map((t, idx) => {
-                  const q      = idx < 2
+                  const q      = idx < 2 || (idx === 2 && best8Names.has(t.pais_nome))
                   const sgPos  = t.dg > 0
                   const sgNeg  = t.dg < 0
                   return (
@@ -280,11 +302,7 @@ function ClassificacaoTab({ classificacao }: { classificacao: ClassificacaoGrupo
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>
             <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(74,144,217,0.5)' }} />
-            Classifica para o mata-mata (1º e 2º de cada grupo)
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>
-            <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(255,255,255,0.1)' }} />
-            Disputa vaga (8 melhores 3ºs colocados)
+            Classifica para o mata-mata (1º, 2º e melhores 3ºs colocados)
           </div>
         </div>
         <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>Critérios FIFA: Pts → SG → GP → Confronto direto</span>
