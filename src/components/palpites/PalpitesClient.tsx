@@ -1,10 +1,29 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { PIX_VALOR, PIX_CHAVE, GRUPOS, TEAM_ABBR } from '@/utils/constants'
+import { PIX_VALOR, PIX_CHAVE, GRUPOS, TEAM_ABBR, FASES } from '@/utils/constants'
 import type { Palpite, JogoCopa, PalpiteJogo } from '@/types'
+
+/* ─── special palpites options ──────────────────────────────── */
+
+const ARTILHEIRO_OPTIONS = [
+  { value: 'Kylian Mbappé',    label: 'Kylian Mbappé (França)'       },
+  { value: 'Lamine Yamal',     label: 'Lamine Yamal (Espanha)'       },
+  { value: 'Harry Kane',       label: 'Harry Kane (Inglaterra)'      },
+  { value: 'Lionel Messi',     label: 'Lionel Messi (Argentina)'     },
+  { value: 'Vinicius Junior',  label: 'Vinicius Junior (Brasil)'     },
+  { value: 'Raphinha',         label: 'Raphinha (Brasil)'            },
+]
+
+const GOLEIRO_OPTIONS = [
+  { value: 'Mike Maignan',          label: 'Mike Maignan (França)'               },
+  { value: 'Emiliano Martínez',     label: 'Emiliano "Dibu" Martínez (Argentina)'},
+  { value: 'Alisson Becker',        label: 'Alisson Becker (Brasil)'             },
+  { value: 'Unai Simón',            label: 'Unai Simón (Espanha)'                },
+  { value: 'Jordan Pickford',       label: 'Jordan Pickford (Inglaterra)'        },
+]
 
 /* ─── helpers ──────────────────────────────────────────────── */
 
@@ -85,6 +104,17 @@ function initStates(pjs: PalpiteJogo[]): Record<string, MatchState> {
   return out
 }
 
+/* ─── KO team helpers ────────────────────────────────────────── */
+
+// Returns true when the team slot in jogos_copa has not yet been filled
+// by the admin (still holds a bracket placeholder).
+function isPlaceholder(name: string): boolean {
+  return /^\d+º Grupo [A-L]$/.test(name) ||
+         /^Melhor 3º/.test(name) ||
+         name.startsWith('Vencedor') ||
+         name.startsWith('Perdedor')
+}
+
 /* ─── main component ─────────────────────────────────────────── */
 
 interface Props {
@@ -118,15 +148,31 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
   const [deleting, setDeleting] = useState(false)
   const cardMenuRef = useRef<HTMLDivElement>(null)
 
+  /* cascade edit modal */
+  const [cascadeModal, setCascadeModal] = useState<{
+    jogoId: string
+    affectedCount: number
+    affectedPhases: string[]
+    confirming: boolean
+  } | null>(null)
+
   /* match editing */
   const [matchStates, setMatchStates] = useState<Record<string, MatchState>>({})
   const [visibleDays, setVisibleDays] = useState(1)
   const [artilheiro, setArtilheiro] = useState('')
-  const [artSaving, setArtSaving] = useState(false)
+  const [melhorJogador, setMelhorJogador] = useState('')
+  const [melhorGoleiro, setMelhorGoleiro] = useState('')
+  const [specialSaving, setSpecialSaving] = useState(false)
   const [accOpen, setAccOpen] = useState<Record<string, boolean>>({})
 
   /* tabs */
   const [activeTab, setActiveTab] = useState(0)
+  const [mataMataSubTab, setMataMataSubTab] = useState(0)  // 0=list, 1=chave
+  const [phaseSectionOpen, setPhaseSectionOpen] = useState<Record<string, boolean>>({})
+  const [chaveView, setChaveView] = useState<'oficial' | 'palpite'>('oficial')
+  const [chavePillPair, setChavePillPair] = useState<[number, number | null]>([0, null])
+  const chaveOuterRef = useRef<HTMLDivElement>(null)
+  const chaveTrackRef = useRef<HTMLDivElement>(null)
 
   /* carousel */
   const [carOffset, setCarOffset] = useState(0)   // desktop: first visible index
@@ -137,12 +183,13 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
 
   /* derived */
   const selected = palpites.find(p => p.id === selectedId)
-  const days = groupByDay(todosJogos)
+  const jogosGS = todosJogos.filter(j => j.fase === 'GS')
+  const jogosKO = todosJogos.filter(j => j.fase !== 'GS')
+  const days = groupByDay(jogosGS)
   const carItems = [...palpites, 'new' as const]
   const totalCards = carItems.length
   const selIdx = palpites.findIndex(p => p.id === selectedId)
-  const mataMataEnabled = todosJogos.length >= 48 && todosJogos.every(j => j.resultado != null)
-  const totalJogos = todosJogos.length
+  const totalJogos = todosJogos.length  // all 104 for progress bar
   const nextDay = days[visibleDays]
   const hasMore = visibleDays < days.length
 
@@ -150,12 +197,16 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
 
   useEffect(() => {
     setActiveTab(0)
+    setMataMataSubTab(0)
+    setPhaseSectionOpen({})
     const palpite = palpites.find(p => p.id === selectedId)
     if (palpite?.palpites_jogos) {
       const states = initStates(palpite.palpites_jogos)
       setMatchStates(states)
       setArtilheiro(palpite.artilheiro ?? '')
-      const dayGroups = groupByDay(todosJogos)
+      setMelhorJogador(palpite.melhor_jogador ?? '')
+      setMelhorGoleiro(palpite.melhor_goleiro ?? '')
+      const dayGroups = groupByDay(jogosGS)
       let targetDay = 1
       for (let i = 0; i < dayGroups.length; i++) {
         if (dayGroups[i].matches.some(m => !states[String(m.id)]?.submitted)) { targetDay = i + 1; break }
@@ -164,6 +215,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
     } else {
       setMatchStates({})
       setArtilheiro('')
+      setMelhorJogador('')
+      setMelhorGoleiro('')
       setVisibleDays(1)
     }
     setAccOpen({})
@@ -280,13 +333,55 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
     else updateState(jogoId, { saving: false, submitted: true, submittedAt: new Date().toISOString() })
   }
 
-  function editMatch(jogoId: string) { updateState(jogoId, { submitted: false }) }
-
-  async function saveArtilheiro() {
+  async function editMatch(jogoId: string) {
     if (!selectedId) return
-    setArtSaving(true)
-    await supabase.from('palpites').update({ artilheiro }).eq('id', selectedId)
-    setArtSaving(false)
+    const res = await fetch(`/api/palpites/${selectedId}/downstream-impact?jogoId=${jogoId}`)
+    if (!res.ok) { updateState(jogoId, { submitted: false }); return }
+    const { affectedCount, affectedPhases } = await res.json()
+    if (affectedCount === 0) {
+      updateState(jogoId, { submitted: false })
+    } else {
+      setCascadeModal({ jogoId, affectedCount, affectedPhases, confirming: false })
+    }
+  }
+
+  async function confirmCascadeEdit() {
+    if (!cascadeModal || !selectedId) return
+    setCascadeModal(m => m ? { ...m, confirming: true } : null)
+    const res = await fetch(`/api/palpites/${selectedId}/cascade-clear`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jogoId: parseInt(cascadeModal.jogoId, 10) }),
+    })
+    if (res.ok) {
+      const { clearedJogoIds } = await res.json() as { clearedJogoIds: number[] }
+      setMatchStates(prev => {
+        const next = { ...prev }
+        next[cascadeModal.jogoId] = { ...next[cascadeModal.jogoId], submitted: false }
+        for (const id of clearedJogoIds) {
+          const key = String(id)
+          if (next[key]) next[key] = { ...next[key], submitted: false, submittedAt: null, scoreA: 0, scoreB: 0 }
+        }
+        return next
+      })
+    }
+    setCascadeModal(null)
+  }
+
+  // Saves all three special palpites at once; called whenever any of the three changes
+  async function saveSpecialPalpites(
+    nextArtilheiro = artilheiro,
+    nextMelhorJogador = melhorJogador,
+    nextMelhorGoleiro = melhorGoleiro,
+  ) {
+    if (!selectedId) return
+    setSpecialSaving(true)
+    await supabase.from('palpites').update({
+      artilheiro: nextArtilheiro,
+      melhor_jogador: nextMelhorJogador,
+      melhor_goleiro: nextMelhorGoleiro,
+    }).eq('id', selectedId)
+    setSpecialSaving(false)
   }
 
   /* ─── card renderer (shared desktop + mobile) ────────────── */
@@ -472,19 +567,18 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
         <>
           {/* Tabs */}
           <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 18, overflowX: 'auto', WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'] }}>
-            {(['Fase de Grupos', 'Mata-Mata', 'Tabela do Palpite'] as const).map((label, i) => {
-              const locked = i === 1 && !mataMataEnabled
+            {(['Fase de Grupos', 'Tabela do Palpite', 'Mata-Mata'] as const).map((label, i) => {
               const active = activeTab === i
               return (
-                <div key={i} onClick={() => !locked && setActiveTab(i)} style={{
+                <div key={i} onClick={() => setActiveTab(i)} style={{
                   padding: '10px 20px', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
-                  color: locked ? 'rgba(255,255,255,0.2)' : active ? 'white' : 'rgba(255,255,255,0.45)',
+                  color: active ? 'white' : 'rgba(255,255,255,0.45)',
                   textTransform: 'uppercase', letterSpacing: 0.5, userSelect: 'none',
-                  cursor: locked ? 'not-allowed' : 'pointer',
-                  borderBottom: `2px solid ${active && !locked ? '#4A90D9' : 'transparent'}`,
+                  cursor: 'pointer',
+                  borderBottom: `2px solid ${active ? '#4A90D9' : 'transparent'}`,
                   marginBottom: -1, transition: 'color 0.15s, border-color 0.15s',
                 }}>
-                  {label}{locked && <span style={{ fontSize: 9, marginLeft: 4, opacity: 0.5 }}>🔒</span>}
+                  {label}
                 </div>
               )
             })}
@@ -493,8 +587,26 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
           {/* Tab 1: Fase de Grupos */}
           {activeTab === 0 && (
             <>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
-                Jogos em ordem cronológica — envie cada placar individualmente
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                  Jogos em ordem cronológica — envie cada placar individualmente
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <button
+                    onClick={() => {
+                      const open: Record<string, boolean> = {}
+                      days.slice(0, visibleDays).forEach(g => { open[g.date] = true })
+                      setAccOpen(open)
+                    }}
+                    style={{ background: 'rgba(74,144,217,0.1)', border: '1px solid rgba(74,144,217,0.25)', color: '#7BB8F0', padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.4, whiteSpace: 'nowrap' }}>
+                    Expandir todos
+                  </button>
+                  <button
+                    onClick={() => setAccOpen({})}
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.4, whiteSpace: 'nowrap' }}>
+                    Recolher todos
+                  </button>
+                </div>
               </div>
 
               {days.slice(0, visibleDays).map(group => {
@@ -578,29 +690,74 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
             </>
           )}
 
-          {/* Tab 2: Mata-Mata (locked) */}
-          {activeTab === 1 && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', gap: 12, textAlign: 'center' }}>
-              <div style={{ fontSize: 36, opacity: 0.3 }}>🏆</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}>Mata-Mata disponível após a fase de grupos</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', maxWidth: 320, lineHeight: 1.5 }}>
-                Os jogos do mata-mata serão liberados assim que todos os 48 jogos da fase de grupos forem concluídos.
-              </div>
-            </div>
+          {/* Tab 2: Mata-Mata */}
+          {activeTab === 2 && (
+            <MataMataTab
+              selected={selected}
+              jogosKO={jogosKO}
+              jogosGS={jogosGS}
+              matchStates={matchStates}
+              updateState={updateState}
+              submitMatch={submitMatch}
+              editMatch={editMatch}
+              phaseSectionOpen={phaseSectionOpen}
+              setPhaseSectionOpen={setPhaseSectionOpen}
+              mataMataSubTab={mataMataSubTab}
+              setMataMataSubTab={setMataMataSubTab}
+              chaveView={chaveView}
+              setChaveView={setChaveView}
+              chavePillPair={chavePillPair}
+              setChavePillPair={setChavePillPair}
+              chaveOuterRef={chaveOuterRef}
+              chaveTrackRef={chaveTrackRef}
+            />
           )}
 
           {/* Tab 3: Tabela do Palpite */}
-          {activeTab === 2 && <TabelaDoPalpite palpite={selected} todosJogos={todosJogos} />}
+          {activeTab === 1 && <TabelaDoPalpite palpite={selected} todosJogos={todosJogos} />}
 
-          {/* Artilheiro */}
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 20, marginBottom: 8 }}>
-            Palpite especial
+          {/* Palpites especiais */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 20, marginBottom: 10 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+              Palpites especiais
+            </div>
+            {specialSaving && <span style={{ fontSize: 10, color: '#4A90D9' }}>●</span>}
           </div>
-          <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 8, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 14, maxWidth: 380, marginBottom: 20 }}>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 500, whiteSpace: 'nowrap' }}>⚽ Artilheiro da Copa</span>
-            <input type="text" value={artilheiro} onChange={e => setArtilheiro(e.target.value)} onBlur={saveArtilheiro} placeholder="Nome do jogador"
-              style={{ flex: 1, border: '1px solid rgba(74,144,217,0.3)', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontWeight: 700, color: '#4A90D9', background: 'rgba(74,144,217,0.07)', fontFamily: 'Inter,sans-serif', outline: 'none' }} />
-            {artSaving && <span style={{ fontSize: 10, color: '#4A90D9' }}>●</span>}
+          <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, overflow: 'hidden', maxWidth: 480, marginBottom: 20 }}>
+            {[
+              {
+                emoji: '⚽', label: 'Artilheiro da Copa',
+                value: artilheiro,
+                options: ARTILHEIRO_OPTIONS,
+                onChange: (v: string) => { setArtilheiro(v); saveSpecialPalpites(v, melhorJogador, melhorGoleiro) },
+              },
+              {
+                emoji: '🌟', label: 'Melhor Jogador',
+                value: melhorJogador,
+                options: ARTILHEIRO_OPTIONS,
+                onChange: (v: string) => { setMelhorJogador(v); saveSpecialPalpites(artilheiro, v, melhorGoleiro) },
+              },
+              {
+                emoji: '🧤', label: 'Melhor Goleiro',
+                value: melhorGoleiro,
+                options: GOLEIRO_OPTIONS,
+                onChange: (v: string) => { setMelhorGoleiro(v); saveSpecialPalpites(artilheiro, melhorJogador, v) },
+              },
+            ].map((item, idx, arr) => (
+              <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: idx < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                <span style={{ fontSize: 16, flexShrink: 0 }}>{item.emoji}</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 600, whiteSpace: 'nowrap', flex: '0 0 140px' }}>{item.label}</span>
+                <select
+                  value={item.value}
+                  onChange={e => item.onChange(e.target.value)}
+                  style={{ flex: 1, background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 6, padding: '7px 10px', fontSize: 12, fontWeight: 700, color: item.value ? '#4A90D9' : 'rgba(255,255,255,0.35)', fontFamily: 'Inter,sans-serif', outline: 'none', cursor: 'pointer' }}>
+                  <option value="" style={{ background: '#0D1E3D', color: 'rgba(255,255,255,0.4)' }}>— selecionar —</option>
+                  {item.options.map(opt => (
+                    <option key={opt.value} value={opt.value} style={{ background: '#0D1E3D', color: 'white' }}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
           </div>
 
           {/* Desktop bottom bar */}
@@ -617,16 +774,31 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
             )}
           </div>
 
-          {/* Mobile PIX bar */}
-          {selected.status === 'inativo' && (
-            <div className="pix-bar">
-              <div className="pix-bar-text" style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
-                Palpite <strong style={{ color: 'white' }}>inativo</strong> · <strong style={{ color: 'white' }}>R$ {PIX_VALOR},00</strong>
+
+          {/* Cascade edit confirmation modal */}
+          {cascadeModal && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+              <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.35)', borderRadius: 12, padding: '28px 32px', maxWidth: 400, width: '100%' }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'white', marginBottom: 10 }}>
+                  Editar este palpite vai afetar as fases seguintes
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, marginBottom: 20 }}>
+                  <strong style={{ color: '#4A90D9' }}>{cascadeModal.affectedCount}</strong> palpite{cascadeModal.affectedCount !== 1 ? 's' : ''}{' '}
+                  {cascadeModal.affectedCount !== 1 ? 'nas fases' : 'na fase'}{' '}
+                  <strong style={{ color: 'white' }}>{cascadeModal.affectedPhases.join(' / ')}</strong>{' '}
+                  serão apagados e precisarão ser preenchidos novamente.
+                </div>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                  <button onClick={() => setCascadeModal(null)} disabled={cascadeModal.confirming}
+                    style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)', border: 'none', padding: '8px 18px', borderRadius: 7, fontSize: 12, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                    Cancelar
+                  </button>
+                  <button onClick={confirmCascadeEdit} disabled={cascadeModal.confirming}
+                    style={{ background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', border: 'none', padding: '8px 18px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                    {cascadeModal.confirming ? 'Aguarde...' : 'Confirmar edição'}
+                  </button>
+                </div>
               </div>
-              <button onClick={() => setShowPix(true)} className="pix-bar-btn"
-                style={{ background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', border: 'none', padding: '11px 16px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.4, whiteSpace: 'nowrap' }}>
-                Pagar e ativar
-              </button>
             </div>
           )}
 
@@ -652,6 +824,523 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
           )}
         </>
       )}
+    </div>
+  )
+}
+
+/* ─── MataMata helpers ───────────────────────────────────── */
+
+const KO_PHASES = [
+  { code: 'R32', label: 'Segundas de Final', dates: '29 Jun – 03 Jul', prevCode: 'GS',  prevLabel: 'Fase de Grupos',      total: 16 },
+  { code: 'R16', label: 'Oitavas de Final',  dates: '04 Jul – 07 Jul', prevCode: 'R32', prevLabel: 'Segundas de Final',   total: 8  },
+  { code: 'QF',  label: 'Quartas de Final',  dates: '09 Jul – 11 Jul', prevCode: 'R16', prevLabel: 'Oitavas de Final',    total: 4  },
+  { code: 'SF',  label: 'Semifinal',          dates: '14 Jul – 15 Jul', prevCode: 'QF',  prevLabel: 'Quartas de Final',   total: 2  },
+  { code: 'FIN', label: 'Final',              dates: '18 Jul – 19 Jul', prevCode: 'SF',  prevLabel: 'Semifinal',           total: 2  },
+] as const
+
+type KoPhaseCode = typeof KO_PHASES[number]['code']
+
+function submittedCountByFase(fase: string, selected: Palpite, jogos: JogoCopa[]) {
+  // For 'FIN' display phase, match both TPL and F
+  const codes = fase === 'FIN' ? ['TPL', 'F'] : [fase]
+  const faseJogos = jogos.filter(j => codes.includes(j.fase))
+  const submitted = (selected.palpites_jogos ?? []).filter(pj =>
+    faseJogos.some(j => j.id === pj.jogo_id) && pj.submitted_at
+  ).length
+  return { submitted, total: faseJogos.length }
+}
+
+function isPhaseLocked(phaseCode: KoPhaseCode, selected: Palpite, todosJogos: JogoCopa[]): boolean {
+  const def = KO_PHASES.find(p => p.code === phaseCode)!
+  const prev = def.prevCode
+
+  // R32 special lock: stays locked until the admin fills the official bracket.
+  // All R32 jogos_copa records must have real team names (no placeholders).
+  if (phaseCode === 'R32') {
+    const r32Jogos = todosJogos.filter(j => j.fase === 'R32')
+    if (r32Jogos.length === 0) return true  // not seeded yet
+    return r32Jogos.some(
+      j => isPlaceholder(j.time_a ?? '') || isPlaceholder(j.time_b ?? '')
+    )
+  }
+
+  // All other phases: locked until the user has submitted every game in the previous phase
+  const prevJogos = todosJogos.filter(j => j.fase === prev)
+  if (prevJogos.length === 0) return false
+  const doneCount = (selected.palpites_jogos ?? []).filter(pj =>
+    prevJogos.some(j => j.id === pj.jogo_id) && pj.submitted_at
+  ).length
+  return doneCount < prevJogos.length
+}
+
+/* ─── KnockoutGameCard ────────────────────────────────────── */
+
+interface KoCardProps {
+  jogo: JogoCopa
+  state: MatchState
+  onScoreChange: (side: 'A' | 'B', val: number) => void
+  onSubmit: () => void
+  onEdit: () => void
+}
+
+function KnockoutGameCard({ jogo, state, onScoreChange, onSubmit, onEdit }: KoCardProps) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const locked   = isLocked(jogo.data, jogo.horario)
+  const editable = canEdit(jogo.data, jogo.horario)
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  // Teams are now always taken directly from jogos_copa.
+  // isPlaceholder() is true only when admin hasn't filled the official bracket yet.
+  const hasTeamA = !!(jogo.time_a && !isPlaceholder(jogo.time_a))
+  const hasTeamB = !!(jogo.time_b && !isPlaceholder(jogo.time_b))
+  const displayNameA = hasTeamA ? jogo.time_a : 'A definir'
+  const displayCodigoA = jogo.codigo_pais_a
+  const displayNameB = hasTeamB ? jogo.time_b : 'A definir'
+  const displayCodigoB = jogo.codigo_pais_b
+  const MESES_KO = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+  const [, mm, dd] = jogo.data.split('-')
+  const dateStr = `${parseInt(dd)} ${MESES_KO[parseInt(mm)-1]} · ${jogo.horario.slice(0,5).replace(':','h')}`
+
+  const scoreColor  = state.submitted ? '#4ade80' : '#4A90D9'
+  const scoreBorder = state.submitted ? '2px solid rgba(74,222,128,0.5)' : '1px solid rgba(74,144,217,0.35)'
+
+  function TeamFlag({ hasTeam, codigo, size = 22 }: { hasTeam: boolean; codigo?: string; size?: number }) {
+    if (!hasTeam || !codigo) {
+      return (
+        <div style={{ width: size, height: Math.round(size * 0.67), borderRadius: 3, background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>?</div>
+      )
+    }
+    return <Image src={`https://flagcdn.com/w40/${codigo}.png`} alt={codigo} width={size} height={Math.round(size * 0.67)} style={{ borderRadius: 2, flexShrink: 0 }} unoptimized draggable={false} />
+  }
+
+  function ScoreBtn({ val, onInc, onDec }: { val: number; onInc: () => void; onDec: () => void }) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <button className="sc-btn" onClick={onDec} disabled={locked}
+          style={{ width: 26, height: 26, border: '1px solid rgba(74,144,217,0.35)', borderRadius: 5, background: 'rgba(74,144,217,0.1)', color: '#4A90D9', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0 }}>−</button>
+        <div style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800, color: scoreColor, borderRadius: 5, border: scoreBorder, transition: 'border-color 0.3s, color 0.3s', userSelect: 'none' }}>{val}</div>
+        <button className="sc-btn" onClick={onInc} disabled={locked}
+          style={{ width: 26, height: 26, border: '1px solid rgba(74,144,217,0.35)', borderRadius: 5, background: 'rgba(74,144,217,0.1)', color: '#4A90D9', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0 }}>+</button>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
+      background: state.submitted ? 'rgba(74,222,128,0.03)' : 'transparent',
+      borderBottom: '1px solid rgba(255,255,255,0.06)',
+      opacity: locked ? 0.45 : 1, pointerEvents: locked ? 'none' : 'auto',
+    }}>
+      {/* Team A */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+        <TeamFlag hasTeam={hasTeamA} codigo={displayCodigoA} />
+        <span style={{ fontSize: 12, fontWeight: hasTeamA ? 600 : 400, color: hasTeamA ? 'white' : 'rgba(255,255,255,0.3)', fontStyle: hasTeamA ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {displayNameA}
+        </span>
+      </div>
+
+      {/* Score */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <ScoreBtn val={state.scoreA} onDec={() => onScoreChange('A', Math.max(0, state.scoreA - 1))} onInc={() => onScoreChange('A', state.scoreA + 1)} />
+        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', padding: '0 2px', fontWeight: 300 }}>×</span>
+        <ScoreBtn val={state.scoreB} onDec={() => onScoreChange('B', Math.max(0, state.scoreB - 1))} onInc={() => onScoreChange('B', state.scoreB + 1)} />
+      </div>
+
+      {/* Team B */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, justifyContent: 'flex-end' }}>
+        <span style={{ fontSize: 12, fontWeight: hasTeamB ? 600 : 400, color: hasTeamB ? 'white' : 'rgba(255,255,255,0.3)', fontStyle: hasTeamB ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>
+          {displayNameB}
+        </span>
+        <TeamFlag hasTeam={hasTeamB} codigo={displayCodigoB} />
+      </div>
+
+      {/* Action */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', whiteSpace: 'nowrap' }}>{dateStr}</span>
+        {state.submitted ? (
+          <>
+            <span style={{ color: '#4ade80', fontSize: 14, fontWeight: 700 }}>✓</span>
+            <div ref={menuRef} style={{ position: 'relative' }}>
+              <button onClick={() => setMenuOpen(o => !o)}
+                style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'rgba(255,255,255,0.25)', fontSize: 13, width: 24, height: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⋮</button>
+              {menuOpen && (
+                <div style={{ position: 'absolute', top: 28, right: 0, background: '#1a2d50', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 8, padding: 4, minWidth: 155, zIndex: 20 }}>
+                  <div onClick={() => { if (editable) { onEdit(); setMenuOpen(false) } }}
+                    style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: editable ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.25)', borderRadius: 6, cursor: editable ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
+                    onMouseEnter={e => editable && (e.currentTarget.style.background = 'rgba(74,144,217,0.15)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    ✏️ Editar placar
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <button onClick={onSubmit} disabled={state.saving}
+            style={{ padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none', fontFamily: 'Inter,sans-serif', background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', whiteSpace: 'nowrap' }}>
+            {state.saving ? '...' : 'Enviar'}
+          </button>
+        )}
+      </div>
+      {locked && <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>🔒</div>}
+    </div>
+  )
+}
+
+/* ─── MataMataTab ─────────────────────────────────────────── */
+
+interface MataMataTabProps {
+  selected: Palpite
+  jogosKO: JogoCopa[]
+  jogosGS: JogoCopa[]
+  matchStates: Record<string, MatchState>
+  updateState: (id: string, p: Partial<MatchState>) => void
+  submitMatch: (id: string) => void
+  editMatch: (id: string) => void
+  phaseSectionOpen: Record<string, boolean>
+  setPhaseSectionOpen: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
+  mataMataSubTab: number
+  setMataMataSubTab: (n: number) => void
+  chaveView: 'oficial' | 'palpite'
+  setChaveView: (v: 'oficial' | 'palpite') => void
+  chavePillPair: [number, number | null]
+  setChavePillPair: React.Dispatch<React.SetStateAction<[number, number | null]>>
+  chaveOuterRef: React.RefObject<HTMLDivElement | null>
+  chaveTrackRef: React.RefObject<HTMLDivElement | null>
+}
+
+function MataMataTab({
+  selected, jogosKO, jogosGS, matchStates, updateState, submitMatch, editMatch,
+  phaseSectionOpen, setPhaseSectionOpen,
+  mataMataSubTab, setMataMataSubTab,
+  chaveView, setChaveView,
+  chavePillPair, setChavePillPair, chaveOuterRef, chaveTrackRef,
+}: MataMataTabProps) {
+  // allJogos includes GS so that isPhaseLocked can check if GS is fully submitted
+  const allJogos = [...jogosGS, ...jogosKO]
+
+  // ── sub-tab row ──────────────────────────────────────────
+  return (
+    <div>
+      <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 20 }}>
+        {(['Mata-Mata', 'Chave'] as const).map((label, i) => (
+          <div key={i} onClick={() => setMataMataSubTab(i)} style={{
+            padding: '10px 20px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            color: mataMataSubTab === i ? 'white' : 'rgba(255,255,255,0.45)',
+            borderBottom: `2px solid ${mataMataSubTab === i ? '#4A90D9' : 'transparent'}`,
+            marginBottom: -1, transition: 'color 0.15s', userSelect: 'none', whiteSpace: 'nowrap',
+          }}>{label}</div>
+        ))}
+      </div>
+
+      {/* sub-tab 0: phase list */}
+      {mataMataSubTab === 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {KO_PHASES.map(phase => {
+            const codes = phase.code === 'FIN' ? ['TPL', 'F'] : [phase.code]
+            const phaseJogos = jogosKO.filter(j => codes.includes(j.fase))
+            const { submitted, total } = submittedCountByFase(phase.code, selected, allJogos)
+            const locked = isPhaseLocked(phase.code as KoPhaseCode, selected, allJogos)
+            const isOpen = !!phaseSectionOpen[phase.code]
+            const complete = submitted === total && total > 0
+
+            return (
+              <div key={phase.code} style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, overflow: 'hidden' }}>
+                {/* Phase header */}
+                <div onClick={() => { if (!locked) setPhaseSectionOpen(p => ({ ...p, [phase.code]: !p[phase.code] })) }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', cursor: locked ? 'default' : 'pointer', opacity: locked ? 0.6 : 1, background: 'rgba(255,255,255,0.02)' }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>{locked ? '🔒' : complete ? '✅' : '⚽'}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 0.5, lineHeight: 1.1, color: 'white' }}>{phase.label}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>{phase.dates}</div>
+                  </div>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, whiteSpace: 'nowrap',
+                    background: complete ? 'rgba(34,197,94,0.15)' : submitted > 0 ? 'rgba(74,144,217,0.15)' : 'rgba(255,255,255,0.08)',
+                    color: complete ? '#22c55e' : submitted > 0 ? '#4A90D9' : 'rgba(255,255,255,0.45)',
+                  }}>
+                    {submitted}/{total} preenchidos
+                  </span>
+                  {!locked && (
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', transition: 'transform 0.25s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}>▼</span>
+                  )}
+                </div>
+
+                {/* Locked message */}
+                {locked && (
+                  <div style={{ padding: '24px 20px', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ fontSize: 28, marginBottom: 8, opacity: 0.3 }}>🔒</div>
+                    {phase.code === 'R32' ? (
+                      <>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
+                          Aguardando término da fase de grupos
+                        </div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>
+                          Disponível após a divulgação dos classificados da Fase de Grupos pelo administrador.
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
+                          Disponível após {phase.prevLabel}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>
+                          Preencha todos os {KO_PHASES.find(p => p.code === phase.prevCode)?.total ?? '?'} jogos da {phase.prevLabel} para liberar.
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Phase games (when open) */}
+                {!locked && isOpen && (
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    {phaseJogos.length === 0 ? (
+                      <div style={{ padding: '20px', textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 12 }}>Jogos em breve</div>
+                    ) : (
+                      Object.entries(
+                        phaseJogos.reduce((acc, j) => {
+                          if (!acc[j.data]) acc[j.data] = []
+                          acc[j.data].push(j)
+                          return acc
+                        }, {} as Record<string, JogoCopa[]>)
+                      ).sort(([a], [b]) => a.localeCompare(b)).map(([data, jogos]) => {
+                        const d = new Date(data + 'T12:00:00')
+                        const DAYS_PT = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado']
+                        const MONTHS_PT = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
+                        const dayLabel = `${DAYS_PT[d.getDay()]} · ${d.getDate()} de ${MONTHS_PT[d.getMonth()]}`
+                        return (
+                          <div key={data}>
+                            <div style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.7, background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                              {dayLabel}
+                            </div>
+                            {jogos.map(jogo => (
+                              <KnockoutGameCard key={jogo.id} jogo={jogo}
+                                state={matchStates[String(jogo.id)] ?? { scoreA: 0, scoreB: 0, submitted: false, submittedAt: null, saving: false, error: null }}
+                                onScoreChange={(side, val) => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
+                                onSubmit={() => submitMatch(String(jogo.id))}
+                                onEdit={() => editMatch(String(jogo.id))} />
+                            ))}
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* sub-tab 1: bracket */}
+      {mataMataSubTab === 1 && (
+        <ChaveKnockout
+          jogosKO={jogosKO}
+          selected={selected}
+          matchStates={matchStates}
+          chaveView={chaveView}
+          setChaveView={setChaveView}
+          pillPair={chavePillPair}
+          setPillPair={setChavePillPair}
+          outerRef={chaveOuterRef}
+          trackRef={chaveTrackRef}
+        />
+      )}
+    </div>
+  )
+}
+
+/* ─── ChaveKnockout ───────────────────────────────────────── */
+
+const CHAVE_COLS = [
+  { code: 'R32', label: 'Seg. de Final', dates: '29 Jun – 03 Jul', colIdx: 0 },
+  { code: 'R16', label: 'Oitavas',       dates: '04 Jul – 07 Jul', colIdx: 1 },
+  { code: 'QF',  label: 'Quartas',       dates: '09 Jul – 11 Jul', colIdx: 2 },
+  { code: 'SF',  label: 'Semifinal',     dates: '14 Jul – 15 Jul', colIdx: 3 },
+  { code: 'FIN', label: 'Final',         dates: '18 Jul – 19 Jul', colIdx: 4 },
+] as const
+
+interface ChaveProps {
+  jogosKO: JogoCopa[]
+  selected: Palpite
+  matchStates: Record<string, MatchState>
+  chaveView: 'oficial' | 'palpite'
+  setChaveView: (v: 'oficial' | 'palpite') => void
+  pillPair: [number, number | null]
+  setPillPair: React.Dispatch<React.SetStateAction<[number, number | null]>>
+  outerRef: React.RefObject<HTMLDivElement | null>
+  trackRef: React.RefObject<HTMLDivElement | null>
+}
+
+function ChaveKnockout({ jogosKO, selected, matchStates, chaveView, setChaveView, pillPair, setPillPair, outerRef, trackRef }: ChaveProps) {
+  const MESES_C = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+
+  function getScore(jogo: JogoCopa, side: 'A' | 'B'): string {
+    if (chaveView === 'oficial') {
+      if (!jogo.resultado) return '–'
+      return String(side === 'A' ? jogo.resultado.placar_real_a : jogo.resultado.placar_real_b)
+    }
+    // Meu palpite
+    const st = matchStates[String(jogo.id)]
+    if (!st?.submitted) return '–'
+    return String(side === 'A' ? st.scoreA : st.scoreB)
+  }
+
+  function getWinner(jogo: JogoCopa): 'A' | 'B' | null {
+    if (chaveView === 'oficial') {
+      if (!jogo.resultado) return null
+      const a = jogo.resultado.placar_real_a, b = jogo.resultado.placar_real_b
+      return a > b ? 'A' : b > a ? 'B' : null
+    }
+    const st = matchStates[String(jogo.id)]
+    if (!st?.submitted) return null
+    return st.scoreA > st.scoreB ? 'A' : st.scoreB > st.scoreA ? 'B' : null
+  }
+
+  function selectPill(idx: number) {
+    setPillPair(([l, r]) => {
+      if (l === idx || r === idx) return [l, r]
+      if (r === null) {
+        return idx > l ? [l, idx] : [idx, l]
+      }
+      return [Math.min(r, idx), Math.max(r, idx)]
+    })
+  }
+
+  // Apply mobile transform when pillPair changes
+  useEffect(() => {
+    const outer = outerRef.current
+    const track = trackRef.current
+    if (!outer || !track) return
+    if (window.innerWidth >= 1024) { track.style.transform = 'none'; return }
+    const colW = (outer.offsetWidth - 8) / 2
+    const step = colW + 8
+    const tx = -(pillPair[0] * step)
+    track.style.transform = `translateX(${tx}px)`
+  }) // run every render — outerRef.current.offsetWidth may change
+
+  function MatchCard2({ jogo, isFinal }: { jogo: JogoCopa; isFinal?: boolean }) {
+    const [,mm,dd] = jogo.data.split('-')
+    const meta = `J${jogo.numero_jogo} · ${parseInt(dd)} ${MESES_C[parseInt(mm)-1]} ${jogo.horario.slice(0,5).replace(':','h')}`
+    const isTPL = jogo.fase === 'TPL'
+    const winner = getWinner(jogo)
+    const hasResult = chaveView === 'oficial' ? !!jogo.resultado : !!matchStates[String(jogo.id)]?.submitted
+    const hasTeamA = !!(jogo.time_a && !isPlaceholder(jogo.time_a))
+    const hasTeamB = !!(jogo.time_b && !isPlaceholder(jogo.time_b))
+    const mc2NameA = hasTeamA ? jogo.time_a : 'A definir'
+    const mc2CodigoA = jogo.codigo_pais_a
+    const mc2NameB = hasTeamB ? jogo.time_b : 'A definir'
+    const mc2CodigoB = jogo.codigo_pais_b
+
+    function TeamRow({ side }: { side: 'A' | 'B' }) {
+      const hasTeam = side === 'A' ? hasTeamA : hasTeamB
+      const codigo  = side === 'A' ? mc2CodigoA : mc2CodigoB
+      const name    = side === 'A' ? mc2NameA : mc2NameB
+      const score   = getScore(jogo, side)
+      const isWin   = winner === side
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 4px', borderRadius: 5, background: isWin ? 'rgba(74,144,217,0.08)' : 'transparent', borderLeft: isWin ? '2px solid #4A90D9' : '2px solid transparent', marginLeft: isWin ? -2 : 0 }}>
+          {hasTeam && codigo
+            ? <Image src={`https://flagcdn.com/w40/${codigo}.png`} alt={name ?? ''} width={18} height={12} style={{ borderRadius: 2, flexShrink: 0 }} unoptimized />
+            : <div style={{ width: 18, height: 12, borderRadius: 2, background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>?</div>
+          }
+          <span style={{ flex: 1, fontSize: 10, fontWeight: hasTeam ? 600 : 400, color: hasTeam ? 'white' : 'rgba(255,255,255,0.3)', fontStyle: hasTeam ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {name}
+          </span>
+          <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, minWidth: 14, textAlign: 'right', color: isWin ? '#4A90D9' : hasResult ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.3)', flexShrink: 0 }}>
+            {score}
+          </span>
+        </div>
+      )
+    }
+
+    return (
+      <div style={{
+        background: hasResult ? 'rgba(74,144,217,0.05)' : 'rgba(255,255,255,0.04)',
+        border: isFinal ? '1px solid #4A90D9' : hasResult ? '1px solid rgba(74,144,217,0.2)' : '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 8, padding: '8px 10px',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>{meta}</span>
+          {isTPL && <span style={{ fontSize: 8, fontWeight: 700, color: '#4A90D9', background: 'rgba(74,144,217,0.18)', padding: '1px 5px', borderRadius: 6, textTransform: 'uppercase', letterSpacing: 0.3 }}>3º Lugar</span>}
+        </div>
+        <TeamRow side="A" />
+        <div style={{ textAlign: 'center', fontSize: 8, color: 'rgba(255,255,255,0.2)', fontWeight: 700, letterSpacing: 1, padding: '1px 0' }}>vs</div>
+        <TeamRow side="B" />
+      </div>
+    )
+  }
+
+  const colsByCode = Object.fromEntries(
+    CHAVE_COLS.map(c => {
+      const codes = c.code === 'FIN' ? ['TPL', 'F'] : [c.code]
+      return [c.code, jogosKO.filter(j => codes.includes(j.fase)).sort((a, b) => a.data.localeCompare(b.data) || a.horario.localeCompare(b.horario))]
+    })
+  )
+
+  return (
+    <div>
+      {/* Toolbar */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Acompanhe a chave do torneio</span>
+        <div style={{ display: 'flex', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20, overflow: 'hidden' }}>
+          {(['oficial', 'palpite'] as const).map(v => (
+            <button key={v} onClick={() => setChaveView(v)}
+              style={{ padding: '5px 12px', fontSize: 10, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'Inter,sans-serif', background: chaveView === v ? '#4A90D9' : 'transparent', color: chaveView === v ? 'white' : 'rgba(255,255,255,0.45)', transition: 'background 0.2s, color 0.2s' }}>
+              {v === 'oficial' ? 'Resultado Oficial' : 'Meu Palpite'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Mobile pills */}
+      <div className="chave-pills-bar" style={{ display: 'none', gap: 5, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 12, marginBottom: 4 }}>
+        {CHAVE_COLS.map((c, i) => (
+          <button key={c.code} onClick={() => selectPill(i)}
+            style={{ padding: '4px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.1)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', whiteSpace: 'nowrap', flexShrink: 0, background: (pillPair[0] === i || pillPair[1] === i) ? '#4A90D9' : 'rgba(255,255,255,0.06)', color: (pillPair[0] === i || pillPair[1] === i) ? 'white' : 'rgba(255,255,255,0.5)', borderColor: (pillPair[0] === i || pillPair[1] === i) ? '#4A90D9' : 'rgba(255,255,255,0.1)', transition: 'background 0.2s' }}>
+            {c.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Bracket */}
+      <div ref={outerRef} className="chave-outer" style={{ overflowX: 'auto' }}>
+        <div ref={trackRef} style={{ display: 'flex', alignItems: 'flex-start', gap: 0, minWidth: 'max-content', transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)' }}>
+          {CHAVE_COLS.map((col, ci) => (
+            <React.Fragment key={col.code}>
+              <div className="chave-col" data-col={ci}
+                style={{ width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8, padding: '0 4px' }}>
+                <div style={{ paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: 4 }}>
+                  <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 0.5, color: col.code === 'FIN' ? '#4A90D9' : 'white' }}>{col.label}</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', marginTop: 2 }}>{col.dates}</div>
+                </div>
+                {col.code === 'FIN' && (
+                  <div style={{ fontSize: 9, fontWeight: 700, color: '#4A90D9', textTransform: 'uppercase', letterSpacing: 0.7, textAlign: 'center' }}>🏆 Grande Final</div>
+                )}
+                {(colsByCode[col.code] ?? []).map(jogo => (
+                  <MatchCard2 key={jogo.id} jogo={jogo} isFinal={jogo.fase === 'F'} />
+                ))}
+                {col.code === 'FIN' && (colsByCode[col.code] ?? []).some(j => j.fase === 'F' && (chaveView === 'oficial' ? j.resultado : matchStates[String(j.id)]?.submitted)) && (
+                  <div style={{ textAlign: 'center', fontSize: 9, color: 'rgba(255,255,255,0.25)', letterSpacing: 0.7 }}>— Campeão Mundial —</div>
+                )}
+              </div>
+              {ci < CHAVE_COLS.length - 1 && (
+                <div className="chave-arrow" style={{ width: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 44, color: 'rgba(74,144,217,0.35)', fontSize: 14, userSelect: 'none' }}>→</div>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

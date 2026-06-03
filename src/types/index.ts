@@ -11,7 +11,7 @@ export interface User {
 export interface JogoCopa {
   id: number           // SERIAL
   numero_jogo?: number
-  fase: 'grupos' | 'oitavas' | 'quartas' | 'semis' | 'terceiro' | 'final'
+  fase: 'GS' | 'R32' | 'R16' | 'QF' | 'SF' | 'TPL' | 'F'
   grupo?: string
   rodada?: number
   data: string
@@ -43,6 +43,8 @@ export interface Palpite {
   nome: string
   status: 'ativo' | 'inativo'
   artilheiro?: string
+  melhor_jogador?: string
+  melhor_goleiro?: string
   json_backup?: Record<string, unknown>
   criado_em: string
   atualizado_em: string
@@ -98,4 +100,17 @@ export interface RankingEntry {
   acertos_exatos: number
   acertos_vencedor: number
   variacao: number
+}
+
+export interface BracketSlot {
+  id: number
+  palpite_id: number
+  jogo_id: number
+  time_a: string | null
+  time_b: string | null
+  codigo_a: string | null
+  codigo_b: string | null
+  is_valid: boolean
+  created_at: string
+  updated_at: string
 }
