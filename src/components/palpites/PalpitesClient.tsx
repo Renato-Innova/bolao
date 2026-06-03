@@ -275,8 +275,15 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
 
   /* ─── other handlers ───────────────────────────────────────── */
 
+  // Always merge into a fully-initialised base so no field is ever undefined,
+  // which would cause arithmetic like `undefined + 1 = NaN` in the score controls.
+  const DEFAULT_MATCH_STATE: MatchState = { scoreA: 0, scoreB: 0, submitted: false, submittedAt: null, saving: false, error: null }
+
   function updateState(jogoId: string, patch: Partial<MatchState>) {
-    setMatchStates(prev => ({ ...prev, [jogoId]: { ...prev[jogoId], ...patch } }))
+    setMatchStates(prev => ({
+      ...prev,
+      [jogoId]: { ...(prev[jogoId] ?? DEFAULT_MATCH_STATE), ...patch },
+    }))
   }
 
   function toggleAcc(date: string) {
@@ -1602,12 +1609,13 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit }: MatchCardPr
   const scoreBorder = state.submitted ? '2px solid rgba(74,222,128,0.7)' : '2px solid transparent'
 
   function ScoreControl({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+    const safe = Number.isFinite(value) ? value : 0
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-        <button className="sc-btn" onClick={() => onChange(Math.max(0, value - 1))} disabled={locked}
+        <button className="sc-btn" onClick={() => onChange(Math.max(0, safe - 1))} disabled={locked}
           style={{ width: 24, height: 24, border: '1px solid rgba(74,144,217,0.35)', borderRadius: 5, background: 'rgba(74,144,217,0.1)', color: '#4A90D9', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0, padding: 0 }}>−</button>
-        <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800, color: scoreColor, borderRadius: 6, border: scoreBorder, transition: 'border-color 0.3s, color 0.3s', userSelect: 'none' }}>{value}</div>
-        <button className="sc-btn" onClick={() => onChange(value + 1)} disabled={locked}
+        <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800, color: scoreColor, borderRadius: 6, border: scoreBorder, transition: 'border-color 0.3s, color 0.3s', userSelect: 'none' }}>{safe}</div>
+        <button className="sc-btn" onClick={() => onChange(safe + 1)} disabled={locked}
           style={{ width: 24, height: 24, border: '1px solid rgba(74,144,217,0.35)', borderRadius: 5, background: 'rgba(74,144,217,0.1)', color: '#4A90D9', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0, padding: 0 }}>+</button>
       </div>
     )
