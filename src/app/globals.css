@@ -57,6 +57,11 @@ input[type='number'] { -moz-appearance: textfield; }
 .car-mobile  { display: none; }
 .tabela-palpite-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 
+/* ── chave bracket (desktop: all columns, mobile: 2 columns sliding) ── */
+.chave-pills-bar { display: none; }
+.chave-col { width: 200px; }
+.chave-arrow { display: flex; }
+
 /* ══════════════════════════════════════
    MOBILE  ≤ 768px
 ══════════════════════════════════════ */
@@ -130,6 +135,12 @@ input[type='number'] { -moz-appearance: textfield; }
   .car-desktop { display: none !important; }
   .car-mobile  { display: block !important; }
   .tabela-palpite-grid { grid-template-columns: 1fr !important; }
+
+  /* ── chave bracket mobile ── */
+  .chave-pills-bar { display: flex !important; }
+  .chave-outer { overflow: hidden !important; }
+  .chave-col { width: calc(50vw - 20px) !important; }
+  .chave-arrow { display: none !important; }
 
   /* match grid: 1 column */
   .match-grid { grid-template-columns: 1fr !important; }

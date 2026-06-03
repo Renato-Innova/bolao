@@ -7,7 +7,12 @@
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
       "Bash(npx tsc *)",
-      "Bash(Remove-Item \"c:\\\\Users\\\\renat\\\\projetos\\\\bolao\\\\src\\\\components\\\\palpites\\\\JogoCard.tsx\")"
+      "Bash(Remove-Item \"c:\\\\Users\\\\renat\\\\projetos\\\\bolao\\\\src\\\\components\\\\palpites\\\\JogoCard.tsx\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\renat\\\\projetos\\\\bolao\\\\src\\\\app\\\\api\\\\palpites\\\\[id]\\\\downstream-impact\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\renat\\\\projetos\\\\bolao\\\\src\\\\app\\\\api\\\\palpites\\\\[id]\\\\cascade-clear\")"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\renat\\projetos\\bolao\\src\\app\\api\\palpites\\[id]"
     ]
   }
 }

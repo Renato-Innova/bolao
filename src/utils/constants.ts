@@ -1,13 +1,18 @@
 export const GRUPOS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']
 
-export const FASES = {
-  grupos:   'Fase de Grupos',
-  oitavas:  'Oitavas de Final',
-  quartas:  'Quartas de Final',
-  semis:    'Semifinais',
-  terceiro: 'Terceiro Lugar',
-  final:    'Final',
+export const FASES: Record<string, string> = {
+  GS:  'Fase de Grupos',
+  R32: 'Segundas de Final',
+  R16: 'Oitavas de Final',
+  QF:  'Quartas de Final',
+  SF:  'Semifinal',
+  TPL: 'Decisão do 3º Lugar',
+  F:   'Final',
 }
+
+// Ordered for display (dropdown, tabs, scoring config)
+export const FASES_ORDER = ['GS', 'R32', 'R16', 'QF', 'SF', 'TPL', 'F'] as const
+export type FaseCode = typeof FASES_ORDER[number]
 
 export const TEAMS: Record<string, { nome: string; codigo: string }> = {
   // Grupo A

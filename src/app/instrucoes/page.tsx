@@ -3,13 +3,14 @@ import type { ConfiguracaoPontuacao } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
-const FASES_ORDER = ['grupos', 'oitavas', 'quartas', 'semis', 'final'] as const
+const FASES_ORDER = ['GS', 'R32', 'R16', 'QF', 'SF', 'F'] as const
 const FASES_LABEL: Record<string, string> = {
-  grupos: 'Fase de grupos',
-  oitavas: 'Oitavas de final',
-  quartas: 'Quartas de final',
-  semis: 'Semifinais',
-  final: 'Final',
+  GS:  'Fase de Grupos',
+  R32: 'Segundas de Final',
+  R16: 'Oitavas de Final',
+  QF:  'Quartas de Final',
+  SF:  'Semifinal',
+  F:   'Final',
 }
 
 const card: React.CSSProperties = {
@@ -53,12 +54,13 @@ export default async function InstrucoesPage() {
   }
 
   // fallbacks matching reference HTML
-  const scoring = {
-    grupos:  { exato: pts('grupos', 'placar_exato', 10),  vencedor: pts('grupos', 'vencedor', 5) },
-    oitavas: { exato: pts('oitavas','placar_exato', 20), vencedor: pts('oitavas','vencedor', 10) },
-    quartas: { exato: pts('quartas','placar_exato', 40), vencedor: pts('quartas','vencedor', 20) },
-    semis:   { exato: pts('semis',  'placar_exato', 60), vencedor: pts('semis',  'vencedor', 30) },
-    final:   { exato: pts('final',  'placar_exato',100), vencedor: pts('final',  'vencedor', 50) },
+  const scoring: Record<string, { exato: number; vencedor: number }> = {
+    GS:  { exato: pts('GS',  'placar_exato',  10), vencedor: pts('GS',  'vencedor',   5) },
+    R32: { exato: pts('R32', 'placar_exato',  20), vencedor: pts('R32', 'vencedor',  10) },
+    R16: { exato: pts('R16', 'placar_exato',  40), vencedor: pts('R16', 'vencedor',  20) },
+    QF:  { exato: pts('QF',  'placar_exato',  60), vencedor: pts('QF',  'vencedor',  30) },
+    SF:  { exato: pts('SF',  'placar_exato',  80), vencedor: pts('SF',  'vencedor',  40) },
+    F:   { exato: pts('F',   'placar_exato', 100), vencedor: pts('F',   'vencedor',  50) },
   }
 
   return (
@@ -164,7 +166,7 @@ export default async function InstrucoesPage() {
                   <td style={{ fontSize: 12, fontWeight: 700, color: '#4A90D9', padding: '8px 10px', textAlign: 'center', borderBottom: idx < FASES_ORDER.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>{s.exato} pts</td>
                   <td style={{ fontSize: 12, fontWeight: 700, color: '#4A90D9', padding: '8px 10px', textAlign: 'center', borderBottom: idx < FASES_ORDER.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>{s.vencedor} pts</td>
                   {idx === 0 && (
-                    <td rowSpan={5} className="instr-col-hide" style={{ fontSize: 14, fontWeight: 700, color: '#4A90D9', padding: '8px 10px', textAlign: 'center', verticalAlign: 'middle' }}>40 pts</td>
+                    <td rowSpan={6} className="instr-col-hide" style={{ fontSize: 14, fontWeight: 700, color: '#4A90D9', padding: '8px 10px', textAlign: 'center', verticalAlign: 'middle' }}>40 pts</td>
                   )}
                 </tr>
               )

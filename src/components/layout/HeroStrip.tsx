@@ -1,12 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-
-const FASES_LABEL: Record<string, string> = {
-  grupos:  'Fase de grupos',
-  oitavas: 'Oitavas de final',
-  quartas: 'Quartas de final',
-  semis:   'Semifinais',
-  final:   'Final',
-}
+import { FASES } from '@/utils/constants'
 
 export async function HeroStrip() {
   const supabase = await createClient()
@@ -20,16 +13,18 @@ export async function HeroStrip() {
     supabase.from('resultados').select('*', { count: 'exact', head: true }),
     supabase.from('jogos_copa')
       .select('fase')
+      .not('resultado', 'is', null)
       .order('data', { ascending: false })
       .order('horario', { ascending: false })
       .limit(1)
       .maybeSingle(),
   ])
 
-  const total     = totalJogos ?? 0
+  const total      = totalJogos ?? 0
   const realizados = jogosRealizados ?? 0
-  const faseAtual = ultimoJogo?.fase ?? 'grupos'
-  const faseLabel = FASES_LABEL[faseAtual] ?? 'Fase de grupos'
+  // Derive current phase from the most recent played game
+  const fase       = ultimoJogo?.fase ?? 'GS'
+  const faseLabel  = FASES[fase] ?? 'Fase de Grupos'
 
   return (
     <div style={{
