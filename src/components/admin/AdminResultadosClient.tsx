@@ -22,6 +22,12 @@ const KO_PHASES = [
 
 const ALL_TEAM_NAMES = Object.keys(TEAMS).sort()
 
+// A game slot is still a placeholder when the admin hasn't filled official teams yet
+function isPlaceholderTeam(name: string): boolean {
+  return name.startsWith('Vencedor') || name.startsWith('Perdedor') ||
+    /^\d+º Grupo/.test(name) || name.startsWith('Melhor 3º')
+}
+
 const FASE_LABEL: Record<string, string> = {
   GS: 'Fase de Grupos', R32: 'Seg. de Final', R16: 'Oitavas', QF: 'Quartas', SF: 'Semifinal', TPL: '3º Lugar', F: 'Final',
 }
@@ -61,9 +67,10 @@ interface FillResult {
   games: Array<{ jogoId: number; timeA: string; timeB: string; codigoA: string | null; codigoB: string | null; changed: boolean }>
 }
 
-function PreencherModal({ onClose, onDone }: {
+function PreencherModal({ onClose, onDone, filledPhases }: {
   onClose: () => void
   onDone: (fase: string, result: FillResult) => void
+  filledPhases: Set<string>
 }) {
   const [selectedFase, setSelectedFase] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -97,13 +104,20 @@ function PreencherModal({ onClose, onDone }: {
         </div>
         {!result && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-            {KO_PHASES.map(phase => (
-              <div key={phase.code} onClick={() => setSelectedFase(phase.code)}
-                style={{ padding: '12px 16px', borderRadius: 8, cursor: 'pointer', border: `1px solid ${selectedFase === phase.code ? 'rgba(74,144,217,0.6)' : 'rgba(255,255,255,0.08)'}`, background: selectedFase === phase.code ? 'rgba(74,144,217,0.12)' : 'rgba(255,255,255,0.03)', transition: 'all 0.15s' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: selectedFase === phase.code ? '#7BB8F0' : 'rgba(255,255,255,0.8)' }}>{phase.label}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{phase.hint}</div>
-              </div>
-            ))}
+            {KO_PHASES.map(phase => {
+              const isFilled = filledPhases.has(phase.code)
+              const isSelected = selectedFase === phase.code
+              return (
+                <div key={phase.code} onClick={() => setSelectedFase(phase.code)}
+                  style={{ padding: '12px 16px', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, border: `1px solid ${isSelected ? 'rgba(74,144,217,0.6)' : isFilled ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.08)'}`, background: isSelected ? 'rgba(74,144,217,0.12)' : isFilled ? 'rgba(74,222,128,0.05)' : 'rgba(255,255,255,0.03)', transition: 'all 0.15s' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: isSelected ? '#7BB8F0' : isFilled ? '#4ade80' : 'rgba(255,255,255,0.8)' }}>{phase.label}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{phase.hint}</div>
+                  </div>
+                  {isFilled && <span style={{ fontSize: 16, color: '#4ade80', flexShrink: 0 }}>✓</span>}
+                </div>
+              )
+            })}
           </div>
         )}
         {result && (
@@ -117,6 +131,7 @@ function PreencherModal({ onClose, onDone }: {
           </div>
         )}
         {error && <div style={{ background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.3)', borderRadius: 7, padding: '10px 14px', fontSize: 12, color: 'rgba(255,130,130,0.9)', marginBottom: 16 }}>{error}</div>}
+
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)', border: 'none', padding: '9px 20px', borderRadius: 7, fontSize: 12, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
             {result ? 'Fechar' : 'Cancelar'}
@@ -138,7 +153,7 @@ function PreencherModal({ onClose, onDone }: {
 interface GameRowProps {
   jogo: JogoCopa
   isKO: boolean
-  onSaved: (jogoId: number, placarA: number, placarB: number) => void
+  onSaved: (jogoId: number, placarA: number, placarB: number, penaltiA: number | null, penaltiB: number | null) => void
 }
 
 function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
@@ -147,15 +162,30 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
   const hasSent = !!jogo.resultado
 
   // Track the saved score locally so it updates immediately after saving
-  const [savedA, setSavedA] = useState(jogo.resultado?.placar_real_a ?? null)
-  const [savedB, setSavedB] = useState(jogo.resultado?.placar_real_b ?? null)
+  const [savedA,   setSavedA]   = useState(jogo.resultado?.placar_real_a ?? null)
+  const [savedB,   setSavedB]   = useState(jogo.resultado?.placar_real_b ?? null)
+  const [savedPenA, setSavedPenA] = useState(jogo.resultado?.placar_penalti_a ?? null)
+  const [savedPenB, setSavedPenB] = useState(jogo.resultado?.placar_penalti_b ?? null)
   const isSent = hasSent || (savedA !== null && savedB !== null)
 
   const [editing,  setEditing]  = useState(!hasSent)
-  const [placarA,  setPlacarA]  = useState(jogo.resultado?.placar_real_a?.toString() ?? '')
-  const [placarB,  setPlacarB]  = useState(jogo.resultado?.placar_real_b?.toString() ?? '')
-  const [saving,   setSaving]   = useState(false)
+  const [placarA,   setPlacarA]   = useState(jogo.resultado?.placar_real_a?.toString() ?? '')
+  const [placarB,   setPlacarB]   = useState(jogo.resultado?.placar_real_b?.toString() ?? '')
+  const [penaltiA,  setPenaltiA]  = useState(jogo.resultado?.placar_penalti_a?.toString() ?? '')
+  const [penaltiB,  setPenaltiB]  = useState(jogo.resultado?.placar_penalti_b?.toString() ?? '')
+  const [saving,    setSaving]    = useState(false)
   const [saveError, setSaveError] = useState('')
+
+  // Show penalty inputs for KO games when both scores are entered and equal
+  const isDraw = isKO && placarA !== '' && placarB !== '' && parseInt(placarA) === parseInt(placarB)
+
+  // Block saving a KO draw without a valid penalty result (must have a winner)
+  const penaltiBlocked = isDraw && (
+    penaltiA === '' || penaltiB === '' ||
+    isNaN(parseInt(penaltiA)) || isNaN(parseInt(penaltiB)) ||
+    parseInt(penaltiA) === parseInt(penaltiB)  // penalties must decide a winner
+  )
+  const canSave = !penaltiBlocked
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -170,6 +200,9 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
   const [localTimeB,   setLocalTimeB]   = useState(jogo.time_b)
   const [localCodigoA, setLocalCodigoA] = useState(jogo.codigo_pais_a ?? '')
   const [localCodigoB, setLocalCodigoB] = useState(jogo.codigo_pais_b ?? '')
+
+  // Block score entry while team names are still placeholders
+  const teamsUnknown = isKO && (isPlaceholderTeam(localTimeA) || isPlaceholderTeam(localTimeB))
 
   // Sync display state when the parent updates jogo (e.g. after auto-fill)
   React.useEffect(() => {
@@ -197,16 +230,19 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
     if (isNaN(a) || isNaN(b) || a < 0 || b < 0) return
     setSaving(true); setSaveError('')
 
+    const penA = isDraw && penaltiA !== '' ? parseInt(penaltiA) : null
+    const penB = isDraw && penaltiB !== '' ? parseInt(penaltiB) : null
+
     const res = await fetch('/api/admin/resultado', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jogoId: jogo.id, placarA: a, placarB: b }),
+      body: JSON.stringify({ jogoId: jogo.id, placarA: a, placarB: b, penaltiA: penA, penaltiB: penB }),
     })
 
     if (res.ok) {
-      setSavedA(a); setSavedB(b)
+      setSavedA(a); setSavedB(b); setSavedPenA(penA); setSavedPenB(penB)
       setEditing(false)
-      onSaved(jogo.id, a, b)
+      onSaved(jogo.id, a, b, penA, penB)
     } else {
       const data = await res.json().catch(() => ({}))
       setSaveError(data.error ?? 'Erro ao salvar. Tente novamente.')
@@ -232,6 +268,8 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
   function startEdit() {
     setPlacarA((savedA ?? 0).toString())
     setPlacarB((savedB ?? 0).toString())
+    setPenaltiA(savedPenA?.toString() ?? '')
+    setPenaltiB(savedPenB?.toString() ?? '')
     setEditing(true)
     setMenuOpen(false)
   }
@@ -262,14 +300,25 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
           {jogo.cidade && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.18)' }}>{jogo.cidade}</span>}
         </div>
 
-        {/* ── SENT state: ticket UI ── */}
-        {isSent && !editing ? (
+        {/* ── Teams not set yet: block score entry ── */}
+        {teamsUnknown ? (
+          <div style={{ fontSize: 10, color: 'rgba(255,200,80,0.6)', fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
+            🔒 <span>Preencha os times primeiro</span>
+          </div>
+        ) : isSent && !editing ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             {/* Score badge */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 8, padding: '4px 12px' }}>
-              <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: '#4ade80', minWidth: 14, textAlign: 'center' }}>{savedA}</span>
-              <span style={{ fontSize: 11, color: 'rgba(74,222,128,0.4)', fontWeight: 300 }}>–</span>
-              <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: '#4ade80', minWidth: 14, textAlign: 'center' }}>{savedB}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 8, padding: '4px 12px' }}>
+                <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: '#4ade80', minWidth: 14, textAlign: 'center' }}>{savedA}</span>
+                <span style={{ fontSize: 11, color: 'rgba(74,222,128,0.4)', fontWeight: 300 }}>–</span>
+                <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: '#4ade80', minWidth: 14, textAlign: 'center' }}>{savedB}</span>
+              </div>
+              {savedPenA != null && savedPenB != null && (
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: 0.3 }}>
+                  pen {savedPenA}–{savedPenB}
+                </span>
+              )}
             </div>
             {/* Checkmark */}
             <span style={{ color: '#4ade80', fontSize: 16, fontWeight: 700 }}>✓</span>
@@ -299,25 +348,46 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
           </div>
         ) : (
           /* ── PENDING / EDITING state ── */
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <input type="number" min={0} value={placarA} onChange={e => setPlacarA(e.target.value)}
-              style={{ width: 42, height: 34, textAlign: 'center', borderRadius: 6, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.4)', color: '#4A90D9', fontSize: 15, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
-            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>×</span>
-            <input type="number" min={0} value={placarB} onChange={e => setPlacarB(e.target.value)}
-              style={{ width: 42, height: 34, textAlign: 'center', borderRadius: 6, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.4)', color: '#4A90D9', fontSize: 15, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
-            <button onClick={salvar} disabled={saving}
-              style={{ padding: '6px 14px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', border: 'none', fontFamily: 'Inter,sans-serif', background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', whiteSpace: 'nowrap', opacity: saving ? 0.7 : 1 }}>
-              {saving ? 'Salvando…' : 'Salvar'}
-            </button>
-            {isSent && (
-              <button onClick={() => setEditing(false)}
-                style={{ padding: '6px 10px', borderRadius: 6, fontSize: 12, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', fontFamily: 'Inter,sans-serif' }}>×</button>
-            )}
-            {isKO && (
-              <button onClick={() => setEditTimes(v => !v)}
-                style={{ padding: '6px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: `1px solid ${editTimes ? 'rgba(240,192,64,0.4)' : 'rgba(255,255,255,0.1)'}`, background: editTimes ? 'rgba(240,192,64,0.1)' : 'rgba(255,255,255,0.05)', color: editTimes ? '#f0c040' : 'rgba(255,255,255,0.4)', fontFamily: 'Inter,sans-serif', flexShrink: 0 }}>
-                ✏️
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0, alignItems: 'flex-end' }}>
+            {/* 90-min score row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input type="number" min={0} value={placarA} onChange={e => setPlacarA(e.target.value)}
+                style={{ width: 42, height: 34, textAlign: 'center', borderRadius: 6, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.4)', color: '#4A90D9', fontSize: 15, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>×</span>
+              <input type="number" min={0} value={placarB} onChange={e => setPlacarB(e.target.value)}
+                style={{ width: 42, height: 34, textAlign: 'center', borderRadius: 6, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.4)', color: '#4A90D9', fontSize: 15, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
+              <button onClick={salvar} disabled={saving || !canSave}
+                style={{ padding: '6px 14px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: (saving || !canSave) ? 'not-allowed' : 'pointer', border: 'none', fontFamily: 'Inter,sans-serif', background: canSave ? 'linear-gradient(90deg,#4A90D9,#1a5ca8)' : 'rgba(255,255,255,0.12)', color: canSave ? 'white' : 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap', opacity: saving ? 0.7 : 1 }}>
+                {saving ? 'Salvando…' : 'Salvar'}
               </button>
+              {isSent && (
+                <button onClick={() => setEditing(false)}
+                  style={{ padding: '6px 10px', borderRadius: 6, fontSize: 12, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', fontFamily: 'Inter,sans-serif' }}>×</button>
+              )}
+              {isKO && (
+                <button onClick={() => setEditTimes(v => !v)}
+                  style={{ padding: '6px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: `1px solid ${editTimes ? 'rgba(240,192,64,0.4)' : 'rgba(255,255,255,0.1)'}`, background: editTimes ? 'rgba(240,192,64,0.1)' : 'rgba(255,255,255,0.05)', color: editTimes ? '#f0c040' : 'rgba(255,255,255,0.4)', fontFamily: 'Inter,sans-serif', flexShrink: 0 }}>
+                  ✏️
+                </button>
+              )}
+            </div>
+            {/* Penalty row — appears for KO games when scores are equal */}
+            {isDraw && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.8)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>Pênaltis</span>
+                  <input type="number" min={0} value={penaltiA} onChange={e => setPenaltiA(e.target.value)}
+                    style={{ width: 38, height: 28, textAlign: 'center', borderRadius: 5, background: 'rgba(255,200,80,0.08)', border: `1px solid ${penaltiBlocked ? 'rgba(255,80,80,0.5)' : 'rgba(255,200,80,0.35)'}`, color: '#ffc850', fontSize: 13, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
+                  <span style={{ color: 'rgba(255,200,80,0.4)', fontSize: 11 }}>×</span>
+                  <input type="number" min={0} value={penaltiB} onChange={e => setPenaltiB(e.target.value)}
+                    style={{ width: 38, height: 28, textAlign: 'center', borderRadius: 5, background: 'rgba(255,200,80,0.08)', border: `1px solid ${penaltiBlocked ? 'rgba(255,80,80,0.5)' : 'rgba(255,200,80,0.35)'}`, color: '#ffc850', fontSize: 13, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
+                </div>
+                {penaltiBlocked && (
+                  <span style={{ fontSize: 9, color: 'rgba(255,120,120,0.9)', fontWeight: 600 }}>
+                    ⚠️ Preencha os pênaltis
+                  </span>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -417,11 +487,22 @@ export function AdminResultadosClient({ jogos }: { jogos: JogoCopa[] }) {
   const pendentes = jogosList.filter(j => !j.resultado)
   const enviados  = jogosList.filter(j => !!j.resultado)
 
+  // Which KO phases are fully filled (no placeholder team names remaining)
+  const filledPhases = new Set<string>(
+    KO_PHASES
+      .filter(phase => {
+        const phaseGames = jogosList.filter(j => j.fase === phase.code)
+        return phaseGames.length > 0 &&
+          phaseGames.every(j => !isPlaceholderTeam(j.time_a) && !isPlaceholderTeam(j.time_b))
+      })
+      .map(p => p.code)
+  )
+
   // When a result is saved, move the game to enviados
-  function handleSaved(jogoId: number, placarA: number, placarB: number) {
+  function handleSaved(jogoId: number, placarA: number, placarB: number, penaltiA: number | null, penaltiB: number | null) {
     setJogosList(prev => prev.map(j =>
       j.id === jogoId
-        ? { ...j, resultado: { id: 0, jogo_id: jogoId, placar_real_a: placarA, placar_real_b: placarB, inserido_em: '', atualizado_em: '' } }
+        ? { ...j, resultado: { id: 0, jogo_id: jogoId, placar_real_a: placarA, placar_real_b: placarB, placar_penalti_a: penaltiA, placar_penalti_b: penaltiB, inserido_em: '', atualizado_em: '' } }
         : j
     ))
   }
@@ -515,7 +596,11 @@ export function AdminResultadosClient({ jogos }: { jogos: JogoCopa[] }) {
 
       {/* Fill modal */}
       {showPreencherModal && (
-        <PreencherModal onClose={() => setShowPreencherModal(false)} onDone={(fase, result) => { onFillDone(fase, result); setShowPreencherModal(false) }} />
+        <PreencherModal
+          onClose={() => setShowPreencherModal(false)}
+          onDone={(fase, result) => { onFillDone(fase, result) }}
+          filledPhases={filledPhases}
+        />
       )}
     </div>
   )

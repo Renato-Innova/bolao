@@ -83,6 +83,8 @@ function Flag({ codigo, size = 24 }: { codigo: string; size?: number }) {
 interface MatchState {
   scoreA: number
   scoreB: number
+  penaltiA: number   // KO only — used when scoreA === scoreB
+  penaltiB: number
   submitted: boolean
   submittedAt: string | null
   saving: boolean
@@ -93,8 +95,10 @@ function initStates(pjs: PalpiteJogo[]): Record<string, MatchState> {
   const out: Record<string, MatchState> = {}
   for (const pj of pjs) {
     out[String(pj.jogo_id)] = {
-      scoreA: pj.placar_palpite_a ?? 0,
-      scoreB: pj.placar_palpite_b ?? 0,
+      scoreA:    pj.placar_palpite_a ?? 0,
+      scoreB:    pj.placar_palpite_b ?? 0,
+      penaltiA:  pj.placar_penalti_a ?? 0,
+      penaltiB:  pj.placar_penalti_b ?? 0,
       submitted: !!pj.submitted_at,
       submittedAt: pj.submitted_at ?? null,
       saving: false,
@@ -275,10 +279,6 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
 
   /* ─── other handlers ───────────────────────────────────────── */
 
-  // Always merge into a fully-initialised base so no field is ever undefined,
-  // which would cause arithmetic like `undefined + 1 = NaN` in the score controls.
-  const DEFAULT_MATCH_STATE: MatchState = { scoreA: 0, scoreB: 0, submitted: false, submittedAt: null, saving: false, error: null }
-
   function updateState(jogoId: string, patch: Partial<MatchState>) {
     setMatchStates(prev => ({
       ...prev,
@@ -331,7 +331,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
   // immediately without a page reload whenever a match is submitted or cleared.
   function syncPalpiteJogo(
     jogoId: string,
-    patch: { placar_a?: number; placar_b?: number; submitted_at: string | null }
+    patch: { placar_a?: number; placar_b?: number; penalti_a?: number | null; penalti_b?: number | null; submitted_at: string | null }
   ) {
     if (!selectedId) return
     const jogoIdNum = parseInt(jogoId, 10)
@@ -344,12 +344,16 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
             ...pj,
             placar_palpite_a: patch.placar_a ?? pj.placar_palpite_a,
             placar_palpite_b: patch.placar_b ?? pj.placar_palpite_b,
+            placar_penalti_a: patch.penalti_a !== undefined ? patch.penalti_a : pj.placar_penalti_a,
+            placar_penalti_b: patch.penalti_b !== undefined ? patch.penalti_b : pj.placar_penalti_b,
             submitted_at: patch.submitted_at,
           })
         : [...pjs, {
             id: 0, palpite_id: selectedId, jogo_id: jogoIdNum,
             placar_palpite_a: patch.placar_a ?? 0,
             placar_palpite_b: patch.placar_b ?? 0,
+            placar_penalti_a: patch.penalti_a ?? null,
+            placar_penalti_b: patch.penalti_b ?? null,
             pontos: 0,
             submitted_at: patch.submitted_at,
             criado_em: '', atualizado_em: '',
@@ -363,9 +367,16 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
     if (!st || !selectedId) return
     updateState(jogoId, { saving: true, error: null })
     const now = new Date().toISOString()
+    // For KO games with a draw, include penalty prediction; otherwise null
+    const jogo = todosJogos.find(j => j.id === parseInt(jogoId, 10))
+    const isKO = jogo?.fase !== 'GS'
+    const isDraw = st.scoreA === st.scoreB
+    const penaltiA = isKO && isDraw ? st.penaltiA : null
+    const penaltiB = isKO && isDraw ? st.penaltiB : null
     const { error } = await supabase.from('palpites_jogos').upsert({
       palpite_id: selectedId, jogo_id: parseInt(jogoId, 10),
       placar_palpite_a: st.scoreA, placar_palpite_b: st.scoreB,
+      placar_penalti_a: penaltiA, placar_penalti_b: penaltiB,
       submitted_at: now, pontos: 0,
     }, { onConflict: 'palpite_id,jogo_id' })
     if (error) {
@@ -373,7 +384,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
     } else {
       updateState(jogoId, { saving: false, submitted: true, submittedAt: now })
       // Sync palpites state so TabelaDoPalpite re-renders immediately
-      syncPalpiteJogo(jogoId, { placar_a: st.scoreA, placar_b: st.scoreB, submitted_at: now })
+      syncPalpiteJogo(jogoId, { placar_a: st.scoreA, placar_b: st.scoreB, penalti_a: penaltiA, penalti_b: penaltiB, submitted_at: now })
     }
   }
 
@@ -889,6 +900,9 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
   )
 }
 
+// Default state used as fallback when a game has no entry in matchStates yet
+const DEFAULT_MATCH_STATE: MatchState = { scoreA: 0, scoreB: 0, penaltiA: 0, penaltiB: 0, submitted: false, submittedAt: null, saving: false, error: null }
+
 /* ─── MataMata helpers ───────────────────────────────────── */
 
 const KO_PHASES = [
@@ -940,11 +954,12 @@ interface KoCardProps {
   jogo: JogoCopa
   state: MatchState
   onScoreChange: (side: 'A' | 'B', val: number) => void
+  onPenaltiChange: (side: 'A' | 'B', val: number) => void
   onSubmit: () => void
   onEdit: () => void
 }
 
-function KnockoutGameCard({ jogo, state, onScoreChange, onSubmit, onEdit }: KoCardProps) {
+function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmit, onEdit }: KoCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const locked   = isLocked(jogo.data, jogo.horario)
@@ -982,14 +997,25 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onSubmit, onEdit }: KoCa
     return <Image src={`https://flagcdn.com/w40/${codigo}.png`} alt={codigo} width={size} height={Math.round(size * 0.67)} style={{ borderRadius: 2, flexShrink: 0 }} unoptimized draggable={false} />
   }
 
-  function ScoreBtn({ val, onInc, onDec }: { val: number; onInc: () => void; onDec: () => void }) {
+  function ScoreBtn({ val, onInc, onDec, penalti = false }: { val: number; onInc: () => void; onDec: () => void; penalti?: boolean }) {
+    const btnColor = penalti ? 'rgba(255,200,80,0.8)' : '#4A90D9'
+    const btnBorder = penalti ? '1px solid rgba(255,200,80,0.3)' : '1px solid rgba(74,144,217,0.35)'
+    const btnBg = penalti ? 'rgba(255,200,80,0.08)' : 'rgba(74,144,217,0.1)'
+    const valColor = penalti ? 'rgba(255,200,80,0.9)' : scoreColor
+    const valBorder = penalti
+      ? (state.submitted ? '2px solid rgba(255,200,80,0.5)' : '1px solid rgba(255,200,80,0.3)')
+      : scoreBorder
+    const sz = penalti ? 22 : 26
+    const fsz = penalti ? 13 : 15
+    const vsz = penalti ? 22 : 28
+    const vfsz = penalti ? 14 : 17
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <button className="sc-btn" onClick={onDec} disabled={locked}
-          style={{ width: 26, height: 26, border: '1px solid rgba(74,144,217,0.35)', borderRadius: 5, background: 'rgba(74,144,217,0.1)', color: '#4A90D9', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0 }}>−</button>
-        <div style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800, color: scoreColor, borderRadius: 5, border: scoreBorder, transition: 'border-color 0.3s, color 0.3s', userSelect: 'none' }}>{val}</div>
+          style={{ width: sz, height: sz, border: btnBorder, borderRadius: 5, background: btnBg, color: btnColor, fontSize: fsz, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0 }}>−</button>
+        <div style={{ width: vsz, height: vsz, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: vfsz, fontWeight: 800, color: valColor, borderRadius: 5, border: valBorder, transition: 'border-color 0.3s, color 0.3s', userSelect: 'none' }}>{val}</div>
         <button className="sc-btn" onClick={onInc} disabled={locked}
-          style={{ width: 26, height: 26, border: '1px solid rgba(74,144,217,0.35)', borderRadius: 5, background: 'rgba(74,144,217,0.1)', color: '#4A90D9', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0 }}>+</button>
+          style={{ width: sz, height: sz, border: btnBorder, borderRadius: 5, background: btnBg, color: btnColor, fontSize: fsz, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0 }}>+</button>
       </div>
     )
   }
@@ -1010,10 +1036,32 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onSubmit, onEdit }: KoCa
       </div>
 
       {/* Score */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-        <ScoreBtn val={state.scoreA} onDec={() => onScoreChange('A', Math.max(0, state.scoreA - 1))} onInc={() => onScoreChange('A', state.scoreA + 1)} />
-        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', padding: '0 2px', fontWeight: 300 }}>×</span>
-        <ScoreBtn val={state.scoreB} onDec={() => onScoreChange('B', Math.max(0, state.scoreB - 1))} onInc={() => onScoreChange('B', state.scoreB + 1)} />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+        {/* 90-min score */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <ScoreBtn val={state.scoreA} onDec={() => onScoreChange('A', Math.max(0, state.scoreA - 1))} onInc={() => onScoreChange('A', state.scoreA + 1)} />
+          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', padding: '0 2px', fontWeight: 300 }}>×</span>
+          <ScoreBtn val={state.scoreB} onDec={() => onScoreChange('B', Math.max(0, state.scoreB - 1))} onInc={() => onScoreChange('B', state.scoreB + 1)} />
+        </div>
+        {/* Penalty row — shown when scores are equal */}
+        {state.scoreA === state.scoreB && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,200,80,0.75)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Pên.</span>
+            <ScoreBtn
+              val={state.penaltiA}
+              onDec={() => onPenaltiChange('A', Math.max(0, state.penaltiA - 1))}
+              onInc={() => onPenaltiChange('A', state.penaltiA + 1)}
+              penalti
+            />
+            <span style={{ fontSize: 11, color: 'rgba(255,200,80,0.3)', fontWeight: 300 }}>×</span>
+            <ScoreBtn
+              val={state.penaltiB}
+              onDec={() => onPenaltiChange('B', Math.max(0, state.penaltiB - 1))}
+              onInc={() => onPenaltiChange('B', state.penaltiB + 1)}
+              penalti
+            />
+          </div>
+        )}
       </div>
 
       {/* Team B */}
@@ -1046,10 +1094,25 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onSubmit, onEdit }: KoCa
             </div>
           </>
         ) : (
-          <button onClick={onSubmit} disabled={state.saving}
-            style={{ padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none', fontFamily: 'Inter,sans-serif', background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', whiteSpace: 'nowrap' }}>
-            {state.saving ? '...' : 'Enviar'}
-          </button>
+          <>
+            {/* KO draw without a penalty winner → block submit */}
+            {state.scoreA === state.scoreB && state.penaltiA === state.penaltiB ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                <button disabled
+                  style={{ padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'not-allowed', border: 'none', fontFamily: 'Inter,sans-serif', background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap' }}>
+                  Enviar
+                </button>
+                <span style={{ fontSize: 8, color: 'rgba(255,120,120,0.8)', fontWeight: 600, textAlign: 'center', maxWidth: 80 }}>
+                  indique o vencedor nos pênaltis
+                </span>
+              </div>
+            ) : (
+              <button onClick={onSubmit} disabled={state.saving}
+                style={{ padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none', fontFamily: 'Inter,sans-serif', background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', whiteSpace: 'nowrap' }}>
+                {state.saving ? '...' : 'Enviar'}
+              </button>
+            )}
+          </>
         )}
       </div>
       {locked && <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>🔒</div>}
@@ -1186,8 +1249,9 @@ function MataMataTab({
                             </div>
                             {jogos.map(jogo => (
                               <KnockoutGameCard key={jogo.id} jogo={jogo}
-                                state={matchStates[String(jogo.id)] ?? { scoreA: 0, scoreB: 0, submitted: false, submittedAt: null, saving: false, error: null }}
+                                state={matchStates[String(jogo.id)] ?? DEFAULT_MATCH_STATE}
                                 onScoreChange={(side, val) => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
+                                onPenaltiChange={(side, val) => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), side === 'A' ? { penaltiA: val } : { penaltiB: val })}
                                 onSubmit={() => submitMatch(String(jogo.id))}
                                 onEdit={() => editMatch(String(jogo.id))} />
                             ))}
@@ -1251,21 +1315,36 @@ function ChaveKnockout({ jogosKO, selected, matchStates, chaveView, setChaveView
       if (!jogo.resultado) return '–'
       return String(side === 'A' ? jogo.resultado.placar_real_a : jogo.resultado.placar_real_b)
     }
-    // Meu palpite
     const st = matchStates[String(jogo.id)]
     if (!st?.submitted) return '–'
     return String(side === 'A' ? st.scoreA : st.scoreB)
   }
 
+  function getPenalti(jogo: JogoCopa, side: 'A' | 'B'): number | null {
+    if (chaveView === 'oficial') {
+      const p = side === 'A' ? jogo.resultado?.placar_penalti_a : jogo.resultado?.placar_penalti_b
+      return p ?? null
+    }
+    const st = matchStates[String(jogo.id)]
+    if (!st?.submitted || st.scoreA !== st.scoreB) return null
+    return side === 'A' ? st.penaltiA : st.penaltiB
+  }
+
   function getWinner(jogo: JogoCopa): 'A' | 'B' | null {
     if (chaveView === 'oficial') {
       if (!jogo.resultado) return null
-      const a = jogo.resultado.placar_real_a, b = jogo.resultado.placar_real_b
-      return a > b ? 'A' : b > a ? 'B' : null
+      const { placar_real_a: a, placar_real_b: b, placar_penalti_a: pa, placar_penalti_b: pb } = jogo.resultado
+      if (a > b) return 'A'
+      if (b > a) return 'B'
+      if (pa != null && pb != null) return pa > pb ? 'A' : pb > pa ? 'B' : null
+      return null
     }
     const st = matchStates[String(jogo.id)]
     if (!st?.submitted) return null
-    return st.scoreA > st.scoreB ? 'A' : st.scoreB > st.scoreA ? 'B' : null
+    if (st.scoreA > st.scoreB) return 'A'
+    if (st.scoreB > st.scoreA) return 'B'
+    if (st.penaltiA !== st.penaltiB) return st.penaltiA > st.penaltiB ? 'A' : 'B'
+    return null
   }
 
   function selectPill(idx: number) {
@@ -1304,11 +1383,12 @@ function ChaveKnockout({ jogosKO, selected, matchStates, chaveView, setChaveView
     const mc2CodigoB = jogo.codigo_pais_b
 
     function TeamRow({ side }: { side: 'A' | 'B' }) {
-      const hasTeam = side === 'A' ? hasTeamA : hasTeamB
-      const codigo  = side === 'A' ? mc2CodigoA : mc2CodigoB
-      const name    = side === 'A' ? mc2NameA : mc2NameB
-      const score   = getScore(jogo, side)
-      const isWin   = winner === side
+      const hasTeam  = side === 'A' ? hasTeamA : hasTeamB
+      const codigo   = side === 'A' ? mc2CodigoA : mc2CodigoB
+      const name     = side === 'A' ? mc2NameA : mc2NameB
+      const score    = getScore(jogo, side)
+      const penScore = getPenalti(jogo, side)
+      const isWin    = winner === side
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 4px', borderRadius: 5, background: isWin ? 'rgba(74,144,217,0.08)' : 'transparent', borderLeft: isWin ? '2px solid #4A90D9' : '2px solid transparent', marginLeft: isWin ? -2 : 0 }}>
           {hasTeam && codigo
@@ -1318,9 +1398,14 @@ function ChaveKnockout({ jogosKO, selected, matchStates, chaveView, setChaveView
           <span style={{ flex: 1, fontSize: 10, fontWeight: hasTeam ? 600 : 400, color: hasTeam ? 'white' : 'rgba(255,255,255,0.3)', fontStyle: hasTeam ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {name}
           </span>
-          <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, minWidth: 14, textAlign: 'right', color: isWin ? '#4A90D9' : hasResult ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.3)', flexShrink: 0 }}>
-            {score}
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, flexShrink: 0 }}>
+            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, minWidth: 14, textAlign: 'right', color: isWin ? '#4A90D9' : hasResult ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.3)' }}>
+              {score}
+            </span>
+            {penScore != null && (
+              <span style={{ fontSize: 8, color: 'rgba(255,200,80,0.7)', fontWeight: 600 }}>({penScore})</span>
+            )}
+          </div>
         </div>
       )
     }

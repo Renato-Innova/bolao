@@ -32,6 +32,8 @@ export interface Resultado {
   jogo_id: number
   placar_real_a: number
   placar_real_b: number
+  placar_penalti_a?: number | null
+  placar_penalti_b?: number | null
   artilheiro_copa?: string
   inserido_em: string
   atualizado_em: string
@@ -58,6 +60,8 @@ export interface PalpiteJogo {
   jogo_id: number
   placar_palpite_a?: number
   placar_palpite_b?: number
+  placar_penalti_a?: number | null
+  placar_penalti_b?: number | null
   pontos: number
   submitted_at?: string | null
   criado_em: string

@@ -27,6 +27,17 @@ function fmtTime(horario: string) {
   return horario.slice(0, 5).replace(':', 'h')
 }
 
+// Determine overall winner using penalties for KO draws
+function getKoWinner(
+  scoreA: number, scoreB: number,
+  penA: number | null | undefined, penB: number | null | undefined
+): 'A' | 'B' | null {
+  if (scoreA > scoreB) return 'A'
+  if (scoreB > scoreA) return 'B'
+  if (penA != null && penB != null && penA !== penB) return penA > penB ? 'A' : 'B'
+  return null
+}
+
 function isPlaceholder(name: string) {
   return /^\d+º Grupo [A-L]$/.test(name) || /^Melhor 3º/.test(name) ||
     name.startsWith('Vencedor') || name.startsWith('Perdedor')
@@ -62,8 +73,13 @@ function GameRow({ jogo }: { jogo: JogoCopa }) {
   const hasResult  = !!jogo.resultado
   const scoreA     = hasResult ? jogo.resultado!.placar_real_a : null
   const scoreB     = hasResult ? jogo.resultado!.placar_real_b : null
-  const winA       = hasResult && scoreA! > scoreB!
-  const winB       = hasResult && scoreB! > scoreA!
+  const penA       = jogo.resultado?.placar_penalti_a ?? null
+  const penB       = jogo.resultado?.placar_penalti_b ?? null
+  const isKO       = jogo.fase !== 'GS'
+  const winner     = hasResult ? getKoWinner(scoreA!, scoreB!, isKO ? penA : null, isKO ? penB : null) : null
+  const winA       = winner === 'A'
+  const winB       = winner === 'B'
+  const hasPenalty = isKO && hasResult && scoreA === scoreB && penA != null && penB != null
   const hasTeamA   = !!(jogo.time_a && !isPlaceholder(jogo.time_a))
   const hasTeamB   = !!(jogo.time_b && !isPlaceholder(jogo.time_b))
 
@@ -92,11 +108,18 @@ function GameRow({ jogo }: { jogo: JogoCopa }) {
       {/* Score / time */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, flexShrink: 0, minWidth: 72 }}>
         {hasResult ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: winA ? 'white' : 'rgba(255,255,255,0.6)', minWidth: 16, textAlign: 'center' }}>{scoreA}</span>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', fontWeight: 300 }}>–</span>
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: winB ? 'white' : 'rgba(255,255,255,0.6)', minWidth: 16, textAlign: 'center' }}>{scoreB}</span>
-          </div>
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: winA ? 'white' : 'rgba(255,255,255,0.6)', minWidth: 16, textAlign: 'center' }}>{scoreA}</span>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', fontWeight: 300 }}>–</span>
+              <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: winB ? 'white' : 'rgba(255,255,255,0.6)', minWidth: 16, textAlign: 'center' }}>{scoreB}</span>
+            </div>
+            {hasPenalty && (
+              <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.7)', fontWeight: 600, letterSpacing: 0.3 }}>
+                pen {penA}–{penB}
+              </span>
+            )}
+          </>
         ) : (
           <div style={{ fontSize: 12, fontWeight: 700, color: '#4A90D9', letterSpacing: 0.5 }}>
             {fmtTime(jogo.horario)}
@@ -360,11 +383,15 @@ function ChaveTab({ jogosKO }: { jogosKO: JogoCopa[] }) {
     const [, mm, dd] = jogo.data.split('-')
     const meta    = `J${jogo.numero_jogo} · ${parseInt(dd)} ${MESES[parseInt(mm) - 1]} ${fmtTime(jogo.horario)}`
     const isTPL   = jogo.fase === 'TPL'
-    const hasRes  = !!jogo.resultado
-    const scoreA  = hasRes ? jogo.resultado!.placar_real_a : null
-    const scoreB  = hasRes ? jogo.resultado!.placar_real_b : null
-    const winA    = hasRes && scoreA! > scoreB!
-    const winB    = hasRes && scoreB! > scoreA!
+    const hasRes   = !!jogo.resultado
+    const scoreA   = hasRes ? jogo.resultado!.placar_real_a : null
+    const scoreB   = hasRes ? jogo.resultado!.placar_real_b : null
+    const penA     = jogo.resultado?.placar_penalti_a ?? null
+    const penB     = jogo.resultado?.placar_penalti_b ?? null
+    const winner   = hasRes ? getKoWinner(scoreA!, scoreB!, penA, penB) : null
+    const winA     = winner === 'A'
+    const winB     = winner === 'B'
+    const hasPen   = hasRes && scoreA === scoreB && penA != null && penB != null
     const hasTeamA = !!(jogo.time_a && !isPlaceholder(jogo.time_a))
     const hasTeamB = !!(jogo.time_b && !isPlaceholder(jogo.time_b))
 
@@ -375,6 +402,7 @@ function ChaveTab({ jogosKO }: { jogosKO: JogoCopa[] }) {
         ? (hasTeamA ? jogo.time_a : 'A definir')
         : (hasTeamB ? jogo.time_b : 'A definir')
       const score   = hasRes ? (side === 'A' ? scoreA : scoreB) : null
+      const penScore = hasPen ? (side === 'A' ? penA : penB) : null
       const isWin   = side === 'A' ? winA : winB
 
       return (
@@ -386,9 +414,14 @@ function ChaveTab({ jogosKO }: { jogosKO: JogoCopa[] }) {
           <span style={{ flex: 1, fontSize: 10, fontWeight: hasTeam ? 600 : 400, color: hasTeam ? 'white' : 'rgba(255,255,255,0.3)', fontStyle: hasTeam ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {name}
           </span>
-          <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, minWidth: 12, textAlign: 'right', color: isWin ? '#4A90D9' : hasRes ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.25)', flexShrink: 0 }}>
-            {score ?? '–'}
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, flexShrink: 0 }}>
+            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, minWidth: 12, textAlign: 'right', color: isWin ? '#4A90D9' : hasRes ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.25)' }}>
+              {score ?? '–'}
+            </span>
+            {penScore != null && (
+              <span style={{ fontSize: 8, color: 'rgba(255,200,80,0.7)', fontWeight: 600 }}>({penScore})</span>
+            )}
+          </div>
         </div>
       )
     }

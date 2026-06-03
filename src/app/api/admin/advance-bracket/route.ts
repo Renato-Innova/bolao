@@ -194,7 +194,7 @@ async function handleR32(supabase: SupabaseClient) {
   return NextResponse.json({ updated: results.filter(r => r.changed).length, games: results })
 }
 
-// ── KO phase: fill from previous phase results ────────────────────────────────
+// ── KO phase: fill from previous phase results (R16, QF, SF, TPL, F) ─────────
 
 async function handleKoPhase(supabase: SupabaseClient, fase: string) {
   const prevFase: Record<string, string> = {
@@ -206,7 +206,7 @@ async function handleKoPhase(supabase: SupabaseClient, fase: string) {
   // Load previous-phase games with their results
   const { data: prevJogos, error: prevErr } = await supabase
     .from('jogos_copa')
-    .select('id, numero_jogo, fase, time_a, time_b, codigo_pais_a, codigo_pais_b, resultado:resultados(placar_real_a, placar_real_b)')
+    .select('id, numero_jogo, fase, time_a, time_b, codigo_pais_a, codigo_pais_b, resultado:resultados(placar_real_a, placar_real_b, placar_penalti_a, placar_penalti_b)')
     .eq('fase', prev)
 
   if (prevErr) return NextResponse.json({ error: prevErr.message }, { status: 500 })
@@ -216,12 +216,23 @@ async function handleKoPhase(supabase: SupabaseClient, fase: string) {
   const loserByNum  = new Map<number, TeamInfo>()
 
   for (const j of prevJogos ?? []) {
-    if (!j.numero_jogo || !j.resultado) continue
+    // Skip only if no result at all — don't require numero_jogo
     const r = Array.isArray(j.resultado) ? j.resultado[0] : j.resultado
     if (!r || r.placar_real_a == null || r.placar_real_b == null) continue
-    if (r.placar_real_a === r.placar_real_b) continue
 
-    const aWins = r.placar_real_a > r.placar_real_b
+    // Determine winner: 90-min score, then penalties on draw
+    let aWins: boolean
+    if (r.placar_real_a > r.placar_real_b) {
+      aWins = true
+    } else if (r.placar_real_b > r.placar_real_a) {
+      aWins = false
+    } else {
+      const pa = r.placar_penalti_a ?? null
+      const pb = r.placar_penalti_b ?? null
+      if (pa == null || pb == null || pa === pb) continue
+      aWins = pa > pb
+    }
+
     const winner: TeamInfo = aWins
       ? { nome: j.time_a, codigo: j.codigo_pais_a ?? null }
       : { nome: j.time_b, codigo: j.codigo_pais_b ?? null }
@@ -229,8 +240,13 @@ async function handleKoPhase(supabase: SupabaseClient, fase: string) {
       ? { nome: j.time_b, codigo: j.codigo_pais_b ?? null }
       : { nome: j.time_a, codigo: j.codigo_pais_a ?? null }
 
-    winnerByNum.set(j.numero_jogo, winner)
-    loserByNum.set(j.numero_jogo, loser)
+    // Index by BOTH numero_jogo and id — placeholder may reference either
+    if (j.numero_jogo) {
+      winnerByNum.set(j.numero_jogo, winner)
+      loserByNum.set(j.numero_jogo, loser)
+    }
+    winnerByNum.set(j.id, winner)
+    loserByNum.set(j.id, loser)
   }
 
   const { data: jogos, error: jogosErr } = await supabase
@@ -242,8 +258,12 @@ async function handleKoPhase(supabase: SupabaseClient, fase: string) {
   if (jogosErr) return NextResponse.json({ error: jogosErr.message }, { status: 500 })
 
   function resolveSide(placeholder: string): TeamInfo | null {
-    const mV = placeholder.match(/^Vencedor\s+[A-Z0-9]+-(\d+)$/)
-    const mP = placeholder.match(/^Perdedor\s+[A-Z0-9]+-(\d+)$/)
+    // Extract trailing number from any "Vencedor ..." / "Perdedor ..." format:
+    //   "Vencedor Jogo 74"   → 74
+    //   "Vencedor R32-74"    → 74
+    //   "Perdedor Jogo 101"  → 101
+    const mV = placeholder.match(/^Vencedor\s+.*?(\d+)$/)
+    const mP = placeholder.match(/^Perdedor\s+.*?(\d+)$/)
     if (mV) return winnerByNum.get(parseInt(mV[1])) ?? null
     if (mP) return loserByNum.get(parseInt(mP[1])) ?? null
     return null
