@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 
 export async function DELETE(
   _req: NextRequest,
@@ -11,16 +11,16 @@ export async function DELETE(
     return NextResponse.json({ error: 'ID inválido.' }, { status: 400 })
   }
 
-  // Identify the caller
-  const userClient = await createClient()
-  const { data: { user } } = await userClient.auth.getUser()
+  // Use the authenticated user's session — satisfies the RLS policy
+  // "user_delete_own_palpite" (see 14_rls_palpites_delete.sql)
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
   }
 
-  // Validate ownership and inactive status via admin client (bypasses RLS)
-  const admin = await createAdminClient()
-  const { data: palpite } = await admin
+  // Validate ownership and inactive status before attempting delete
+  const { data: palpite } = await supabase
     .from('palpites')
     .select('id, usuario_id, status')
     .eq('id', id)
@@ -37,7 +37,7 @@ export async function DELETE(
   }
 
   // ON DELETE CASCADE on palpites_jogos handles child rows automatically
-  const { error } = await admin.from('palpites').delete().eq('id', id)
+  const { error } = await supabase.from('palpites').delete().eq('id', id)
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

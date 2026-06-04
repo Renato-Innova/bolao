@@ -1,26 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getWinnerSide, calcularPontos } from '@/utils/scoring'
 
 // POST /api/admin/resultado
 // Body: { jogoId, placarA, placarB, penaltiA?, penaltiB? }
 // Saves the official result (including optional penalty shootout scores).
-// Recalculates palpite points using the final winner (penalties decide on draws).
-
-// ── Winner helper ─────────────────────────────────────────────────────────────
-// Returns 'A', 'B', or 'E' (empate — should never happen in a completed KO game)
-function getWinnerSide(
-  a: number, b: number,
-  pa: number | null, pb: number | null
-): 'A' | 'B' | 'E' {
-  if (a > b) return 'A'
-  if (b > a) return 'B'
-  // Draw at 90 min — decide via penalties
-  if (pa != null && pb != null) {
-    if (pa > pb) return 'A'
-    if (pb > pa) return 'B'
-  }
-  return 'E'
-}
+// Recalculates points for ALL palpites that have a submitted prediction for
+// this game — covers both first-time results and corrections.
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -91,30 +77,22 @@ export async function POST(req: NextRequest) {
   const { data: configs } = await supabase
     .from('configuracoes_pontuacao').select('tipo_acerto, pontos').eq('fase', jogo?.fase ?? '')
 
-  const pontosExato    = configs?.find(c => c.tipo_acerto === 'placar_exato')?.pontos ?? 3
-  const pontosVencedor = configs?.find(c => c.tipo_acerto === 'vencedor')?.pontos  ?? 1
+  const resultado = {
+    placar_real_a: placarA, placar_real_b: placarB,
+    placar_penalti_a: finalPenaltiA, placar_penalti_b: finalPenaltiB,
+  }
 
-  // Actual winner (using penalties for KO draws)
-  const actualWinner = getWinnerSide(placarA, placarB, finalPenaltiA, finalPenaltiB)
-
+  // Recalculate points for every palpite that has a submitted prediction
   for (const pj of palpitesJogos ?? []) {
     if (pj.placar_palpite_a == null || pj.placar_palpite_b == null) continue
 
-    const pPenA = isKO ? (pj.placar_penalti_a ?? null) : null
-    const pPenB = isKO ? (pj.placar_penalti_b ?? null) : null
-
-    let pontos = 0
-
-    // Exact score: 90-min scores must match
-    if (pj.placar_palpite_a === placarA && pj.placar_palpite_b === placarB) {
-      pontos = pontosExato
-    } else {
-      // Winner: use penalty-aware winner determination for KO games
-      const predictedWinner = getWinnerSide(pj.placar_palpite_a, pj.placar_palpite_b, pPenA, pPenB)
-      if (actualWinner !== 'E' && actualWinner === predictedWinner) {
-        pontos = pontosVencedor
-      }
-    }
+    const pontos = calcularPontos(
+      { placar_palpite_a: pj.placar_palpite_a, placar_palpite_b: pj.placar_palpite_b,
+        placar_penalti_a: pj.placar_penalti_a ?? null, placar_penalti_b: pj.placar_penalti_b ?? null },
+      resultado,
+      isKO,
+      configs ?? [],
+    )
 
     await supabase.from('palpites_jogos').update({ pontos }).eq('id', pj.id)
   }

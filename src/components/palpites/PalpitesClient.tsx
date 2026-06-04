@@ -95,8 +95,9 @@ function initStates(pjs: PalpiteJogo[]): Record<string, MatchState> {
   const out: Record<string, MatchState> = {}
   for (const pj of pjs) {
     out[String(pj.jogo_id)] = {
-      scoreA:    pj.placar_palpite_a ?? 0,
-      scoreB:    pj.placar_palpite_b ?? 0,
+      // Use -1 as "not entered" sentinel — displayed as '—' in the UI
+      scoreA:    pj.placar_palpite_a ?? -1,
+      scoreB:    pj.placar_palpite_b ?? -1,
       penaltiA:  pj.placar_penalti_a ?? 0,
       penaltiB:  pj.placar_penalti_b ?? 0,
       submitted: !!pj.submitted_at,
@@ -189,6 +190,11 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
   const selected = palpites.find(p => p.id === selectedId)
   const jogosGS = todosJogos.filter(j => j.fase === 'GS')
   const jogosKO = todosJogos.filter(j => j.fase !== 'GS')
+
+  // Lookup pontos for a given game in the selected palpite
+  function getPontos(jogoId: number): number | null {
+    return selected?.palpites_jogos?.find(pj => pj.jogo_id === jogoId)?.pontos ?? null
+  }
   const days = groupByDay(jogosGS)
   const carItems = [...palpites, 'new' as const]
   const totalCards = carItems.length
@@ -366,25 +372,52 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
     const st = matchStates[jogoId]
     if (!st || !selectedId) return
     updateState(jogoId, { saving: true, error: null })
-    const now = new Date().toISOString()
-    // For KO games with a draw, include penalty prediction; otherwise null
+
     const jogo = todosJogos.find(j => j.id === parseInt(jogoId, 10))
     const isKO = jogo?.fase !== 'GS'
     const isDraw = st.scoreA === st.scoreB
     const penaltiA = isKO && isDraw ? st.penaltiA : null
     const penaltiB = isKO && isDraw ? st.penaltiB : null
-    const { error } = await supabase.from('palpites_jogos').upsert({
-      palpite_id: selectedId, jogo_id: parseInt(jogoId, 10),
-      placar_palpite_a: st.scoreA, placar_palpite_b: st.scoreB,
-      placar_penalti_a: penaltiA, placar_penalti_b: penaltiB,
-      submitted_at: now, pontos: 0,
-    }, { onConflict: 'palpite_id,jogo_id' })
-    if (error) {
-      updateState(jogoId, { saving: false, error: 'Erro ao salvar. Tente novamente.' })
-    } else {
-      updateState(jogoId, { saving: false, submitted: true, submittedAt: now })
-      // Sync palpites state so TabelaDoPalpite re-renders immediately
-      syncPalpiteJogo(jogoId, { placar_a: st.scoreA, placar_b: st.scoreB, penalti_a: penaltiA, penalti_b: penaltiB, submitted_at: now })
+
+    // Use the API route so points are calculated immediately if the official
+    // result is already in the database (e.g. late submission or post-edit).
+    const res = await fetch(`/api/palpites/${selectedId}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jogoId: parseInt(jogoId, 10),
+        placarA: st.scoreA, placarB: st.scoreB,
+        penaltiA, penaltiB,
+      }),
+    })
+
+    if (!res.ok) {
+      const { error } = await res.json().catch(() => ({ error: 'Erro ao salvar.' }))
+      updateState(jogoId, { saving: false, error: error ?? 'Erro ao salvar. Tente novamente.' })
+      return
+    }
+
+    const { pontos, submittedAt } = await res.json() as { pontos: number; submittedAt: string }
+
+    updateState(jogoId, { saving: false, submitted: true, submittedAt })
+
+    // Sync palpites state (points + submitted_at) so the card footer and the
+    // TabelaDoPalpite re-render immediately without a page reload.
+    syncPalpiteJogo(jogoId, {
+      placar_a: st.scoreA, placar_b: st.scoreB,
+      penalti_a: penaltiA, penalti_b: penaltiB,
+      submitted_at: submittedAt,
+    })
+
+    // Update pontos in palpites state so the carousel card score is live
+    if (selectedId) {
+      setPalpites(prev => prev.map(p => {
+        if (p.id !== selectedId) return p
+        const pjs = (p.palpites_jogos ?? []).map(pj =>
+          pj.jogo_id === parseInt(jogoId, 10) ? { ...pj, pontos } : pj
+        )
+        return { ...p, palpites_jogos: pjs }
+      }))
     }
   }
 
@@ -488,30 +521,16 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
                   style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: 'rgba(255,255,255,0.3)', fontSize: 14, width: 22, height: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, lineHeight: 1 }}>
                   ⋮
                 </button>
-                {isMenuOpen && (
+                {/* Simple dropdown — only "Excluir palpite" option */}
+                {isMenuOpen && !isConfirming && (
                   <div style={{ position: 'absolute', top: 26, right: 0, background: '#1a2d50', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 8, padding: 4, minWidth: 150, zIndex: 20, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
-                    {isConfirming ? (
-                      <div style={{ padding: '8px 10px' }}>
-                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginBottom: 8, lineHeight: 1.4 }}>Excluir este palpite?<br/><span style={{ color: 'rgba(255,255,255,0.4)' }}>Esta ação não pode ser desfeita.</span></div>
-                        <div style={{ display: 'flex', gap: 5 }}>
-                          <button onClick={() => deletePalpite(p.id)} disabled={deleting}
-                            style={{ flex: 1, background: 'rgba(255,80,80,0.2)', border: '1px solid rgba(255,80,80,0.4)', color: 'rgba(255,130,130,0.9)', borderRadius: 6, padding: '5px 0', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
-                            {deleting ? '...' : 'Excluir'}
-                          </button>
-                          <button onClick={() => { setConfirmDelete(null); setCardMenuOpen(null) }}
-                            style={{ flex: 1, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', borderRadius: 6, padding: '5px 0', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
-                            Cancelar
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div onClick={() => setConfirmDelete(p.id)}
-                        style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: 'rgba(255,130,130,0.85)', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,80,80,0.12)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                        🗑 Excluir palpite
-                      </div>
-                    )}
+                    <div
+                      onMouseDown={e => { e.stopPropagation(); setConfirmDelete(p.id); setCardMenuOpen(null) }}
+                      style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: 'rgba(255,130,130,0.85)', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,80,80,0.12)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                      🗑 Excluir palpite
+                    </div>
                   </div>
                 )}
               </div>
@@ -704,9 +723,10 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
                         <div className="match-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
                           {group.matches.map(jogo => (
                             <MatchCard key={jogo.id} jogo={jogo}
-                              state={matchStates[String(jogo.id)] ?? { scoreA: 0, scoreB: 0, submitted: false, submittedAt: null, saving: false, error: null }}
+                              state={matchStates[String(jogo.id)] ?? DEFAULT_MATCH_STATE}
                               onScoreChange={(side, val) => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
-                              onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))} />
+                              onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))}
+                              pontos={getPontos(jogo.id)} />
                           ))}
                         </div>
                       </>
@@ -717,7 +737,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
                           {submitted.map(jogo => (
                             <MatchCard key={jogo.id} jogo={jogo} state={matchStates[String(jogo.id)]}
                               onScoreChange={(side, val) => updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
-                              onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))} />
+                              onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))}
+                              pontos={getPontos(jogo.id)} />
                           ))}
                         </div>
                       </Accordion>
@@ -729,7 +750,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
                             {submitted.map(jogo => (
                               <MatchCard key={jogo.id} jogo={jogo} state={matchStates[String(jogo.id)]}
                                 onScoreChange={(side, val) => updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
-                                onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))} />
+                                onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))}
+                                pontos={getPontos(jogo.id)} />
                             ))}
                           </div>
                         </Accordion>
@@ -737,9 +759,10 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
                         <div className="match-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
                           {pending.map(jogo => (
                             <MatchCard key={jogo.id} jogo={jogo}
-                              state={matchStates[String(jogo.id)] ?? { scoreA: 0, scoreB: 0, submitted: false, submittedAt: null, saving: false, error: null }}
+                              state={matchStates[String(jogo.id)] ?? DEFAULT_MATCH_STATE}
                               onScoreChange={(side, val) => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
-                              onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))} />
+                              onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))}
+                              pontos={getPontos(jogo.id)} />
                           ))}
                         </div>
                       </>
@@ -847,6 +870,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
           </div>
 
 
+
           {/* Cascade edit confirmation modal */}
           {cascadeModal && (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
@@ -896,12 +920,34 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
           )}
         </>
       )}
+
+      {/* Delete palpite confirmation — rendered at root level so it's never clipped */}
+      {confirmDelete !== null && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setConfirmDelete(null)}>
+          <div style={{ background: '#0D1E3D', border: '1px solid rgba(255,80,80,0.35)', borderRadius: 12, padding: '24px 28px', maxWidth: 340, width: '100%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'white', marginBottom: 8 }}>Excluir este palpite?</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 20, lineHeight: 1.5 }}>
+              Esta ação não pode ser desfeita. Todos os palpites de jogos serão removidos.
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setConfirmDelete(null)} disabled={deleting}
+                style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)', border: 'none', padding: '9px 20px', borderRadius: 7, fontSize: 12, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                Cancelar
+              </button>
+              <button onClick={() => deletePalpite(confirmDelete)} disabled={deleting}
+                style={{ background: 'rgba(255,80,80,0.2)', border: '1px solid rgba(255,80,80,0.4)', color: 'rgba(255,130,130,0.9)', padding: '9px 20px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: deleting ? 'not-allowed' : 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                {deleting ? 'Excluindo...' : '🗑 Excluir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 // Default state used as fallback when a game has no entry in matchStates yet
-const DEFAULT_MATCH_STATE: MatchState = { scoreA: 0, scoreB: 0, penaltiA: 0, penaltiB: 0, submitted: false, submittedAt: null, saving: false, error: null }
+const DEFAULT_MATCH_STATE: MatchState = { scoreA: -1, scoreB: -1, penaltiA: 0, penaltiB: 0, submitted: false, submittedAt: null, saving: false, error: null }
 
 /* ─── MataMata helpers ───────────────────────────────────── */
 
@@ -957,9 +1003,10 @@ interface KoCardProps {
   onPenaltiChange: (side: 'A' | 'B', val: number) => void
   onSubmit: () => void
   onEdit: () => void
+  pontos?: number | null
 }
 
-function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmit, onEdit }: KoCardProps) {
+function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmit, onEdit, pontos }: KoCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const locked   = isLocked(jogo.data, jogo.horario)
@@ -998,22 +1045,25 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
   }
 
   function ScoreBtn({ val, onInc, onDec, penalti = false }: { val: number; onInc: () => void; onDec: () => void; penalti?: boolean }) {
+    const isUnset = val === -1 && !penalti  // only regular scores can be unset
     const btnColor = penalti ? 'rgba(255,200,80,0.8)' : '#4A90D9'
     const btnBorder = penalti ? '1px solid rgba(255,200,80,0.3)' : '1px solid rgba(74,144,217,0.35)'
     const btnBg = penalti ? 'rgba(255,200,80,0.08)' : 'rgba(74,144,217,0.1)'
-    const valColor = penalti ? 'rgba(255,200,80,0.9)' : scoreColor
-    const valBorder = penalti
+    const valColor = isUnset ? 'rgba(255,255,255,0.2)' : penalti ? 'rgba(255,200,80,0.9)' : scoreColor
+    const valBorder = isUnset ? '2px solid transparent' : penalti
       ? (state.submitted ? '2px solid rgba(255,200,80,0.5)' : '1px solid rgba(255,200,80,0.3)')
       : scoreBorder
     const sz = penalti ? 22 : 26
     const fsz = penalti ? 13 : 15
     const vsz = penalti ? 22 : 28
-    const vfsz = penalti ? 14 : 17
+    const vfsz = isUnset ? 14 : penalti ? 14 : 17
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <button className="sc-btn" onClick={onDec} disabled={locked}
           style={{ width: sz, height: sz, border: btnBorder, borderRadius: 5, background: btnBg, color: btnColor, fontSize: fsz, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0 }}>−</button>
-        <div style={{ width: vsz, height: vsz, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: vfsz, fontWeight: 800, color: valColor, borderRadius: 5, border: valBorder, transition: 'border-color 0.3s, color 0.3s', userSelect: 'none' }}>{val}</div>
+        <div style={{ width: vsz, height: vsz, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: vfsz, fontWeight: 800, color: valColor, borderRadius: 5, border: valBorder, transition: 'border-color 0.3s, color 0.3s', userSelect: 'none' }}>
+          {isUnset ? '—' : val}
+        </div>
         <button className="sc-btn" onClick={onInc} disabled={locked}
           style={{ width: sz, height: sz, border: btnBorder, borderRadius: 5, background: btnBg, color: btnColor, fontSize: fsz, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0 }}>+</button>
       </div>
@@ -1021,11 +1071,10 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
   }
 
   return (
+    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', opacity: locked ? 0.45 : 1, pointerEvents: locked ? 'none' : 'auto' }}>
     <div style={{
       display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
       background: state.submitted ? 'rgba(74,222,128,0.03)' : 'transparent',
-      borderBottom: '1px solid rgba(255,255,255,0.06)',
-      opacity: locked ? 0.45 : 1, pointerEvents: locked ? 'none' : 'auto',
     }}>
       {/* Team A */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
@@ -1043,8 +1092,8 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
           <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', padding: '0 2px', fontWeight: 300 }}>×</span>
           <ScoreBtn val={state.scoreB} onDec={() => onScoreChange('B', Math.max(0, state.scoreB - 1))} onInc={() => onScoreChange('B', state.scoreB + 1)} />
         </div>
-        {/* Penalty row — shown when scores are equal */}
-        {state.scoreA === state.scoreB && (
+        {/* Penalty row — shown when both scores are set (≥ 0) and equal */}
+        {state.scoreA >= 0 && state.scoreB >= 0 && state.scoreA === state.scoreB && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <span style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,200,80,0.75)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Pên.</span>
             <ScoreBtn
@@ -1116,6 +1165,35 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
         )}
       </div>
       {locked && <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>🔒</div>}
+    </div>
+
+    {/* Official result + points — shown after submitting when the admin has entered the result */}
+    {state.submitted && jogo.resultado && (() => {
+      const ra = jogo.resultado.placar_real_a
+      const rb = jogo.resultado.placar_real_b
+      const pa = jogo.resultado.placar_penalti_a
+      const pb = jogo.resultado.placar_penalti_b
+      const hasPts = pontos != null
+      const ptsColor = pontos && pontos > 0 ? '#4ade80' : 'rgba(255,255,255,0.3)'
+      return (
+        <div style={{ padding: '5px 16px 8px', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>
+            <span style={{ color: 'rgba(255,255,255,0.25)' }}>🌍 </span>
+            <strong style={{ color: 'rgba(255,255,255,0.55)' }}>{jogo.time_a}</strong>
+            {' '}<strong style={{ color: 'rgba(255,255,255,0.7)' }}>{ra} × {rb}</strong>{' '}
+            <strong style={{ color: 'rgba(255,255,255,0.55)' }}>{jogo.time_b}</strong>
+            {pa != null && pb != null && (
+              <span style={{ color: 'rgba(255,200,80,0.7)' }}> · pên. {pa}×{pb}</span>
+            )}
+          </span>
+          {hasPts && (
+            <span style={{ fontSize: 10, fontWeight: 800, color: ptsColor }}>
+              {pontos! > 0 ? `+${pontos} pts` : '0 pts'}
+            </span>
+          )}
+        </div>
+      )
+    })()}
     </div>
   )
 }
@@ -1253,7 +1331,8 @@ function MataMataTab({
                                 onScoreChange={(side, val) => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
                                 onPenaltiChange={(side, val) => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), side === 'A' ? { penaltiA: val } : { penaltiB: val })}
                                 onSubmit={() => submitMatch(String(jogo.id))}
-                                onEdit={() => editMatch(String(jogo.id))} />
+                                onEdit={() => editMatch(String(jogo.id))}
+                                pontos={selected.palpites_jogos?.find(pj => pj.jogo_id === jogo.id)?.pontos ?? null} />
                             ))}
                           </div>
                         )
@@ -1731,9 +1810,10 @@ interface MatchCardProps {
   jogo: JogoCopa; state: MatchState
   onScoreChange: (side: 'A' | 'B', val: number) => void
   onSubmit: () => void; onEdit: () => void
+  pontos?: number | null  // points earned for this game (shown after official result is known)
 }
 
-function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit }: MatchCardProps) {
+function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: MatchCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -1753,14 +1833,23 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit }: MatchCardPr
   const scoreColor  = state.submitted ? '#4ade80' : '#4A90D9'
   const scoreBorder = state.submitted ? '2px solid rgba(74,222,128,0.7)' : '2px solid transparent'
 
+  // -1 means "not entered yet" — displayed as '—'
+  const notEntered = state.scoreA === -1 || state.scoreB === -1
+
   function ScoreControl({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-    const safe = Number.isFinite(value) ? value : 0
+    const safe = Number.isFinite(value) ? value : -1
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-        <button className="sc-btn" onClick={() => onChange(Math.max(0, safe - 1))} disabled={locked}
+        <button className="sc-btn"
+          onClick={() => onChange(safe <= 0 ? (safe === -1 ? -1 : 0) : safe - 1)}
+          disabled={locked}
           style={{ width: 24, height: 24, border: '1px solid rgba(74,144,217,0.35)', borderRadius: 5, background: 'rgba(74,144,217,0.1)', color: '#4A90D9', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0, padding: 0 }}>−</button>
-        <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800, color: scoreColor, borderRadius: 6, border: scoreBorder, transition: 'border-color 0.3s, color 0.3s', userSelect: 'none' }}>{safe}</div>
-        <button className="sc-btn" onClick={() => onChange(safe + 1)} disabled={locked}
+        <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: safe === -1 ? 15 : 17, fontWeight: 800, color: safe === -1 ? 'rgba(255,255,255,0.2)' : scoreColor, borderRadius: 6, border: safe === -1 ? '2px solid transparent' : scoreBorder, transition: 'border-color 0.3s, color 0.3s', userSelect: 'none' }}>
+          {safe === -1 ? '—' : safe}
+        </div>
+        <button className="sc-btn"
+          onClick={() => onChange(safe < 0 ? 0 : safe + 1)}
+          disabled={locked}
           style={{ width: 24, height: 24, border: '1px solid rgba(74,144,217,0.35)', borderRadius: 5, background: 'rgba(74,144,217,0.1)', color: '#4A90D9', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0, padding: 0 }}>+</button>
       </div>
     )
@@ -1818,12 +1907,41 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit }: MatchCardPr
         <div style={{ marginTop: 6, fontSize: 9, color: 'rgba(255,255,255,0.25)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3 }}>🔒 Jogo em andamento</div>
       ) : (
         <div style={{ marginTop: 10, display: state.submitted ? 'none' : 'block' }}>
-          <button onClick={onSubmit} disabled={state.saving}
-            style={{ width: '100%', background: 'rgba(74,144,217,0.14)', border: '1px solid rgba(74,144,217,0.3)', color: '#7BB8F0', padding: 6, borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.4 }}>
-            {state.saving ? '...' : 'Enviar placar'}
-          </button>
+          {notEntered ? (
+            <div style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.25)', padding: 6, borderRadius: 6, fontSize: 10, fontWeight: 700, textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              Informe o placar
+            </div>
+          ) : (
+            <button onClick={onSubmit} disabled={state.saving}
+              style={{ width: '100%', background: 'rgba(74,144,217,0.14)', border: '1px solid rgba(74,144,217,0.3)', color: '#7BB8F0', padding: 6, borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              {state.saving ? '...' : 'Enviar placar'}
+            </button>
+          )}
         </div>
       )}
+
+      {/* Official result + points — shown after submitting when the admin has entered the result */}
+      {state.submitted && jogo.resultado && (() => {
+        const ra = jogo.resultado.placar_real_a
+        const rb = jogo.resultado.placar_real_b
+        const hasPts = pontos != null
+        const ptsColor = pontos && pontos > 0 ? '#4ade80' : 'rgba(255,255,255,0.3)'
+        return (
+          <div style={{ marginTop: 8, padding: '5px 8px', background: 'rgba(255,255,255,0.03)', borderRadius: 5, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>
+              <span style={{ color: 'rgba(255,255,255,0.35)' }}>Jogo Oficial: </span>
+              <strong style={{ color: 'rgba(255,255,255,0.55)' }}>{jogo.time_a}</strong>
+              {' '}<strong style={{ color: 'rgba(255,255,255,0.7)' }}>{ra} × {rb}</strong>{' '}
+              <strong style={{ color: 'rgba(255,255,255,0.55)' }}>{jogo.time_b}</strong>
+            </span>
+            {hasPts && (
+              <span style={{ fontSize: 10, fontWeight: 800, color: ptsColor }}>
+                {pontos! > 0 ? `+${pontos} pts` : '0 pts'}
+              </span>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 }
