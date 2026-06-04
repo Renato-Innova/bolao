@@ -1390,16 +1390,21 @@ function ChaveKnockout({ jogosKO, selected, matchStates, chaveView, setChaveView
   const MESES_C = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
   const touchStartXRef = useRef(0)
 
+  // pillIdx = the exact pill the user last clicked or swiped to (0 – length-1).
+  // The bracket always shows TWO columns; the left one is clamped so the last
+  // column is never pushed off screen.
+  const lastIdx  = CHAVE_COLS.length - 1   // 4
+  const leftCol  = Math.min(pillIdx, CHAVE_COLS.length - 2)  // 0–3
+
   function onTouchStart(e: React.TouchEvent) {
     touchStartXRef.current = e.touches[0].clientX
   }
 
   function onTouchEnd(e: React.TouchEvent) {
     const dx = e.changedTouches[0].clientX - touchStartXRef.current
-    // Require at least 40px swipe to avoid accidental triggers
-    if (Math.abs(dx) < 40) return
-    const maxIdx = CHAVE_COLS.length - 2   // last valid left-column index
-    setPillIdx(prev => Math.max(0, Math.min(prev + (dx < 0 ? 1 : -1), maxIdx)))
+    if (Math.abs(dx) < 40) return   // ignore tiny moves
+    // Swipe moves the selected pill one step; range 0 – lastIdx
+    setPillIdx(prev => Math.max(0, Math.min(prev + (dx < 0 ? 1 : -1), lastIdx)))
   }
 
   function getScore(jogo: JogoCopa, side: 'A' | 'B'): string {
@@ -1439,16 +1444,16 @@ function ChaveKnockout({ jogosKO, selected, matchStates, chaveView, setChaveView
     return null
   }
 
-  // Apply mobile transform: slide the track so pillIdx column is on the left.
-  // Two half-width columns are visible at once; pillIdx = left column index.
+  // Apply mobile transform: slide the track so leftCol is on the left side.
+  // Two half-width columns are always visible; leftCol is clamped to 0–(length-2).
   useEffect(() => {
     const outer = outerRef.current
     const track = trackRef.current
     if (!outer || !track) return
     if (window.innerWidth >= 1024) { track.style.transform = 'none'; return }
-    const colW = (outer.offsetWidth - 8) / 2   // half width minus gap
-    const step = colW + 8
-    track.style.transform = `translateX(-${pillIdx * step}px)`
+    const colW = (outer.offsetWidth - 8) / 2   // each column = half outer width
+    const step = colW + 8                       // column width + gap between columns
+    track.style.transform = `translateX(-${leftCol * step}px)`
   }) // run every render — outerRef.current.offsetWidth may change
 
   function MatchCard2({ jogo, isFinal }: { jogo: JogoCopa; isFinal?: boolean }) {
@@ -1531,15 +1536,12 @@ function ChaveKnockout({ jogosKO, selected, matchStates, chaveView, setChaveView
         </div>
       </div>
 
-      {/* Mobile pills — highlights the two currently visible columns */}
+      {/* Mobile pills — exactly one pill highlighted (the last clicked/swiped-to) */}
       <div className="chave-pills-bar" style={{ display: 'none', gap: 5, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 12, marginBottom: 4 }}>
         {CHAVE_COLS.map((c, i) => {
-          // The two visible columns are always pillIdx (left) and pillIdx+1 (right)
-          const active = i === pillIdx || i === pillIdx + 1
-          // Clicking sets that col as the left one, clamped so the last col stays reachable
-          const targetIdx = Math.min(i, CHAVE_COLS.length - 2)
+          const active = i === pillIdx
           return (
-            <button key={c.code} onClick={() => setPillIdx(targetIdx)}
+            <button key={c.code} onClick={() => setPillIdx(i)}
               style={{ padding: '4px 12px', borderRadius: 20, border: `1px solid ${active ? '#4A90D9' : 'rgba(255,255,255,0.1)'}`, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', whiteSpace: 'nowrap', flexShrink: 0, background: active ? '#4A90D9' : 'rgba(255,255,255,0.06)', color: active ? 'white' : 'rgba(255,255,255,0.5)', transition: 'background 0.2s' }}>
               {c.label}
             </button>
@@ -1551,7 +1553,7 @@ function ChaveKnockout({ jogosKO, selected, matchStates, chaveView, setChaveView
       <div ref={outerRef} className="chave-outer" style={{ overflowX: 'auto' }}>
         <div ref={trackRef}
           onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
-          style={{ display: 'flex', alignItems: 'flex-start', gap: 0, minWidth: 'max-content', transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)' }}>
+          style={{ display: 'flex', alignItems: 'flex-start', gap: 0, minWidth: 'max-content', transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)', touchAction: 'pan-y' }}>
           {CHAVE_COLS.map((col, ci) => (
             <React.Fragment key={col.code}>
               <div className="chave-col" data-col={ci}
@@ -1839,7 +1841,8 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const mm = `${jogo.data.slice(8, 10)} ${['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][parseInt(jogo.data.slice(5, 7)) - 1]} · ${jogo.horario.slice(0, 5).replace(':', 'h')} · ${jogo.cidade}`
+  const MESES_MC = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+  const mmDate = `${jogo.data.slice(8, 10)} ${MESES_MC[parseInt(jogo.data.slice(5, 7)) - 1]} · ${jogo.horario.slice(0, 5).replace(':', 'h')} · ${jogo.cidade}`
   const borderColor = locked ? 'rgba(74,144,217,0.15)' : state.submitted ? 'rgba(74,222,128,0.25)' : 'rgba(74,144,217,0.3)'
   const scoreColor  = state.submitted ? '#4ade80' : '#4A90D9'
   const scoreBorder = state.submitted ? '2px solid rgba(74,222,128,0.7)' : '2px solid transparent'
@@ -1868,8 +1871,15 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
 
   return (
     <div style={{ background: '#0D1E3D', border: `1px solid ${borderColor}`, borderRadius: 10, padding: '12px 14px', position: 'relative', opacity: locked ? 0.4 : 1, pointerEvents: locked ? 'none' : 'auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.3 }}>{mm}</div>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+          {jogo.grupo && (
+            <span style={{ fontSize: 9, fontWeight: 800, color: '#7BB8F0', textTransform: 'uppercase', letterSpacing: 0.8, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 4, padding: '1px 5px' }}>
+              Grupo {jogo.grupo}
+            </span>
+          )}
+          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.3 }}>{mmDate}</span>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
           {state.submitted && <span style={{ color: '#4ade80', fontSize: 14, fontWeight: 700 }}>✓</span>}
           {state.submitted && (
