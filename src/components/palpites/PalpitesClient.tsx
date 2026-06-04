@@ -175,7 +175,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
   const [mataMataSubTab, setMataMataSubTab] = useState(0)  // 0=list, 1=chave
   const [phaseSectionOpen, setPhaseSectionOpen] = useState<Record<string, boolean>>({})
   const [chaveView, setChaveView] = useState<'oficial' | 'palpite'>('oficial')
-  const [chavePillPair, setChavePillPair] = useState<[number, number | null]>([0, null])
+  const [chavePillIdx, setChavePillIdx] = useState(0)   // mobile: active bracket column index
   const chaveOuterRef = useRef<HTMLDivElement>(null)
   const chaveTrackRef = useRef<HTMLDivElement>(null)
 
@@ -801,8 +801,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
               setMataMataSubTab={setMataMataSubTab}
               chaveView={chaveView}
               setChaveView={setChaveView}
-              chavePillPair={chavePillPair}
-              setChavePillPair={setChavePillPair}
+              chavePillIdx={chavePillIdx}
+              setChavePillIdx={setChavePillIdx}
               chaveOuterRef={chaveOuterRef}
               chaveTrackRef={chaveTrackRef}
             />
@@ -1214,8 +1214,8 @@ interface MataMataTabProps {
   setMataMataSubTab: (n: number) => void
   chaveView: 'oficial' | 'palpite'
   setChaveView: (v: 'oficial' | 'palpite') => void
-  chavePillPair: [number, number | null]
-  setChavePillPair: React.Dispatch<React.SetStateAction<[number, number | null]>>
+  chavePillIdx: number
+  setChavePillIdx: React.Dispatch<React.SetStateAction<number>>
   chaveOuterRef: React.RefObject<HTMLDivElement | null>
   chaveTrackRef: React.RefObject<HTMLDivElement | null>
 }
@@ -1225,7 +1225,7 @@ function MataMataTab({
   phaseSectionOpen, setPhaseSectionOpen,
   mataMataSubTab, setMataMataSubTab,
   chaveView, setChaveView,
-  chavePillPair, setChavePillPair, chaveOuterRef, chaveTrackRef,
+  chavePillIdx, setChavePillIdx, chaveOuterRef, chaveTrackRef,
 }: MataMataTabProps) {
   // allJogos includes GS so that isPhaseLocked can check if GS is fully submitted
   const allJogos = [...jogosGS, ...jogosKO]
@@ -1354,8 +1354,8 @@ function MataMataTab({
           matchStates={matchStates}
           chaveView={chaveView}
           setChaveView={setChaveView}
-          pillPair={chavePillPair}
-          setPillPair={setChavePillPair}
+          pillIdx={chavePillIdx}
+          setPillIdx={setChavePillIdx}
           outerRef={chaveOuterRef}
           trackRef={chaveTrackRef}
         />
@@ -1380,14 +1380,27 @@ interface ChaveProps {
   matchStates: Record<string, MatchState>
   chaveView: 'oficial' | 'palpite'
   setChaveView: (v: 'oficial' | 'palpite') => void
-  pillPair: [number, number | null]
-  setPillPair: React.Dispatch<React.SetStateAction<[number, number | null]>>
+  pillIdx: number
+  setPillIdx: React.Dispatch<React.SetStateAction<number>>
   outerRef: React.RefObject<HTMLDivElement | null>
   trackRef: React.RefObject<HTMLDivElement | null>
 }
 
-function ChaveKnockout({ jogosKO, selected, matchStates, chaveView, setChaveView, pillPair, setPillPair, outerRef, trackRef }: ChaveProps) {
+function ChaveKnockout({ jogosKO, selected, matchStates, chaveView, setChaveView, pillIdx, setPillIdx, outerRef, trackRef }: ChaveProps) {
   const MESES_C = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+  const touchStartXRef = useRef(0)
+
+  function onTouchStart(e: React.TouchEvent) {
+    touchStartXRef.current = e.touches[0].clientX
+  }
+
+  function onTouchEnd(e: React.TouchEvent) {
+    const dx = e.changedTouches[0].clientX - touchStartXRef.current
+    // Require at least 40px swipe to avoid accidental triggers
+    if (Math.abs(dx) < 40) return
+    const maxIdx = CHAVE_COLS.length - 2   // last valid left-column index
+    setPillIdx(prev => Math.max(0, Math.min(prev + (dx < 0 ? 1 : -1), maxIdx)))
+  }
 
   function getScore(jogo: JogoCopa, side: 'A' | 'B'): string {
     if (chaveView === 'oficial') {
@@ -1426,26 +1439,16 @@ function ChaveKnockout({ jogosKO, selected, matchStates, chaveView, setChaveView
     return null
   }
 
-  function selectPill(idx: number) {
-    setPillPair(([l, r]) => {
-      if (l === idx || r === idx) return [l, r]
-      if (r === null) {
-        return idx > l ? [l, idx] : [idx, l]
-      }
-      return [Math.min(r, idx), Math.max(r, idx)]
-    })
-  }
-
-  // Apply mobile transform when pillPair changes
+  // Apply mobile transform: slide the track so pillIdx column is on the left.
+  // Two half-width columns are visible at once; pillIdx = left column index.
   useEffect(() => {
     const outer = outerRef.current
     const track = trackRef.current
     if (!outer || !track) return
     if (window.innerWidth >= 1024) { track.style.transform = 'none'; return }
-    const colW = (outer.offsetWidth - 8) / 2
+    const colW = (outer.offsetWidth - 8) / 2   // half width minus gap
     const step = colW + 8
-    const tx = -(pillPair[0] * step)
-    track.style.transform = `translateX(${tx}px)`
+    track.style.transform = `translateX(-${pillIdx * step}px)`
   }) // run every render — outerRef.current.offsetWidth may change
 
   function MatchCard2({ jogo, isFinal }: { jogo: JogoCopa; isFinal?: boolean }) {
@@ -1528,19 +1531,27 @@ function ChaveKnockout({ jogosKO, selected, matchStates, chaveView, setChaveView
         </div>
       </div>
 
-      {/* Mobile pills */}
+      {/* Mobile pills — highlights the two currently visible columns */}
       <div className="chave-pills-bar" style={{ display: 'none', gap: 5, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 12, marginBottom: 4 }}>
-        {CHAVE_COLS.map((c, i) => (
-          <button key={c.code} onClick={() => selectPill(i)}
-            style={{ padding: '4px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.1)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', whiteSpace: 'nowrap', flexShrink: 0, background: (pillPair[0] === i || pillPair[1] === i) ? '#4A90D9' : 'rgba(255,255,255,0.06)', color: (pillPair[0] === i || pillPair[1] === i) ? 'white' : 'rgba(255,255,255,0.5)', borderColor: (pillPair[0] === i || pillPair[1] === i) ? '#4A90D9' : 'rgba(255,255,255,0.1)', transition: 'background 0.2s' }}>
-            {c.label}
-          </button>
-        ))}
+        {CHAVE_COLS.map((c, i) => {
+          // The two visible columns are always pillIdx (left) and pillIdx+1 (right)
+          const active = i === pillIdx || i === pillIdx + 1
+          // Clicking sets that col as the left one, clamped so the last col stays reachable
+          const targetIdx = Math.min(i, CHAVE_COLS.length - 2)
+          return (
+            <button key={c.code} onClick={() => setPillIdx(targetIdx)}
+              style={{ padding: '4px 12px', borderRadius: 20, border: `1px solid ${active ? '#4A90D9' : 'rgba(255,255,255,0.1)'}`, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', whiteSpace: 'nowrap', flexShrink: 0, background: active ? '#4A90D9' : 'rgba(255,255,255,0.06)', color: active ? 'white' : 'rgba(255,255,255,0.5)', transition: 'background 0.2s' }}>
+              {c.label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Bracket */}
       <div ref={outerRef} className="chave-outer" style={{ overflowX: 'auto' }}>
-        <div ref={trackRef} style={{ display: 'flex', alignItems: 'flex-start', gap: 0, minWidth: 'max-content', transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)' }}>
+        <div ref={trackRef}
+          onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+          style={{ display: 'flex', alignItems: 'flex-start', gap: 0, minWidth: 'max-content', transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)' }}>
           {CHAVE_COLS.map((col, ci) => (
             <React.Fragment key={col.code}>
               <div className="chave-col" data-col={ci}
