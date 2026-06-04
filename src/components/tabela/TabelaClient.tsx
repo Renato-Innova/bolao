@@ -347,11 +347,15 @@ const CHAVE_COLS = [
 function ChaveTab({ jogosKO }: { jogosKO: JogoCopa[] }) {
   const outerRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
+  const touchStartXRef = useRef(0)
 
-  // Mobile pill navigation: up to 2 columns visible at once
-  const [pillPair, setPillPair] = useState<[number, number | null]>([0, 1])
+  // pillIdx = the exact pill the user last clicked or swiped to (0 – length-1).
+  // leftCol = left column shown on screen, clamped so the last column never goes off-screen.
+  const [pillIdx, setPillIdx] = useState(0)
+  const lastIdx = CHAVE_COLS.length - 1        // 4
+  const leftCol = Math.min(pillIdx, CHAVE_COLS.length - 2)  // 0–3
 
-  // Apply mobile transform when pillPair changes
+  // Apply mobile transform: two half-width columns visible, leftCol on the left.
   useEffect(() => {
     const outer = outerRef.current
     const track = trackRef.current
@@ -359,15 +363,17 @@ function ChaveTab({ jogosKO }: { jogosKO: JogoCopa[] }) {
     if (window.innerWidth >= 1024) { track.style.transform = 'none'; return }
     const colW = (outer.offsetWidth - 8) / 2
     const step = colW + 8
-    track.style.transform = `translateX(-${pillPair[0] * step}px)`
+    track.style.transform = `translateX(-${leftCol * step}px)`
   })
 
-  function selectPill(idx: number) {
-    setPillPair(([l, r]) => {
-      if (l === idx || r === idx) return [l, r]
-      if (r === null) return idx > l ? [l, idx] : [idx, l]
-      return [Math.min(r, idx), Math.max(r, idx)]
-    })
+  function onTouchStart(e: React.TouchEvent) {
+    touchStartXRef.current = e.touches[0].clientX
+  }
+
+  function onTouchEnd(e: React.TouchEvent) {
+    const dx = e.changedTouches[0].clientX - touchStartXRef.current
+    if (Math.abs(dx) < 40) return
+    setPillIdx(prev => Math.max(0, Math.min(prev + (dx < 0 ? 1 : -1), lastIdx)))
   }
 
   const colsByCode = Object.fromEntries(
@@ -455,19 +461,23 @@ function ChaveTab({ jogosKO }: { jogosKO: JogoCopa[] }) {
 
   return (
     <div>
-      {/* Mobile pills */}
+      {/* Mobile pills — one highlighted at a time (the last clicked/swiped-to) */}
       <div className="chave-pills-bar" style={{ display: 'none', gap: 5, overflowX: 'auto', scrollbarWidth: 'none' as React.CSSProperties['scrollbarWidth'], paddingBottom: 12, marginBottom: 8 }}>
-        {CHAVE_COLS.map((c, i) => (
-          <button key={c.code} onClick={() => selectPill(i)}
-            style={{ padding: '4px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.1)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', whiteSpace: 'nowrap', flexShrink: 0, background: (pillPair[0] === i || pillPair[1] === i) ? '#4A90D9' : 'rgba(255,255,255,0.06)', color: (pillPair[0] === i || pillPair[1] === i) ? 'white' : 'rgba(255,255,255,0.5)', borderColor: (pillPair[0] === i || pillPair[1] === i) ? '#4A90D9' : 'rgba(255,255,255,0.1)', transition: 'background 0.2s' }}>
-            {c.label}
-          </button>
-        ))}
+        {CHAVE_COLS.map((c, i) => {
+          const active = i === pillIdx
+          return (
+            <button key={c.code} onClick={() => setPillIdx(i)}
+              style={{ padding: '4px 12px', borderRadius: 20, border: `1px solid ${active ? '#4A90D9' : 'rgba(255,255,255,0.1)'}`, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', whiteSpace: 'nowrap', flexShrink: 0, background: active ? '#4A90D9' : 'rgba(255,255,255,0.06)', color: active ? 'white' : 'rgba(255,255,255,0.5)', transition: 'background 0.2s' }}>
+              {c.label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Bracket columns */}
       <div ref={outerRef} className="chave-outer" style={{ overflowX: 'auto' }}>
-        <div ref={trackRef} style={{ display: 'flex', alignItems: 'flex-start', gap: 0, minWidth: 'max-content', transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)' }}>
+        <div ref={trackRef} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+          style={{ display: 'flex', alignItems: 'flex-start', gap: 0, minWidth: 'max-content', transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)', touchAction: 'pan-y' }}>
           {CHAVE_COLS.map((col, ci) => (
             <React.Fragment key={col.code}>
               <div className="chave-col" data-col={ci}

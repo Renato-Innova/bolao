@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { PIX_VALOR, PIX_CHAVE, GRUPOS, TEAM_ABBR, FASES } from '@/utils/constants'
+import { PIX_VALOR, PIX_CHAVE, GRUPOS, TEAM_ABBR, FASES, TEAM_QUAL } from '@/utils/constants'
 import type { Palpite, JogoCopa, PalpiteJogo } from '@/types'
 
 /* ─── special palpites options ──────────────────────────────── */
@@ -732,7 +732,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
                       </>
                     )}
                     {allDone && hasSome && (
-                      <Accordion isOpen={isOpen} onToggle={() => toggleAcc(group.date)} dayNum={group.dayNum} label={group.label} labelShort={group.labelShort} sentCount={submitted.length} pendingCount={0} col={green}>
+                      <Accordion isOpen={isOpen} onToggle={() => toggleAcc(group.date)} dayNum={group.dayNum} label={group.label} labelShort={group.labelShort} sentCount={submitted.length} pendingCount={0} col={green}
+                        dayPts={submitted.some(j => j.resultado) ? submitted.reduce((s, j) => s + (getPontos(j.id) ?? 0), 0) : null}>
                         <div className="match-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, paddingTop: 2 }}>
                           {submitted.map(jogo => (
                             <MatchCard key={jogo.id} jogo={jogo} state={matchStates[String(jogo.id)]}
@@ -745,7 +746,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
                     )}
                     {hasSome && !allDone && (
                       <>
-                        <Accordion isOpen={isOpen} onToggle={() => toggleAcc(group.date)} dayNum={group.dayNum} label={group.label} labelShort={group.labelShort} sentCount={submitted.length} pendingCount={pending.length} col={col}>
+                        <Accordion isOpen={isOpen} onToggle={() => toggleAcc(group.date)} dayNum={group.dayNum} label={group.label} labelShort={group.labelShort} sentCount={submitted.length} pendingCount={pending.length} col={col}
+                          dayPts={submitted.some(j => j.resultado) ? submitted.reduce((s, j) => s + (getPontos(j.id) ?? 0), 0) : null}>
                           <div className="match-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, paddingTop: 2 }}>
                             {submitted.map(jogo => (
                               <MatchCard key={jogo.id} jogo={jogo} state={matchStates[String(jogo.id)]}
@@ -1796,18 +1798,25 @@ function TabelaDoPalpite({ palpite, todosJogos }: { palpite: Palpite; todosJogos
 
 interface AccCol { border: string; bg: string; line: string; chevron: string }
 
-function Accordion({ isOpen, onToggle, dayNum, label, labelShort, sentCount, pendingCount, col, children }: {
+function Accordion({ isOpen, onToggle, dayNum, label, labelShort, sentCount, pendingCount, dayPts, col, children }: {
   isOpen: boolean; onToggle: () => void; dayNum: number; label: string; labelShort: string;
-  sentCount: number; pendingCount: number; col: AccCol; children: React.ReactNode
+  sentCount: number; pendingCount: number; dayPts: number | null; col: AccCol; children: React.ReactNode
 }) {
   const hasPending = pendingCount > 0
   return (
     <div style={{ marginBottom: 10 }}>
-      <div onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: 10, background: col.bg, border: `1px solid ${col.border}`, borderRadius: 8, padding: '9px 14px', cursor: 'pointer', userSelect: 'none', transition: 'background 0.15s' }}>
+      <div onClick={onToggle} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, background: col.bg, border: `1px solid ${col.border}`, borderRadius: 8, padding: '9px 14px', cursor: 'pointer', userSelect: 'none', transition: 'background 0.15s' }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>Dia {dayNum}</span>
         <span className="day-date-full" style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap' }}>{label}</span>
         <span className="day-date-short" style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap', display: 'none' }}>{labelShort}</span>
-        <div style={{ flex: 1, height: 1, background: col.line }} />
+        {/* Flex spacer */}
+        <div style={{ flex: 1 }} />
+        {/* Points badge — absolutely centered so all accordions share the same midpoint */}
+        {dayPts !== null && (
+          <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontSize: 11, fontWeight: 800, color: dayPts > 0 ? '#4A90D9' : 'rgba(255,255,255,0.3)', background: dayPts > 0 ? 'rgba(74,144,217,0.12)' : 'rgba(255,255,255,0.05)', border: `1px solid ${dayPts > 0 ? 'rgba(74,144,217,0.3)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 12, padding: '2px 10px', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+            {dayPts > 0 ? `+${dayPts} pts` : '0 pts'}
+          </span>
+        )}
         <span style={{ fontSize: 10, fontWeight: 700, color: '#4ade80', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>✓ {sentCount} {sentCount === 1 ? 'enviado' : 'enviados'}</span>
         {hasPending && <span style={{ fontSize: 10, fontWeight: 700, color: '#f97316', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>⏳ {pendingCount} {pendingCount === 1 ? 'pendente' : 'pendentes'}</span>}
         <span style={{ fontSize: 11, color: col.chevron, transition: 'transform 0.25s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}>▼</span>
@@ -1826,9 +1835,75 @@ interface MatchCardProps {
   pontos?: number | null  // points earned for this game (shown after official result is known)
 }
 
+/* ─── TeamInfoPanel — qualifying info shown inside MatchCard ─── */
+
+function TeamInfoPanel({ nome }: { nome: string }) {
+  const info = TEAM_QUAL[nome]
+  if (!info) return null
+
+  const methodColor =
+    info.metodo === 'Direto'     ? '#4ade80' :
+    info.metodo === 'Sede'       ? '#7BB8F0' :
+    info.metodo === 'Playoff'    ? '#f59e0b' :
+    /* Repescagem */               '#f97316'
+
+  const hasStats = info.p != null
+
+  return (
+    <div style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+      {/* Full team name */}
+      <div style={{ fontSize: 13, fontWeight: 800, color: 'white', marginBottom: 5, letterSpacing: 0.2 }}>
+        {nome}
+      </div>
+      {/* Confederation + method badge */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: hasStats ? 8 : 6, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.6 }}>
+          {info.zona}
+        </span>
+        <span style={{ fontSize: 9, fontWeight: 700, color: methodColor, background: `${methodColor}18`, border: `1px solid ${methodColor}40`, borderRadius: 10, padding: '1px 6px', whiteSpace: 'nowrap' }}>
+          {info.metodoDetalhe}
+        </span>
+      </div>
+
+      {/* Stats table — only when available */}
+      {hasStats && (
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          {([
+            ['P',  info.p],
+            ['V',  info.v],
+            ['E',  info.e],
+            ['D',  info.d],
+            ['GP', info.gp],
+            ['GC', info.gc],
+            ['Pts',info.pts],
+          ] as [string, number | null][]).map(([label, val]) => (
+            <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+              <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: label === 'Pts' ? '#4A90D9' : 'rgba(255,255,255,0.7)' }}>
+                {val ?? '—'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Narrative description */}
+      <div style={{ marginTop: 7, fontSize: 10, color: 'rgba(255,255,255,0.55)', lineHeight: 1.55 }}>
+        {info.descricao}
+      </div>
+
+      {/* Optional observation */}
+      {info.obs && (
+        <div style={{ marginTop: 4, fontSize: 9, color: 'rgba(255,200,80,0.7)', fontStyle: 'italic' }}>{info.obs}</div>
+      )}
+    </div>
+  )
+}
+
 function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: MatchCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const [infoOpen, setInfoOpen] = useState(false)
 
   const locked   = isLocked(jogo.data, jogo.horario)
   const editable = canEdit(jogo.data, jogo.horario)
@@ -1880,7 +1955,14 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
           )}
           <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.3 }}>{mmDate}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          {/* ℹ️ info toggle */}
+          <button
+            onClick={e => { e.stopPropagation(); setInfoOpen(o => !o) }}
+            title="Informações das seleções"
+            style={{ background: infoOpen ? 'rgba(74,144,217,0.2)' : 'none', border: `1px solid ${infoOpen ? 'rgba(74,144,217,0.5)' : 'rgba(255,255,255,0.12)'}`, borderRadius: 6, color: infoOpen ? '#7BB8F0' : 'rgba(255,255,255,0.3)', fontSize: 11, width: 22, height: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s', flexShrink: 0, fontFamily: 'Inter,sans-serif' }}>
+            ℹ
+          </button>
           {state.submitted && <span style={{ color: '#4ade80', fontSize: 14, fontWeight: 700 }}>✓</span>}
           {state.submitted && (
             <div ref={menuRef} style={{ position: 'relative' }}>
@@ -1963,6 +2045,18 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
           </div>
         )
       })()}
+
+      {/* Expandable team qualifying info — toggled by ℹ️ button */}
+      {infoOpen && (
+        <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(74,144,217,0.2)' }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.7, padding: '5px 10px', background: 'rgba(74,144,217,0.07)', borderBottom: '1px solid rgba(74,144,217,0.15)' }}>
+            Eliminatórias · informações das seleções
+          </div>
+          <TeamInfoPanel nome={jogo.time_a} />
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+          <TeamInfoPanel nome={jogo.time_b} />
+        </div>
+      )}
     </div>
   )
 }

@@ -144,3 +144,346 @@ export const TEAM_ABBR: Record<string, string> = {
 
 export const PIX_VALOR = 40
 export const PIX_CHAVE = 'renatoclpereira@gmail.com'
+
+/* ─── Qualifying info ─────────────────────────────────────────────────────────
+ * Static data for all 48 teams. Sources:
+ *   - CONMEBOL : Wikipedia (verified Jun 2026)
+ *   - UEFA     : API-Football season 2024 (verified Jun 2026)
+ *   - CAF      : API-Football season 2023 (verified Jun 2026)
+ *   - CONCACAF : Wikipedia (verified Jun 2026)
+ *   - AFC      : API-Football season 2024 + Wikipedia (verified Jun 2026)
+ *   - OFC      : Wikipedia (verified Jun 2026)
+ * Keys match exactly the team names used in jogos_copa (time_a / time_b).
+ * null = stat not available (hosts, playoff teams without group stage stats)
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+export type MetodoClassificacao = 'Direto' | 'Sede' | 'Playoff' | 'Repescagem'
+
+export interface TeamQualInfo {
+  confederacao: 'UEFA' | 'CONMEBOL' | 'CONCACAF' | 'CAF' | 'AFC' | 'OFC'
+  zona: string                    // e.g. "CONMEBOL", "UEFA · Grupo A", "CAF · Grupo E"
+  posicao: number | null          // final position in qualifying group
+  metodo: MetodoClassificacao
+  metodoDetalhe: string           // human-readable e.g. "1º CONMEBOL" or "Playoff UEFA"
+  p:   number | null              // played
+  v:   number | null              // won
+  e:   number | null              // drawn
+  d:   number | null              // lost
+  gp:  number | null              // goals for
+  gc:  number | null              // goals against
+  pts: number | null              // points
+  descricao: string               // narrative context shown in the card panel
+  obs?: string                    // optional note e.g. "*−3pts penalização"
+}
+
+export const TEAM_QUAL: Record<string, TeamQualInfo> = {
+
+  // ── CONMEBOL ─────────────────────────────────────────────────────────────
+  'Argentina': {
+    confederacao: 'CONMEBOL', zona: 'CONMEBOL', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º CONMEBOL',
+    p: 18, v: 12, e: 2, d: 4, gp: 31, gc: 10, pts: 38,
+    descricao: 'Atual campeã mundial, liderou com autoridade. Teve a melhor defesa do torneio e foi a primeira sul-americana a se classificar matematicamente.',
+  },
+  'Equador': {
+    confederacao: 'CONMEBOL', zona: 'CONMEBOL', posicao: 2,
+    metodo: 'Direto', metodoDetalhe: '2º CONMEBOL',
+    p: 18, v: 8, e: 8, d: 2, gp: 14, gc: 5, pts: 29,
+    descricao: 'Superou uma punição inicial de perda de 3 pontos (caso Byron Castillo). Teve a melhor campanha como mandante na altitude de Quito.',
+    obs: '* −3 pts por documentação falsa no ciclo anterior',
+  },
+  'Colômbia': {
+    confederacao: 'CONMEBOL', zona: 'CONMEBOL', posicao: 3,
+    metodo: 'Direto', metodoDetalhe: '3º CONMEBOL',
+    p: 18, v: 7, e: 7, d: 4, gp: 28, gc: 18, pts: 28,
+    descricao: 'Destacou-se pelo futebol ofensivo. Liderada por James Rodríguez e Luis Díaz, quebrou recordes de gols marcados contra rivais diretos.',
+  },
+  'Uruguai': {
+    confederacao: 'CONMEBOL', zona: 'CONMEBOL', posicao: 4,
+    metodo: 'Direto', metodoDetalhe: '4º CONMEBOL',
+    p: 18, v: 7, e: 7, d: 4, gp: 22, gc: 12, pts: 28,
+    descricao: 'Sob o comando de Marcelo Bielsa, implementou um estilo de alta intensidade, vencendo o Brasil e a Argentina em sequência no primeiro turno.',
+  },
+  'Brasil': {
+    confederacao: 'CONMEBOL', zona: 'CONMEBOL', posicao: 5,
+    metodo: 'Direto', metodoDetalhe: '5º CONMEBOL',
+    p: 18, v: 8, e: 4, d: 6, gp: 24, gc: 17, pts: 28,
+    descricao: 'Confirmou a vaga na 16ª rodada sob Carlo Ancelotti, batendo o Paraguai 1–0 na Arena Corinthians com gol de Vinicius Junior.',
+  },
+  'Paraguai': {
+    confederacao: 'CONMEBOL', zona: 'CONMEBOL', posicao: 6,
+    metodo: 'Direto', metodoDetalhe: '6º CONMEBOL',
+    p: 18, v: 7, e: 7, d: 4, gp: 14, gc: 10, pts: 28,
+    descricao: 'Garantiu a última vaga direta na rodada final. Sustentou-se com um sistema defensivo rígido que arrancou empates cruciais fora de casa.',
+  },
+
+  // ── UEFA — group winners (direct) ─────────────────────────────────────────
+  'Alemanha': {
+    confederacao: 'UEFA', zona: 'UEFA · Grupo A', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º UEFA Grupo A',
+    p: 6, v: 5, e: 0, d: 1, gp: 16, gc: 3, pts: 15,
+    descricao: 'Apresentou futebol de transição rápida após reformulação tática pós-Eurocopa, assegurando o primeiro lugar com facilidade.',
+  },
+  'Suíça': {
+    confederacao: 'UEFA', zona: 'UEFA · Grupo B', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º UEFA Grupo B',
+    p: 6, v: 4, e: 2, d: 0, gp: 14, gc: 2, pts: 14,
+    descricao: 'Avançou dominando seu bloco regional com folga de pontos, exibindo solidez defensiva e eficiência nos contra-ataques.',
+  },
+  'Escócia': {
+    confederacao: 'UEFA', zona: 'UEFA · Grupo C', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º UEFA Grupo C',
+    p: 6, v: 4, e: 1, d: 1, gp: 13, gc: 7, pts: 13,
+    descricao: 'Surpreendeu os favoritos da chave com uma defesa sólida e o forte apoio de sua torcida em Glasgow.',
+  },
+  'França': {
+    confederacao: 'UEFA', zona: 'UEFA · Grupo D', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º UEFA Grupo D',
+    p: 6, v: 5, e: 1, d: 0, gp: 16, gc: 4, pts: 16,
+    descricao: 'Classificou-se invicta. Kylian Mbappé terminou como o artilheiro isolado das eliminatórias europeias.',
+  },
+  'Espanha': {
+    confederacao: 'UEFA', zona: 'UEFA · Grupo E', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º UEFA Grupo E',
+    p: 6, v: 5, e: 1, d: 0, gp: 21, gc: 2, pts: 16,
+    descricao: 'Dominou a posse de bola e garantiu a vaga com duas rodadas de antecedência, impulsionada por jovens talentos das categorias de base.',
+  },
+  'Portugal': {
+    confederacao: 'UEFA', zona: 'UEFA · Grupo F', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º UEFA Grupo F',
+    p: 6, v: 4, e: 1, d: 1, gp: 20, gc: 7, pts: 13,
+    descricao: 'Manteve 100% de aproveitamento nos jogos em casa. Cristiano Ronaldo ampliou seu recorde histórico de gols em eliminatórias.',
+  },
+  'Holanda': {
+    confederacao: 'UEFA', zona: 'UEFA · Grupo G', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º UEFA Grupo G',
+    p: 8, v: 6, e: 2, d: 0, gp: 27, gc: 4, pts: 20,
+    descricao: 'Superou um grupo equilibrado ao vencer confrontos diretos na base da força física e jogadas de bola parada.',
+  },
+  'Áustria': {
+    confederacao: 'UEFA', zona: 'UEFA · Grupo H', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º UEFA Grupo H',
+    p: 8, v: 6, e: 1, d: 1, gp: 22, gc: 4, pts: 19,
+    descricao: 'Avançou dominando seu bloco regional com folga de pontos, demonstrando consistência e organização tática ao longo de toda a campanha.',
+  },
+  'Noruega': {
+    confederacao: 'UEFA', zona: 'UEFA · Grupo I', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º UEFA Grupo I',
+    p: 8, v: 8, e: 0, d: 0, gp: 37, gc: 5, pts: 24,
+    descricao: 'Erling Haaland anotou gols decisivos que recolocaram o país no mapa do Mundial após um longo jejum de participações.',
+  },
+  'Bélgica': {
+    confederacao: 'UEFA', zona: 'UEFA · Grupo J', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º UEFA Grupo J',
+    p: 8, v: 5, e: 3, d: 0, gp: 29, gc: 7, pts: 18,
+    descricao: 'Passou por uma renovação em seu elenco principal, mas manteve a liderança da chave sem sofrer derrotas.',
+  },
+  'Inglaterra': {
+    confederacao: 'UEFA', zona: 'UEFA · Grupo K', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º UEFA Grupo K',
+    p: 8, v: 8, e: 0, d: 0, gp: 22, gc: 0, pts: 24,
+    descricao: 'Teve o melhor saldo de gols do continente, com Jude Bellingham e Harry Kane como pilares na reta final.',
+  },
+  'Croácia': {
+    confederacao: 'UEFA', zona: 'UEFA · Grupo L', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º UEFA Grupo L',
+    p: 8, v: 7, e: 1, d: 0, gp: 26, gc: 4, pts: 22,
+    descricao: 'Garantiu a vaga na penúltima rodada demonstrando a tradicional resiliência em prorrogações e partidas truncadas.',
+  },
+
+  // ── UEFA — playoff winners ─────────────────────────────────────────────────
+  'Bósnia e Herzegovina': {
+    confederacao: 'UEFA', zona: 'UEFA · Playoff', posicao: null,
+    metodo: 'Playoff', metodoDetalhe: 'Playoff UEFA (venceu Itália)',
+    p: null, v: null, e: null, d: null, gp: null, gc: null, pts: null,
+    descricao: 'Sobreviveu ao torneio de mata-mata da UEFA, eliminando a Itália em jogo único de alta tensão para garantir a vaga histórica.',
+  },
+  'Suécia': {
+    confederacao: 'UEFA', zona: 'UEFA · Playoff', posicao: null,
+    metodo: 'Playoff', metodoDetalhe: 'Playoff UEFA (venceu Polônia)',
+    p: null, v: null, e: null, d: null, gp: null, gc: null, pts: null,
+    descricao: 'Superou a Polônia no mata-mata da UEFA, assegurando o retorno ao Mundial após uma campanha de eliminatórias irregular.',
+  },
+  'Turquia': {
+    confederacao: 'UEFA', zona: 'UEFA · Playoff', posicao: null,
+    metodo: 'Playoff', metodoDetalhe: 'Playoff UEFA (venceu Kosovo)',
+    p: null, v: null, e: null, d: null, gp: null, gc: null, pts: null,
+    descricao: 'Venceu o Kosovo no playoff da UEFA, confirmando a vaga em um duelo decisivo que mobilizou a nação.',
+  },
+  'Tchéquia': {
+    confederacao: 'UEFA', zona: 'UEFA · Playoff', posicao: null,
+    metodo: 'Playoff', metodoDetalhe: 'Playoff UEFA (venceu Dinamarca)',
+    p: null, v: null, e: null, d: null, gp: null, gc: null, pts: null,
+    descricao: 'Eliminou a Dinamarca no mata-mata europeu, garantindo presença no Mundial com uma performance sólida nos jogos decisivos.',
+  },
+
+  // ── CAF ───────────────────────────────────────────────────────────────────
+  'Egito': {
+    confederacao: 'CAF', zona: 'CAF · Grupo A', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º CAF Grupo A',
+    p: 10, v: 8, e: 2, d: 0, gp: 20, gc: 2, pts: 26,
+    descricao: 'Mohamed Salah liderou a equipe em assistências e gols, garantindo a classificação de forma antecipada no Cairo.',
+  },
+  'Senegal': {
+    confederacao: 'CAF', zona: 'CAF · Grupo B', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º CAF Grupo B',
+    p: 10, v: 7, e: 3, d: 0, gp: 22, gc: 3, pts: 24,
+    descricao: 'Confirmou o favoritismo amparado por um meio-campo físico e forte imposição técnica na região subsaariana.',
+  },
+  'África do Sul': {
+    confederacao: 'CAF', zona: 'CAF · Grupo C', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º CAF Grupo C',
+    p: 10, v: 5, e: 3, d: 2, gp: 15, gc: 9, pts: 18,
+    descricao: 'Retornou aos grandes holofotes mundiais após ajustar seu campeonato local e basear a seleção no clube Mamelodi Sundowns.',
+  },
+  'Cabo Verde': {
+    confederacao: 'CAF', zona: 'CAF · Grupo D', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º CAF Grupo D',
+    p: 10, v: 7, e: 2, d: 1, gp: 16, gc: 8, pts: 23,
+    descricao: 'Protagonizou a maior zebra do continente ao desbancar potências tradicionais e garantir uma vaga inédita na Copa do Mundo.',
+  },
+  'Marrocos': {
+    confederacao: 'CAF', zona: 'CAF · Grupo E', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º CAF Grupo E',
+    p: 8, v: 8, e: 0, d: 0, gp: 22, gc: 2, pts: 24,
+    descricao: 'Semifinalista em 2022, manteve a base tática e sobrou no grupo com uma defesa que sofreu pouquíssimos gols.',
+  },
+  'Costa do Marfim': {
+    confederacao: 'CAF', zona: 'CAF · Grupo F', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º CAF Grupo F',
+    p: 10, v: 8, e: 2, d: 0, gp: 25, gc: 0, pts: 26,
+    descricao: 'Atual campeã continental africana, manteve o ritmo embalado e assegurou o topo da tabela com folga.',
+  },
+  'Argélia': {
+    confederacao: 'CAF', zona: 'CAF · Grupo G', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º CAF Grupo G',
+    p: 10, v: 8, e: 1, d: 1, gp: 24, gc: 8, pts: 25,
+    descricao: 'Passou por transição de elenco, mas garantiu a vaga apoiada no excelente desempenho jogando em seus domínios.',
+  },
+  'Tunísia': {
+    confederacao: 'CAF', zona: 'CAF · Grupo H', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º CAF Grupo H',
+    p: 10, v: 9, e: 1, d: 0, gp: 22, gc: 0, pts: 28,
+    descricao: 'Classificação baseada na consistência tática e na experiência em jogos eliminatórios fora de casa.',
+  },
+  'Gana': {
+    confederacao: 'CAF', zona: 'CAF · Grupo I', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º CAF Grupo I',
+    p: 10, v: 8, e: 1, d: 1, gp: 23, gc: 6, pts: 25,
+    descricao: 'Garantiu o primeiro lugar em um grupo equilibrado, contando com gols decisivos nos acréscimos na penúltima rodada.',
+  },
+  'Rep. Dem. do Congo': {
+    confederacao: 'CAF', zona: 'CAF · Repescagem', posicao: null,
+    metodo: 'Repescagem', metodoDetalhe: 'Repescagem Intercontinental (venceu Jamaica 1–0)',
+    p: null, v: null, e: null, d: null, gp: null, gc: null, pts: null,
+    descricao: 'Ficou em segundo em sua chave, venceu os playoffs africanos e abocanhou a vaga na repescagem mundial da FIFA ao bater a Jamaica.',
+  },
+
+  // ── CONCACAF — hosts ──────────────────────────────────────────────────────
+  'Canadá': {
+    confederacao: 'CONCACAF', zona: 'CONCACAF · Sede', posicao: null,
+    metodo: 'Sede', metodoDetalhe: 'País Sede',
+    p: null, v: null, e: null, d: null, gp: null, gc: null, pts: null,
+    descricao: 'Classificação automática como sede. Consolidou sua geração de ouro com foco no desenvolvimento nacional, jogando em Toronto e Vancouver.',
+  },
+  'México': {
+    confederacao: 'CONCACAF', zona: 'CONCACAF · Sede', posicao: null,
+    metodo: 'Sede', metodoDetalhe: 'País Sede',
+    p: null, v: null, e: null, d: null, gp: null, gc: null, pts: null,
+    descricao: 'Classificação automática como sede. Passou por intensa reformulação técnica, utilizando a Copa América como principal laboratório.',
+  },
+  'EUA': {
+    confederacao: 'CONCACAF', zona: 'CONCACAF · Sede', posicao: null,
+    metodo: 'Sede', metodoDetalhe: 'País Sede',
+    p: null, v: null, e: null, d: null, gp: null, gc: null, pts: null,
+    descricao: 'Classificação automática como sede. Usou o ciclo para amistosos de alto nível na Europa e testar a transição de jovens promessas da MLS.',
+  },
+
+  // ── CONCACAF — qualifiers ─────────────────────────────────────────────────
+  'Panamá': {
+    confederacao: 'CONCACAF', zona: 'CONCACAF · Grupo A', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º CONCACAF Grupo A',
+    p: 6, v: 3, e: 3, d: 0, gp: 9, gc: 4, pts: 12,
+    descricao: 'Consolidou-se como a quarta força da região através de um futebol coletivo organizado e posse de bola estruturada.',
+  },
+  'Curaçao': {
+    confederacao: 'CONCACAF', zona: 'CONCACAF · Grupo B', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º CONCACAF Grupo B',
+    p: 6, v: 3, e: 3, d: 0, gp: 13, gc: 3, pts: 12,
+    descricao: 'Fez história com uma vaga inédita no Mundial, impulsionada por atletas que atuam no futebol holandês.',
+  },
+  'Haiti': {
+    confederacao: 'CONCACAF', zona: 'CONCACAF · Grupo C', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º CONCACAF Grupo C',
+    p: 6, v: 3, e: 2, d: 1, gp: 9, gc: 6, pts: 11,
+    descricao: 'Surpreendeu ao liderar a chave invicto, quebrando um jejum de 52 anos longe da elite do futebol mundial.',
+  },
+
+  // ── AFC — 3rd round direct ─────────────────────────────────────────────────
+  'Irã': {
+    confederacao: 'AFC', zona: 'AFC · 3ª Rodada · Grupo A', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º AFC Grupo A (3ª Rodada)',
+    p: 10, v: 7, e: 2, d: 1, gp: 19, gc: 8, pts: 23,
+    descricao: 'Demonstrou força física e dominou o grupo com um ataque experiente no futebol europeu.',
+  },
+  'Uzbequistão': {
+    confederacao: 'AFC', zona: 'AFC · 3ª Rodada · Grupo A', posicao: 2,
+    metodo: 'Direto', metodoDetalhe: '2º AFC Grupo A (3ª Rodada)',
+    p: 10, v: 6, e: 3, d: 1, gp: 14, gc: 7, pts: 21,
+    descricao: 'Garantiu uma vaga histórica e inédita, colhendo os frutos de investimentos pesados em suas seleções de base na última década.',
+  },
+  'Coreia do Sul': {
+    confederacao: 'AFC', zona: 'AFC · 3ª Rodada · Grupo B', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º AFC Grupo B (3ª Rodada)',
+    p: 10, v: 6, e: 4, d: 0, gp: 20, gc: 7, pts: 22,
+    descricao: 'Comandada por Son Heung-min, ditou o ritmo do grupo com transições em alta velocidade.',
+  },
+  'Jordânia': {
+    confederacao: 'AFC', zona: 'AFC · 3ª Rodada · Grupo B', posicao: 2,
+    metodo: 'Direto', metodoDetalhe: '2º AFC Grupo B (3ª Rodada)',
+    p: 10, v: 6, e: 3, d: 1, gp: 17, gc: 8, pts: 21,
+    descricao: 'Confirmou ascensão meteórica no cenário asiático e carimbou a vaga direta pela primeira vez na história do país.',
+  },
+  'Japão': {
+    confederacao: 'AFC', zona: 'AFC · 3ª Rodada · Grupo C', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º AFC Grupo C (3ª Rodada)',
+    p: 10, v: 9, e: 1, d: 0, gp: 28, gc: 3, pts: 28,
+    descricao: 'Teve a campanha mais dominante da Ásia, aplicando goleadas expressivas e mostrando um elenco altamente técnico.',
+  },
+  'Austrália': {
+    confederacao: 'AFC', zona: 'AFC · 3ª Rodada · Grupo C', posicao: 2,
+    metodo: 'Direto', metodoDetalhe: '2º AFC Grupo C (3ª Rodada)',
+    p: null, v: null, e: null, d: null, gp: null, gc: null, pts: null,
+    descricao: 'Sofreu no início, mas garantiu a vaga direta na rodada final apostando no jogo aéreo e na experiência acumulada em Copas do Mundo.',
+  },
+
+  // ── AFC — 4th round direct ─────────────────────────────────────────────────
+  'Catar': {
+    confederacao: 'AFC', zona: 'AFC · 4ª Rodada · Grupo A', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º AFC Grupo A (4ª Rodada)',
+    p: 2, v: 1, e: 1, d: 0, gp: 2, gc: 1, pts: 4,
+    descricao: 'Venceu a 4ª rodada asiática como sede do grupo, assegurando o retorno ao Mundial após a experiência como país anfitrião em 2022.',
+  },
+  'Arábia Saudita': {
+    confederacao: 'AFC', zona: 'AFC · 4ª Rodada · Grupo B', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º AFC Grupo B (4ª Rodada)',
+    p: 2, v: 1, e: 1, d: 0, gp: 3, gc: 2, pts: 4,
+    descricao: 'Confirmou presença no Mundial vencendo a 4ª rodada asiática, dando continuidade ao projeto de crescimento do futebol saudita.',
+  },
+
+  // ── AFC — intercontinental playoff ────────────────────────────────────────
+  'Iraque': {
+    confederacao: 'AFC', zona: 'AFC · Repescagem', posicao: null,
+    metodo: 'Repescagem', metodoDetalhe: 'Repescagem Intercontinental (venceu Bolívia 2–1)',
+    p: null, v: null, e: null, d: null, gp: null, gc: null, pts: null,
+    descricao: 'Venceu a 5ª rodada asiática e superou o torneio de repescagem intercontinental da FIFA ao bater a Bolívia, garantindo o retorno ao Mundial após décadas.',
+  },
+
+  // ── OFC ───────────────────────────────────────────────────────────────────
+  'Nova Zelândia': {
+    confederacao: 'OFC', zona: 'OFC', posicao: 1,
+    metodo: 'Direto', metodoDetalhe: '1º OFC',
+    p: null, v: null, e: null, d: null, gp: null, gc: null, pts: null,
+    descricao: 'Com o caminho livre após a mudança no regulamento da FIFA, goleou seus adversários na fase final em formato mata-mata e ficou com a única vaga direta da Oceania.',
+  },
+}
