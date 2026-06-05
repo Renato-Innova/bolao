@@ -46,6 +46,10 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
   const [classifSaving, setClassifSaving] = useState(false)
   const [classifMsg,    setClassifMsg]    = useState('')
 
+  // ── Bulk recalculation state ──────────────────────────────────────────────
+  const [recalcSaving, setRecalcSaving] = useState(false)
+  const [recalcMsg,    setRecalcMsg]    = useState('')
+
   // ── Tabs ──────────────────────────────────────────────────────────────────
   const [aba, setAba] = useState<Aba>('pontuacao')
 
@@ -68,6 +72,21 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
   async function toggleStatus(palpiteId: number, novoStatus: 'ativo' | 'inativo') {
     await supabase.from('palpites').update({ status: novoStatus }).eq('id', palpiteId)
     setPalpitesState(prev => prev.map(p => p.id === palpiteId ? { ...p, status: novoStatus } : p))
+  }
+
+  async function recalcularTudo() {
+    setRecalcSaving(true)
+    setRecalcMsg('')
+    try {
+      const res = await fetch('/api/admin/recalcular', { method: 'POST' })
+      const { ok, updatedCount, jogosComResultado, error } = await res.json()
+      if (ok) setRecalcMsg(`✅ ${updatedCount} predições atualizadas em ${jogosComResultado} jogos com resultado.`)
+      else    setRecalcMsg(`❌ ${error}`)
+    } catch {
+      setRecalcMsg('❌ Erro de rede.')
+    } finally {
+      setRecalcSaving(false)
+    }
   }
 
   async function calcularClassificacao() {
@@ -224,6 +243,28 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
                 {especialMsg}
               </span>
             )}
+          </div>
+
+          {/* Bulk recalculation */}
+          <div style={{ marginTop: 28, borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 6 }}>
+              🔄 Recalcular todos os pontos
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 16, lineHeight: 1.6 }}>
+              Recalcula <strong style={{ color: 'rgba(255,255,255,0.7)' }}>todos</strong> os pontos de todos os palpites para todos os jogos que já têm resultado oficial.
+              Use após alterar a tabela de pontuação ou para corrigir palpites criados antes das mudanças de regra.
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button onClick={recalcularTudo} disabled={recalcSaving}
+                style={{ background: recalcSaving ? 'rgba(255,255,255,0.08)' : 'linear-gradient(90deg,#f59e0b,#d97706)', color: recalcSaving ? 'rgba(255,255,255,0.4)' : 'white', border: 'none', padding: '10px 24px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: recalcSaving ? 'not-allowed' : 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {recalcSaving ? 'Recalculando...' : 'Recalcular Tudo'}
+              </button>
+              {recalcMsg && (
+                <span style={{ fontSize: 12, color: recalcMsg.startsWith('✅') ? '#4ade80' : 'rgba(255,100,100,0.9)' }}>
+                  {recalcMsg}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Group classification bonus */}

@@ -108,11 +108,12 @@ interface Props {
   userName: string
   palpitesIniciais: Palpite[]
   todosJogos: JogoCopa[]
+  scoringConfigs: { fase: string; tipo_acerto: string; pontos: number }[]
 }
 
 const VISIBLE = 3
 
-export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos }: Props) {
+export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos, scoringConfigs }: Props) {
   const supabase = createClient()
 
   /* core */
@@ -300,12 +301,31 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
   async function criarPalpite() {
     if (!novoNome.trim()) return
     setCriando(true); setCriarError('')
+
+    // Check globally — no two palpites can share the same name
+    const nomeTrimmed = novoNome.trim()
+    const { data: existing } = await supabase
+      .from('palpites')
+      .select('id')
+      .ilike('nome', nomeTrimmed)   // case-insensitive match
+      .maybeSingle()
+
+    if (existing) {
+      setCriarError(`❌ O nome "${nomeTrimmed}" já está em uso por outro participante. Escolha um nome diferente.`)
+      setCriando(false)
+      return
+    }
+
     const { data: p, error: insertError } = await supabase
       .from('palpites')
-      .insert({ usuario_id: userId, nome: novoNome.trim(), status: 'inativo', artilheiro: '' })
+      .insert({ usuario_id: userId, nome: nomeTrimmed, status: 'inativo', artilheiro: '' })
       .select().single()
     if (insertError || !p) {
-      setCriarError(insertError?.message ?? 'Erro ao criar palpite. Tente novamente.')
+      // Catch the rare race-condition where two users submit the same name simultaneously
+      const isDuplicate = insertError?.code === '23505'
+      setCriarError(isDuplicate
+        ? `❌ O nome "${nomeTrimmed}" acabou de ser registrado por outro participante. Escolha um nome diferente.`
+        : (insertError?.message ?? 'Erro ao criar palpite. Tente novamente.'))
       setCriando(false); return
     }
     if (todosJogos.length > 0) {
@@ -485,6 +505,36 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
     const preenchi = p.palpites_jogos?.filter(pj => pj.submitted_at).length ?? 0
     const pct = totalJogos > 0 ? Math.round((preenchi / totalJogos) * 100) : 0
 
+    // Checklist counts
+    const gsTotal   = todosJogos.filter(j => j.fase === 'GS').length
+    const koTotal   = todosJogos.filter(j => j.fase !== 'GS').length
+    const gsDone    = p.palpites_jogos?.filter(pj => pj.submitted_at && (pj.jogo as JogoCopa | undefined)?.fase === 'GS').length ?? 0
+    const koDone    = p.palpites_jogos?.filter(pj => pj.submitted_at && (pj.jogo as JogoCopa | undefined)?.fase !== 'GS').length ?? 0
+    const specials  = [p.campeao, p.vice_campeao, p.artilheiro, p.melhor_jogador, p.melhor_goleiro]
+    const specDone  = specials.filter(Boolean).length
+    const specTotal = specials.length
+
+    type CheckStatus = 'done' | 'partial' | 'empty'
+    function status(done: number, total: number): CheckStatus {
+      if (total === 0) return 'empty'
+      if (done === total) return 'done'
+      if (done > 0) return 'partial'
+      return 'empty'
+    }
+    const statusColor: Record<CheckStatus, string> = {
+      done:    '#4ade80',
+      partial: '#f97316',
+      empty:   'rgba(255,255,255,0.2)',
+    }
+    const statusIcon: Record<CheckStatus, string> = {
+      done:    '✓',
+      partial: '!',
+      empty:   '○',
+    }
+    const gsStatus  = status(gsDone,    gsTotal)
+    const koStatus  = status(koDone,    koTotal)
+    const spStatus  = status(specDone,  specTotal)
+
     return (
       <div key={`${keyPrefix}${p.id}`}
         onClick={() => { if (!isMenuOpen && !isConfirming) setSelectedId(p.id) }}
@@ -535,7 +585,31 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
           <div style={{ flex: 1, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2 }}>
             <div style={{ height: 3, background: isInativo ? 'rgba(255,255,255,0.15)' : 'linear-gradient(90deg,#4A90D9,#7BB8F0)', borderRadius: 2, width: `${pct}%` }} />
           </div>
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap' }}>{preenchi}/{totalJogos} jogos</span>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap' }}>{preenchi}/{totalJogos}</span>
+        </div>
+
+        {/* Checklist */}
+        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {[
+            { icon: '⚽', label: 'Grupos',   done: gsDone,   total: gsTotal,  st: gsStatus },
+            { icon: '🌟', label: 'Especiais', done: specDone, total: specTotal, st: spStatus },
+            { icon: '🏆', label: 'Mata-Mata', done: koDone,   total: koTotal,  st: koStatus },
+          ].map(item => (
+            <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 9, width: 12, textAlign: 'center', flexShrink: 0 }}>{item.icon}</span>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', flex: 1, fontWeight: 500 }}>{item.label}</span>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 600 }}>{item.done}/{item.total}</span>
+              <span style={{
+                fontSize: 8, fontWeight: 800, width: 14, height: 14, borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                background: `${statusColor[item.st]}18`,
+                color: statusColor[item.st],
+                border: `1px solid ${statusColor[item.st]}40`,
+              }}>
+                {statusIcon[item.st]}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     )
@@ -649,7 +723,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
         <>
           {/* Tabs */}
           <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 18, overflowX: 'auto', WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'] }}>
-            {(['Fase de Grupos', 'Tabela do Palpite', 'Mata-Mata', 'Palpites Especiais'] as const).map((label, i) => {
+            {(['Fase de Grupos', 'Palpites Especiais', 'Tabela do Palpite', 'Mata-Mata', 'Pontuação'] as const).map((label, i) => {
               const active = activeTab === i
               return (
                 <div key={i} onClick={() => setActiveTab(i)} style={{
@@ -778,8 +852,11 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
             </>
           )}
 
-          {/* Tab 2: Mata-Mata */}
-          {activeTab === 2 && (
+          {/* Tab 3: Tabela do Palpite */}
+          {activeTab === 2 && <TabelaDoPalpite palpite={selected} todosJogos={todosJogos} />}
+
+          {/* Tab 4: Mata-Mata */}
+          {activeTab === 3 && (
             <MataMataTab
               selected={selected}
               jogosKO={jogosKO}
@@ -801,11 +878,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
             />
           )}
 
-          {/* Tab 2: Tabela do Palpite */}
-          {activeTab === 1 && <TabelaDoPalpite palpite={selected} todosJogos={todosJogos} />}
-
-          {/* Tab 4: Palpites Especiais */}
-          {activeTab === 3 && (
+          {/* Tab 2: Palpites Especiais */}
+          {activeTab === 1 && (
             <div style={{ maxWidth: 480 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
@@ -866,6 +940,9 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
               </div>
             </div>
           )}
+
+          {/* Tab 5: Pontuação (index 4) */}
+          {activeTab === 4 && <PontuacaoTab palpite={selected} todosJogos={todosJogos} scoringConfigs={scoringConfigs} />}
 
           {/* Desktop bottom bar */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.2)', borderRadius: 10 }}>
@@ -1692,35 +1769,59 @@ function TabelaDoPalpite({ palpite, todosJogos }: { palpite: Palpite; todosJogos
     grupoJogos[j.grupo].push(j)
   }
 
-  const grupos = GRUPOS.map(g => {
-    const jogos = grupoJogos[g] ?? []
+  // Helper: compute standings from a score-provider function
+  function buildStandings(
+    jogos: JogoCopa[],
+    getScore: (j: JogoCopa) => { ga: number; gb: number } | null
+  ): PalpiteRow[] {
     const standings: Record<string, PalpiteRow> = {}
     let seed = 0
-
     for (const jogo of jogos) {
       if (!standings[jogo.time_a]) standings[jogo.time_a] = { time: jogo.time_a, codigo: jogo.codigo_pais_a ?? '', seedOrder: seed++, j:0,v:0,e:0,d:0,gp:0,gc:0,sg:0,pts:0 }
       if (!standings[jogo.time_b]) standings[jogo.time_b] = { time: jogo.time_b, codigo: jogo.codigo_pais_b ?? '', seedOrder: seed++, j:0,v:0,e:0,d:0,gp:0,gc:0,sg:0,pts:0 }
-
-      const pj = submittedMap[String(jogo.id)]
-      if (!pj) continue
-
-      const ga = pj.placar_palpite_a ?? 0
-      const gb = pj.placar_palpite_b ?? 0
-      const ta = standings[jogo.time_a]
-      const tb = standings[jogo.time_b]
-
+      const score = getScore(jogo)
+      if (!score) continue
+      const { ga, gb } = score
+      const ta = standings[jogo.time_a]; const tb = standings[jogo.time_b]
       ta.j++; tb.j++
       ta.gp += ga; ta.gc += gb; ta.sg += ga - gb
       tb.gp += gb; tb.gc += ga; tb.sg += gb - ga
-
       if (ga > gb) { ta.v++; ta.pts += 3; tb.d++ }
       else if (ga < gb) { tb.v++; tb.pts += 3; ta.d++ }
       else { ta.e++; ta.pts++; tb.e++; tb.pts++ }
     }
+    return Object.values(standings)
+  }
 
-    // Apply full FIFA tiebreaker sort
-    const times = fifaSort(Object.values(standings), jogos, submittedMap)
-    return { grupo: g, times }
+  const grupos = GRUPOS.map(g => {
+    const jogos = grupoJogos[g] ?? []
+
+    // Predicted standings from user's palpites
+    const predRows = buildStandings(jogos, j => {
+      const pj = submittedMap[String(j.id)]
+      if (!pj) return null
+      return { ga: pj.placar_palpite_a ?? 0, gb: pj.placar_palpite_b ?? 0 }
+    })
+    const times = fifaSort(predRows, jogos, submittedMap)
+
+    // Official standings from actual results (only when all games have results)
+    const allHaveResults = jogos.length > 0 && jogos.every(j => j.resultado)
+    const officialTop2: Set<string> = new Set()
+    if (allHaveResults) {
+      const offRows = buildStandings(jogos, j =>
+        j.resultado ? { ga: j.resultado.placar_real_a, gb: j.resultado.placar_real_b } : null
+      )
+      const sorted = fifaSort(offRows, jogos, submittedMap)
+      if (sorted[0]) officialTop2.add(sorted[0].time)
+      if (sorted[1]) officialTop2.add(sorted[1].time)
+    }
+
+    // How many of the user's predicted top 2 are in the official top 2?
+    const classifBonus = allHaveResults && times.length >= 2
+      ? [times[0].time, times[1].time].filter(t => officialTop2.has(t)).length * 20
+      : null  // null = results not yet available
+
+    return { grupo: g, times, classifBonus }
   }).filter(g => g.times.length > 0)
 
   // Compute best-8 third-place teams from the user's predicted standings
@@ -1741,11 +1842,23 @@ function TabelaDoPalpite({ palpite, todosJogos }: { palpite: Palpite; todosJogos
       </div>
 
       <div className="tabela-palpite-grid">
-        {grupos.map(({ grupo, times }) => (
+        {grupos.map(({ grupo, times, classifBonus }) => (
           <div key={grupo} style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, overflow: 'hidden' }}>
             <div style={{ padding: '8px 12px', background: 'rgba(74,144,217,0.08)', borderBottom: '1px solid rgba(74,144,217,0.15)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, color: '#4A90D9', letterSpacing: 1 }}>{grupo}</span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Grupo {grupo}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 }}>Grupo {grupo}</span>
+              {/* Classification bonus badge — shown only when official results are in */}
+              {classifBonus !== null && (
+                <span style={{
+                  fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 10,
+                  background: classifBonus > 0 ? 'rgba(74,144,217,0.18)' : 'rgba(255,255,255,0.06)',
+                  color: classifBonus > 0 ? '#4A90D9' : 'rgba(255,255,255,0.3)',
+                  border: `1px solid ${classifBonus > 0 ? 'rgba(74,144,217,0.35)' : 'rgba(255,255,255,0.08)'}`,
+                  whiteSpace: 'nowrap',
+                }}>
+                  {classifBonus > 0 ? `+${classifBonus} pts` : '0 pts'}
+                </span>
+              )}
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -1799,6 +1912,208 @@ function TabelaDoPalpite({ palpite, todosJogos }: { palpite: Palpite; todosJogos
             {label}
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+/* ─── PontuacaoTab ───────────────────────────────────────── */
+
+function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
+  palpite: Palpite
+  todosJogos: JogoCopa[]
+  scoringConfigs: { fase: string; tipo_acerto: string; pontos: number }[]
+}) {
+  const FASE_ORDER = ['GS', 'R32', 'R16', 'QF', 'SF', 'TPL', 'F']
+  const FASE_NAMES: Record<string, string> = {
+    GS: 'Fase de Grupos', R32: 'Segundas de Final', R16: 'Oitavas de Final',
+    QF: 'Quartas de Final', SF: 'Semifinal', TPL: 'Decisão 3º Lugar', F: 'Final',
+  }
+
+  // Build scoring config lookup: fase → type → points (with regulation defaults)
+  const DEFAULTS: Record<string, number> = {
+    GS_placar_exato:20, R32_placar_exato:30, R16_placar_exato:40,
+    QF_placar_exato:60, SF_placar_exato:80, TPL_placar_exato:100, F_placar_exato:120,
+  }
+  const configPts = (fase: string, tipo: string): number => {
+    const found = scoringConfigs.find(c => c.fase === fase && c.tipo_acerto === tipo)
+    return found?.pontos ?? DEFAULTS[`${fase}_${tipo}`] ?? 0
+  }
+
+  // Count total games per phase across all jogos
+  const totalJogosByFase: Record<string, number> = {}
+  for (const j of todosJogos) {
+    totalJogosByFase[j.fase] = (totalJogosByFase[j.fase] ?? 0) + 1
+  }
+
+  // Aggregate earned points + submitted count per phase from palpites_jogos
+  const jogoFase: Record<number, string> = {}
+  for (const j of todosJogos) jogoFase[j.id] = j.fase
+
+  const byFase: Record<string, { submitted: number; pts: number }> = {}
+  for (const pj of palpite.palpites_jogos ?? []) {
+    if (!pj.submitted_at) continue
+    const fase = jogoFase[pj.jogo_id] ?? '?'
+    if (!byFase[fase]) byFase[fase] = { submitted: 0, pts: 0 }
+    byFase[fase].submitted++
+    byFase[fase].pts += pj.pontos ?? 0
+  }
+
+  // Max possible per phase = submitted games × placar_exato for that phase
+  const maxPtsByFase = (fase: string): number =>
+    (byFase[fase]?.submitted ?? 0) * configPts(fase, 'placar_exato')
+
+  const ptsJogos    = Object.values(byFase).reduce((s, v) => s + v.pts, 0)
+  const maxJogos    = Object.keys(byFase).reduce((s, f) => s + maxPtsByFase(f), 0)
+  const ptsClassif  = palpite.pontos_classificacao ?? 0
+  const maxClassif  = 32 * 20   // 32 qualifiers × 20 pts
+  const ptsEspeciais= palpite.pontos_especiais ?? 0
+  const maxEspeciais= 100 + 70 + 50 + 50 + 50  // 320 pts total
+  const ptsTotal    = ptsJogos + ptsClassif + ptsEspeciais
+  const maxTotal    = maxJogos + maxClassif + maxEspeciais
+
+  // Percentage bar component
+  function ProgressBar({ earned, max, color = '#4A90D9' }: { earned: number; max: number; color?: string }) {
+    const pct = max > 0 ? Math.min(100, Math.round((earned / max) * 100)) : 0
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
+        <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3, transition: 'width 0.4s ease' }} />
+        </div>
+        <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', minWidth: 32, textAlign: 'right' }}>{pct}%</span>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ maxWidth: 500 }}>
+
+      {/* Per-phase game points */}
+      <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>
+          ⚽ Pontos por fase
+        </div>
+        {FASE_ORDER.filter(f => byFase[f]).map((fase, idx, arr) => {
+          const earned = byFase[fase].pts
+          const max    = maxPtsByFase(fase)
+          const sub    = byFase[fase].submitted
+          const total  = totalJogosByFase[fase] ?? 0
+          const pct    = max > 0 ? Math.min(100, Math.round((earned / max) * 100)) : 0
+          return (
+            <div key={fase} style={{ paddingBottom: idx < arr.length - 1 ? 12 : 0, marginBottom: idx < arr.length - 1 ? 12 : 0, borderBottom: idx < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+              {/* Row header */}
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                <div>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>{FASE_NAMES[fase]}</span>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginLeft: 8 }}>{sub}/{total} jogos</span>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: earned > 0 ? '#4A90D9' : 'rgba(255,255,255,0.25)' }}>
+                    {earned}
+                  </span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginLeft: 3 }}>
+                    / {max} pts
+                  </span>
+                </div>
+              </div>
+              {/* Progress bar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${pct}%`, background: pct >= 70 ? '#4ade80' : pct >= 40 ? '#4A90D9' : '#f97316', borderRadius: 3, transition: 'width 0.4s ease' }} />
+                </div>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', minWidth: 32, textAlign: 'right' }}>{pct}%</span>
+              </div>
+            </div>
+          )
+        })}
+        {Object.keys(byFase).length === 0 && (
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '8px 0' }}>Nenhum palpite enviado ainda</div>
+        )}
+        {/* Subtotal */}
+        {Object.keys(byFase).length > 0 && (
+          <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subtotal jogos</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#4A90D9' }}>{ptsJogos} / {maxJogos} pts</span>
+            </div>
+            <ProgressBar earned={ptsJogos} max={maxJogos} />
+          </div>
+        )}
+      </div>
+
+      {/* Classification bonus */}
+      <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
+          🏅 Bônus de classificação de grupos
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+          <div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Seleções classificadas corretas</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+              {ptsClassif > 0 ? `${ptsClassif / 20} de 32 · 20 pts cada` : 'Calculado pelo admin ao final da fase de grupos'}
+            </div>
+          </div>
+          <span style={{ fontSize: 12, fontWeight: 800, color: ptsClassif > 0 ? '#4A90D9' : 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap', marginLeft: 12 }}>
+            {ptsClassif} / {maxClassif} pts
+          </span>
+        </div>
+        <ProgressBar earned={ptsClassif} max={maxClassif} color='#4ade80' />
+      </div>
+
+      {/* Special predictions */}
+      <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
+          🌟 Palpites especiais
+        </div>
+        {[
+          { emoji: '🏆', label: 'Campeão',        value: palpite.campeao,        maxPts: 100 },
+          { emoji: '🥈', label: 'Vice-Campeão',   value: palpite.vice_campeao,   maxPts: 70  },
+          { emoji: '⚽', label: 'Artilheiro',     value: palpite.artilheiro,     maxPts: 50  },
+          { emoji: '🌟', label: 'Melhor Jogador', value: palpite.melhor_jogador, maxPts: 50  },
+          { emoji: '🧤', label: 'Melhor Goleiro', value: palpite.melhor_goleiro, maxPts: 50  },
+        ].map((item, idx, arr) => (
+          <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderBottom: idx < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 14 }}>{item.emoji}</span>
+              <div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>{item.label}</div>
+                <div style={{ fontSize: 11, color: item.value ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)', fontStyle: item.value ? 'normal' : 'italic' }}>
+                  {item.value || '— não preenchido'}
+                </div>
+              </div>
+            </div>
+            <span style={{ fontSize: 10, color: 'rgba(255,200,80,0.6)', fontWeight: 700, whiteSpace: 'nowrap' }}>até {item.maxPts} pts</span>
+          </div>
+        ))}
+        <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subtotal especiais</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: ptsEspeciais > 0 ? '#4A90D9' : 'rgba(255,255,255,0.25)' }}>
+              {ptsEspeciais} / {maxEspeciais} pts
+            </span>
+          </div>
+          <ProgressBar earned={ptsEspeciais} max={maxEspeciais} color='rgba(255,200,80,0.8)' />
+        </div>
+      </div>
+
+      {/* Grand total */}
+      <div style={{ background: 'rgba(74,144,217,0.08)', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 10, padding: '16px 18px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.5 }}>Total Geral</span>
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ fontSize: 22, fontWeight: 800, color: '#4ade80' }}>{ptsTotal}</span>
+            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', marginLeft: 4 }}>/ {maxTotal} pts</span>
+          </div>
+        </div>
+        {/* Overall progress bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.07)', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${maxTotal > 0 ? Math.min(100, Math.round((ptsTotal / maxTotal) * 100)) : 0}%`, background: 'linear-gradient(90deg,#4A90D9,#4ade80)', borderRadius: 4, transition: 'width 0.4s ease' }} />
+          </div>
+          <span style={{ fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,0.5)', minWidth: 36, textAlign: 'right' }}>
+            {maxTotal > 0 ? Math.min(100, Math.round((ptsTotal / maxTotal) * 100)) : 0}%
+          </span>
+        </div>
       </div>
     </div>
   )

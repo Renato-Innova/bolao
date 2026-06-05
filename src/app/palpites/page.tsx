@@ -27,7 +27,7 @@ export default async function PalpitesPage() {
     userData = { nome: fallbackNome }
   }
 
-  const [{ data: palpites }, { data: todosJogos }] = await Promise.all([
+  const [{ data: palpites }, { data: todosJogos }, { data: configs }] = await Promise.all([
     supabase
       .from('palpites')
       .select('*, palpites_jogos(*, jogo:jogos_copa(*, resultado:resultados(*)))')
@@ -35,12 +35,16 @@ export default async function PalpitesPage() {
       .order('criado_em', { ascending: false }),
 
     // Fetch ALL 104 games — GS for tab 1 + Tabela, knockout for tab 2
-    // KO team names are the official ones set by admin (no client-side resolution needed)
     supabase
       .from('jogos_copa')
       .select('*, resultado:resultados(*)')
       .order('data', { ascending: true })
       .order('horario', { ascending: true }),
+
+    // Scoring config for the Pontuação tab
+    supabase
+      .from('configuracoes_pontuacao')
+      .select('fase, tipo_acerto, pontos'),
   ])
 
   return (
@@ -49,6 +53,7 @@ export default async function PalpitesPage() {
       userName={userData?.nome ?? ''}
       palpitesIniciais={palpites ?? []}
       todosJogos={todosJogos ?? []}
+      scoringConfigs={configs ?? []}
     />
   )
 }
