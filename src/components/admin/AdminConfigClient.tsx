@@ -50,6 +50,11 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
   const [recalcSaving, setRecalcSaving] = useState(false)
   const [recalcMsg,    setRecalcMsg]    = useState('')
 
+  // ── Reset results state ───────────────────────────────────────────────────
+  const [resetConfirm, setResetConfirm] = useState(false)
+  const [resetSaving,  setResetSaving]  = useState(false)
+  const [resetMsg,     setResetMsg]     = useState('')
+
   // ── Tabs ──────────────────────────────────────────────────────────────────
   const [aba, setAba] = useState<Aba>('pontuacao')
 
@@ -72,6 +77,22 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
   async function toggleStatus(palpiteId: number, novoStatus: 'ativo' | 'inativo') {
     await supabase.from('palpites').update({ status: novoStatus }).eq('id', palpiteId)
     setPalpitesState(prev => prev.map(p => p.id === palpiteId ? { ...p, status: novoStatus } : p))
+  }
+
+  async function resetResultados() {
+    setResetSaving(true)
+    setResetMsg('')
+    try {
+      const res = await fetch('/api/admin/reset-resultados', { method: 'POST' })
+      const { ok, error } = await res.json()
+      if (ok) setResetMsg('✅ Todos os resultados foram apagados e os pontos zerados.')
+      else    setResetMsg(`❌ ${error}`)
+    } catch {
+      setResetMsg('❌ Erro de rede.')
+    } finally {
+      setResetSaving(false)
+      setResetConfirm(false)
+    }
   }
 
   async function recalcularTudo() {
@@ -289,6 +310,45 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
                 </span>
               )}
             </div>
+          </div>
+          {/* Reset all results */}
+          <div style={{ marginTop: 28, borderTop: '1px solid rgba(255,80,80,0.15)', paddingTop: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,130,130,0.9)', marginBottom: 6 }}>
+              ⚠️ Resetar todos os resultados
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 16, lineHeight: 1.6 }}>
+              Apaga <strong style={{ color: 'rgba(255,255,255,0.7)' }}>todos</strong> os resultados oficiais e zera todos os pontos.
+              Os palpites e suas predições são preservados. Use apenas para testes.
+            </div>
+
+            {!resetConfirm ? (
+              <button onClick={() => { setResetConfirm(true); setResetMsg('') }}
+                style={{ background: 'rgba(255,80,80,0.12)', border: '1px solid rgba(255,80,80,0.35)', color: 'rgba(255,130,130,0.9)', padding: '10px 24px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Resetar Resultados
+              </button>
+            ) : (
+              <div style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.3)', borderRadius: 8, padding: '14px 16px' }}>
+                <div style={{ fontSize: 12, color: 'rgba(255,200,200,0.9)', fontWeight: 600, marginBottom: 12 }}>
+                  Tem certeza? Esta ação apagará todos os resultados e zerará todos os pontos. Os palpites não serão apagados.
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={resetResultados} disabled={resetSaving}
+                    style={{ background: 'rgba(255,80,80,0.25)', border: '1px solid rgba(255,80,80,0.5)', color: 'rgba(255,150,150,0.9)', padding: '8px 20px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: resetSaving ? 'not-allowed' : 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                    {resetSaving ? 'Resetando...' : '🗑 Confirmar reset'}
+                  </button>
+                  <button onClick={() => setResetConfirm(false)} disabled={resetSaving}
+                    style={{ background: 'rgba(255,255,255,0.07)', border: 'none', color: 'rgba(255,255,255,0.5)', padding: '8px 20px', borderRadius: 7, fontSize: 12, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {resetMsg && (
+              <div style={{ marginTop: 10, fontSize: 12, color: resetMsg.startsWith('✅') ? '#4ade80' : 'rgba(255,100,100,0.9)' }}>
+                {resetMsg}
+              </div>
+            )}
           </div>
         </div>
       )}
