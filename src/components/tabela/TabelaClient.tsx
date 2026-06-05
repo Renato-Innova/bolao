@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import Image from 'next/image'
+import { FlagImg } from '@/components/ui/FlagImg'
 import { GRUPOS } from '@/utils/constants'
 import type { ClassificacaoGrupo, JogoCopa } from '@/types'
 
@@ -10,13 +10,6 @@ import type { ClassificacaoGrupo, JogoCopa } from '@/types'
 const MESES   = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
 const WEEKDAYS = ['domingo','segunda','terça','quarta','quinta','sexta','sábado']
 
-function Flag({ codigo, size = 18 }: { codigo: string; size?: number }) {
-  return (
-    <Image src={`https://flagcdn.com/w40/${codigo}.png`} alt={codigo}
-      width={size} height={Math.round(size * 0.67)}
-      style={{ borderRadius: 2, flexShrink: 0 }} unoptimized draggable={false} />
-  )
-}
 
 function fmtDate(date: string) {
   const d = new Date(date + 'T12:00:00')
@@ -100,7 +93,7 @@ function GameRow({ jogo }: { jogo: JogoCopa }) {
           textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{hasTeamA ? jogo.time_a : 'A definir'}</span>
         {hasTeamA && jogo.codigo_pais_a
-          ? <Flag codigo={jogo.codigo_pais_a} />
+          ? <FlagImg codigo={jogo.codigo_pais_a} />
           : <div style={{ width: 18, height: 12, borderRadius: 2, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
         }
       </div>
@@ -139,7 +132,7 @@ function GameRow({ jogo }: { jogo: JogoCopa }) {
       {/* Team B */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
         {hasTeamB && jogo.codigo_pais_b
-          ? <Flag codigo={jogo.codigo_pais_b} />
+          ? <FlagImg codigo={jogo.codigo_pais_b} />
           : <div style={{ width: 18, height: 12, borderRadius: 2, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
         }
         <span style={{
@@ -301,7 +294,7 @@ function ClassificacaoTab({ classificacao }: { classificacao: ClassificacaoGrupo
                     <div key={t.pais_nome} style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '6px 10px', alignItems: 'center', fontSize: 11, color: 'rgba(255,255,255,0.85)', textAlign: 'center', borderBottom: idx < times.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', background: q ? 'rgba(74,144,217,0.07)' : 'transparent' }}>
                       <span style={{ fontSize: 9, fontWeight: 700, color: q ? '#4A90D9' : 'rgba(255,255,255,0.25)' }}>{idx + 1}</span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 5, textAlign: 'left' }}>
-                        <Flag codigo={t.pais_codigo} />
+                        <FlagImg codigo={t.pais_codigo} />
                         <span style={{ fontSize: 10, fontWeight: 600, color: 'white' }}>{t.pais_nome}</span>
                       </span>
                       <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{t.j}</span>
@@ -414,7 +407,7 @@ function ChaveTab({ jogosKO }: { jogosKO: JogoCopa[] }) {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 4px', borderRadius: 4, background: isWin ? 'rgba(74,144,217,0.1)' : 'transparent', borderLeft: isWin ? '2px solid #4A90D9' : '2px solid transparent', marginLeft: isWin ? -2 : 0 }}>
           {hasTeam && codigo
-            ? <Image src={`https://flagcdn.com/w40/${codigo}.png`} alt={name} width={16} height={11} style={{ borderRadius: 2, flexShrink: 0 }} unoptimized />
+            ? <FlagImg codigo={codigo} size={16} />
             : <div style={{ width: 16, height: 11, borderRadius: 2, background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>?</div>
           }
           <span style={{ flex: 1, fontSize: 10, fontWeight: hasTeam ? 600 : 400, color: hasTeam ? 'white' : 'rgba(255,255,255,0.3)', fontStyle: hasTeam ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

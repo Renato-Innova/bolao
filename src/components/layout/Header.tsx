@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 
@@ -15,30 +15,44 @@ const NAV = [
 ]
 
 function initials(name: string) {
-  return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
+  return name.split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase()
 }
 
 export function Header() {
   const pathname = usePathname()
-  const [user, setUser]     = useState<User | null>(null)
-  const [nome, setNome]     = useState('')
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [user, setUser]         = useState<User | null>(null)
+  const [nome, setNome]         = useState('')
+  const [isAdmin, setIsAdmin]       = useState(false)
+  const [isOperador, setIsOperador] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [userMenu, setUserMenu] = useState(false)
+  const userMenuRef             = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user)
       if (data.user) {
-        supabase.from('users').select('nome, is_admin').eq('id', data.user.id).maybeSingle()
-          .then(({ data: u }) => { if (u) { setNome(u.nome); setIsAdmin(!!u.is_admin) } })
+        supabase.from('users').select('nome, is_admin, is_operador').eq('id', data.user.id).maybeSingle()
+          .then(({ data: u }) => { if (u) { setNome(u.nome); setIsAdmin(!!u.is_admin); setIsOperador(!!u.is_operador) } })
       }
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null)
-      if (!session?.user) { setNome(''); setIsAdmin(false) }
+      if (!session?.user) { setNome(''); setIsAdmin(false); setIsOperador(false) }
     })
     return () => subscription.unsubscribe()
+  }, [])
+
+  /* close user dropdown when clicking outside */
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
   async function handleLogout() {
@@ -50,6 +64,11 @@ export function Header() {
   if (pathname.startsWith('/auth')) return null
 
   const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+
+  /* Show initials from email while nome is still loading */
+  const avatarLabel = nome
+    ? initials(nome)
+    : user?.email?.[0]?.toUpperCase() ?? '?'
 
   return (
     <header style={{
@@ -106,26 +125,59 @@ export function Header() {
             background: pathname.startsWith('/admin') ? 'rgba(74,222,128,0.08)' : 'transparent',
           }}>Admin</Link>
         )}
+        {(isOperador && !isAdmin) && (
+          <Link href="/operador" style={{
+            color: pathname.startsWith('/operador') ? '#fbbf24' : 'rgba(251,191,36,0.7)',
+            fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6,
+            padding: '6px 12px', borderRadius: 6, textDecoration: 'none',
+            background: pathname.startsWith('/operador') ? 'rgba(251,191,36,0.08)' : 'transparent',
+          }}>Ativar</Link>
+        )}
       </nav>
 
       {/* User area */}
       {user ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>
-            {nome.split(' ')[0]} {nome.split(' ').slice(-1)[0] !== nome.split(' ')[0] ? nome.split(' ').slice(-1)[0][0] + '.' : ''}
-          </span>
-          <div
-            onClick={handleLogout}
-            title="Sair"
+        <div ref={userMenuRef} style={{ position: 'relative', flexShrink: 0 }}>
+          {/* Avatar button */}
+          <button
+            onClick={() => setUserMenu(v => !v)}
             style={{
               width: 34, height: 34,
               background: 'linear-gradient(135deg, #4A90D9, #1a5ca8)',
               borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+              border: 'none', fontFamily: 'Inter, sans-serif',
             }}
           >
-            {nome ? initials(nome) : '?'}
-          </div>
+            {avatarLabel}
+          </button>
+
+          {/* Dropdown */}
+          {userMenu && (
+            <div style={{
+              position: 'absolute', top: 42, right: 0,
+              background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.2)',
+              borderRadius: 8, minWidth: 160, overflow: 'hidden',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+            }}>
+              {/* User name header */}
+              <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(74,144,217,0.12)' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>{nome || user.email}</div>
+                {nome && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>{user.email}</div>}
+              </div>
+              <button
+                onClick={handleLogout}
+                style={{
+                  display: 'block', width: '100%', textAlign: 'left',
+                  padding: '10px 14px', background: 'none', border: 'none',
+                  color: 'rgba(255,100,100,0.8)', fontSize: 13, fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+                }}
+              >
+                Sair
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -151,6 +203,8 @@ export function Header() {
               fontSize: 13, fontWeight: 600, textDecoration: 'none', padding: '6px 0',
             }}>{label}</Link>
           ))}
+          {isAdmin && <Link href="/admin/resultados" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(74,222,128,0.8)', fontSize: 13, fontWeight: 600, textDecoration: 'none', padding: '6px 0' }}>Admin</Link>}
+          {(isOperador && !isAdmin) && <Link href="/operador" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(251,191,36,0.8)', fontSize: 13, fontWeight: 600, textDecoration: 'none', padding: '6px 0' }}>Ativar Palpites</Link>}
           {user && <button onClick={handleLogout} style={{ textAlign: 'left', background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer', padding: '6px 0', fontFamily: 'Inter, sans-serif' }}>Sair</button>}
         </div>
       )}

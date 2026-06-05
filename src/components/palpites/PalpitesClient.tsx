@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import Image from 'next/image'
+import { FlagImg } from '@/components/ui/FlagImg'
 import { createClient } from '@/lib/supabase/client'
-import { PIX_VALOR, PIX_CHAVE, GRUPOS, TEAM_ABBR, FASES, TEAM_QUAL, ALL_TEAMS, ARTILHEIRO_OPTIONS, GOLEIRO_OPTIONS } from '@/utils/constants'
+import { PIX_VALOR, PIX_CHAVE, GRUPOS, TEAM_ABBR, FASES, TEAM_QUAL, ALL_TEAMS, ARTILHEIRO_OPTIONS, GOLEIRO_OPTIONS, getConfrontoHistorico } from '@/utils/constants'
 import type { Palpite, JogoCopa, PalpiteJogo } from '@/types'
 
 /* ─── helpers ──────────────────────────────────────────────── */
@@ -51,13 +51,7 @@ function abbr(name: string): string {
   return TEAM_ABBR[name] ?? name.replace(/\s+/g, '').slice(0, 3).toUpperCase()
 }
 
-function Flag({ codigo, size = 24 }: { codigo: string; size?: number }) {
-  return (
-    <Image src={`https://flagcdn.com/w40/${codigo}.png`} alt={codigo}
-      width={size} height={Math.round(size * 0.67)}
-      style={{ borderRadius: 2 }} unoptimized draggable={false} />
-  )
-}
+
 
 /* ─── match state ───────────────────────────────────────────── */
 
@@ -1117,6 +1111,7 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
   const displayCodigoA = jogo.codigo_pais_a
   const displayNameB = hasTeamB ? jogo.time_b : 'A definir'
   const displayCodigoB = jogo.codigo_pais_b
+  const confronto = hasTeamA && hasTeamB ? getConfrontoHistorico(jogo.time_a, jogo.time_b) : null
   const MESES_KO = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
   const [, mm, dd] = jogo.data.split('-')
   const dateStr = `${parseInt(dd)} ${MESES_KO[parseInt(mm)-1]} · ${jogo.horario.slice(0,5).replace(':','h')}`
@@ -1130,7 +1125,7 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
         <div style={{ width: size, height: Math.round(size * 0.67), borderRadius: 3, background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>?</div>
       )
     }
-    return <Image src={`https://flagcdn.com/w40/${codigo}.png`} alt={codigo} width={size} height={Math.round(size * 0.67)} style={{ borderRadius: 2, flexShrink: 0 }} unoptimized draggable={false} />
+    return <FlagImg codigo={codigo} size={size} />
   }
 
   function ScoreBtn({ val, onInc, onDec, penalti = false }: { val: number; onInc: () => void; onDec: () => void; penalti?: boolean }) {
@@ -1255,6 +1250,21 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
       </div>
       {locked && <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>🔒</div>}
     </div>
+
+    {/* Histórico de confronto */}
+    {confronto && (
+      <div style={{ padding: '4px 16px 6px', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Histórico:</span>
+        {confronto.inedito
+          ? <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.6)', fontWeight: 600 }}>Primeiro confronto oficial entre as seleções</span>
+          : <>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)' }}>{confronto.ultimoConfronto}</span>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>·</span>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>{confronto.raioX}</span>
+            </>
+        }
+      </div>
+    )}
 
     {/* Official result + points — shown after submitting when the admin has entered the result */}
     {state.submitted && jogo.resultado && (() => {
@@ -1568,7 +1578,7 @@ function ChaveKnockout({ jogosKO, selected, matchStates, chaveView, setChaveView
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 4px', borderRadius: 5, background: isWin ? 'rgba(74,144,217,0.08)' : 'transparent', borderLeft: isWin ? '2px solid #4A90D9' : '2px solid transparent', marginLeft: isWin ? -2 : 0 }}>
           {hasTeam && codigo
-            ? <Image src={`https://flagcdn.com/w40/${codigo}.png`} alt={name ?? ''} width={18} height={12} style={{ borderRadius: 2, flexShrink: 0 }} unoptimized />
+            ? <FlagImg codigo={codigo} size={18} />
             : <div style={{ width: 18, height: 12, borderRadius: 2, background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>?</div>
           }
           <span style={{ flex: 1, fontSize: 10, fontWeight: hasTeam ? 600 : 400, color: hasTeam ? 'white' : 'rgba(255,255,255,0.3)', fontStyle: hasTeam ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1884,7 +1894,7 @@ function TabelaDoPalpite({ palpite, todosJogos }: { palpite: Palpite; todosJogos
                       <td style={{ background: rowBg, borderLeft: leftBorder, padding: '6px 6px 6px 8px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                           <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', width: 12, textAlign: 'center', flexShrink: 0 }}>{idx + 1}</span>
-                          <Image src={`https://flagcdn.com/w40/${row.codigo}.png`} alt={row.time} width={16} height={11} style={{ borderRadius: 1, objectFit: 'cover', flexShrink: 0 }} unoptimized />
+                          <FlagImg codigo={row.codigo} size={16} />
                           <span style={{ fontSize: 10, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.time}</span>
                         </div>
                       </td>
@@ -2232,6 +2242,7 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
 
   const locked   = isLocked(jogo.data, jogo.horario)
   const editable = canEdit(jogo.data, jogo.horario)
+  const confronto = getConfrontoHistorico(jogo.time_a, jogo.time_b)
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -2315,7 +2326,7 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          <Flag codigo={jogo.codigo_pais_a ?? ''} size={24} />
+          <FlagImg codigo={jogo.codigo_pais_a ?? ''} size={24} />
           <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{abbr(jogo.time_a)}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -2324,7 +2335,7 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
           <ScoreControl value={state.scoreB} onChange={v => onScoreChange('B', v)} />
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          <Flag codigo={jogo.codigo_pais_b ?? ''} size={24} />
+          <FlagImg codigo={jogo.codigo_pais_b ?? ''} size={24} />
           <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{abbr(jogo.time_b)}</span>
         </div>
       </div>
@@ -2374,6 +2385,21 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
       {/* Expandable team qualifying info — toggled by ℹ️ button */}
       {infoOpen && (
         <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(74,144,217,0.2)' }}>
+          {/* Histórico de confronto */}
+          {confronto && (
+            <div style={{ padding: '7px 10px', background: 'rgba(74,144,217,0.05)', borderBottom: '1px solid rgba(74,144,217,0.15)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5, flexShrink: 0 }}>Confronto direto</span>
+              {confronto.inedito ? (
+                <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.7)', fontWeight: 600 }}>Primeiro confronto oficial entre as seleções</span>
+              ) : (
+                <>
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>{confronto.ultimoConfronto}</span>
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>·</span>
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>{confronto.raioX}</span>
+                </>
+              )}
+            </div>
+          )}
           <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.7, padding: '5px 10px', background: 'rgba(74,144,217,0.07)', borderBottom: '1px solid rgba(74,144,217,0.15)' }}>
             Eliminatórias · informações das seleções
           </div>

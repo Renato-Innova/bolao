@@ -7,14 +7,15 @@ interface FlagImgProps {
 }
 
 export function FlagImg({ codigo, size = 20, className = '' }: FlagImgProps) {
+  const h = Math.round(size * 0.67)
   return (
     <Image
       src={`https://flagcdn.com/w40/${codigo}.png`}
       alt={codigo}
       width={size}
-      height={Math.round(size * 0.65)}
+      height={h}
       className={className}
-      style={{ borderRadius: '2px' }}
+      style={{ borderRadius: '2px', width: size, height: h, objectFit: 'cover', flexShrink: 0 }}
       unoptimized
       draggable={false}
     />

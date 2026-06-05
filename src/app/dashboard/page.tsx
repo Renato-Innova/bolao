@@ -1,41 +1,32 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import { getRanking } from '@/services/ranking'
 import { TEAM_ABBR } from '@/utils/constants'
+import { FlagImg } from '@/components/ui/FlagImg'
 import type { JogoCopa, ClassificacaoGrupo } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
-function Flag({ codigo, size = 18 }: { codigo: string; size?: number }) {
-  return (
-    <Image
-      src={`https://flagcdn.com/w40/${codigo}.png`}
-      alt={codigo} width={size} height={Math.round(size * 0.67)}
-      style={{ borderRadius: 1 }} unoptimized draggable={false}
-    />
-  )
+const FASE_LABEL: Record<string, string> = {
+  GS:  'Fase de Grupos',
+  R32: 'Rodada de 32',
+  R16: 'Oitavas de Final',
+  QF:  'Quartas de Final',
+  SF:  'Semifinal',
+  TPL: 'Disputa de 3º',
+  F:   'Final',
 }
 
-function MetricCard({ label, value, sub, subBlue }: { label: string; value: React.ReactNode; sub?: string; subBlue?: boolean }) {
-  return (
-    <div style={{
-      background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)',
-      borderRadius: 10, padding: '14px 16px', position: 'relative', overflow: 'hidden',
-    }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #4A90D9, #1a5ca8)' }} />
-      <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5 }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 700, color: 'white', lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 10, color: subBlue ? '#4A90D9' : 'rgba(255,255,255,0.25)', marginTop: 3 }}>{sub}</div>}
-    </div>
-  )
-}
 
 export default async function DashboardPage() {
   const supabase = await createClient()
 
+  const { data: { user: currentUser } } = await supabase.auth.getUser()
+
   const [
-    { count: totalPalpites },
+    { count: totalAtivos },
+    { count: totalCadastrados },
+    { count: totalUsuarios },
     { count: totalJogos },
     { count: jogosRealizados },
     { data: proximosJogos },
@@ -44,34 +35,46 @@ export default async function DashboardPage() {
     { data: grupoJogos },
   ] = await Promise.all([
     supabase.from('palpites').select('*', { count: 'exact', head: true }).eq('status', 'ativo'),
+    supabase.from('palpites').select('*', { count: 'exact', head: true }),
+    supabase.from('users').select('*', { count: 'exact', head: true }),
     supabase.from('jogos_copa').select('*', { count: 'exact', head: true }),
     supabase.from('resultados').select('*', { count: 'exact', head: true }),
-    supabase.from('jogos_copa').select('*, resultado:resultados(*)').gte('data', new Date().toISOString().split('T')[0]).order('data').order('horario').limit(5),
+    supabase.from('jogos_copa').select('*, resultado:resultados(*)').gte('data', new Date().toISOString().split('T')[0]).order('data').order('horario').limit(8),
     supabase.from('jogos_copa').select('*, resultado:resultados(*)').lt('data', new Date().toISOString().split('T')[0]).not('resultado', 'is', null).order('data', { ascending: false }).order('horario', { ascending: false }).limit(4),
     getRanking(),
     supabase.from('classificacao_grupos').select('*').order('grupo').order('pts', { ascending: false }).order('dg', { ascending: false }).order('m', { ascending: false }),
   ])
 
-  // Pick the group with the most games played (most active), fall back to group A
-  const classRows = (grupoJogos ?? []) as ClassificacaoGrupo[]
-  const grupoPreview = (() => {
-    const byGrupo: Record<string, ClassificacaoGrupo[]> = {}
-    for (const row of classRows) {
-      if (!byGrupo[row.grupo]) byGrupo[row.grupo] = []
-      byGrupo[row.grupo].push(row)
-    }
-    // Pick the group with the highest total j (games played)
-    let activeGrupo = 'A'
-    let maxJ = -1
-    for (const [g, rows] of Object.entries(byGrupo)) {
-      const totalJ = rows.reduce((s, r) => s + r.j, 0)
-      if (totalJ > maxJ) { maxJ = totalJ; activeGrupo = g }
-    }
-    return { grupo: activeGrupo, times: byGrupo[activeGrupo] ?? [] }
-  })()
+  const lider   = ranking[0]
+  const hoje    = new Date().toISOString().split('T')[0]
+  const myEntry = currentUser ? ranking.find(r => r.usuario_id === currentUser.id) : null
 
-  const lider = ranking[0]
-  const hoje = new Date().toISOString().split('T')[0]
+  /* Fase atual — from most recent played game, else next upcoming */
+  const faseAtualRaw = (ultimosResultados?.[0] as JogoCopa | undefined)?.fase
+    ?? (proximosJogos?.[0] as JogoCopa | undefined)?.fase
+    ?? 'GS'
+  const faseAtual = FASE_LABEL[faseAtualRaw] ?? 'Fase de Grupos'
+
+  /* Max pontos possíveis = all played games * 20 (placar exato) */
+  const maxPontosPossiveis = (jogosRealizados ?? 0) * 20
+
+  /* Two groups to display — derived from next GS games */
+  const classRows  = (grupoJogos ?? []) as ClassificacaoGrupo[]
+  const byGrupo: Record<string, ClassificacaoGrupo[]> = {}
+  for (const row of classRows) {
+    if (!byGrupo[row.grupo]) byGrupo[row.grupo] = []
+    byGrupo[row.grupo].push(row)
+  }
+  const nextGSGroups = [
+    ...new Set(
+      (proximosJogos ?? [])
+        .filter((j: JogoCopa) => j.fase === 'GS' && j.grupo)
+        .map((j: JogoCopa) => j.grupo as string)
+    ),
+  ].slice(0, 2)
+  const displayGroups = nextGSGroups.length > 0
+    ? nextGSGroups
+    : Object.keys(byGrupo).slice(0, 2)
 
   function formatDate(d: string) {
     const parts = d.split('-')
@@ -79,97 +82,194 @@ export default async function DashboardPage() {
   }
   function formatTime(t: string) { return t.slice(0, 5) }
 
+  /* Shared styles */
+  const card: React.CSSProperties = {
+    background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)',
+    borderRadius: 10, padding: '14px 16px', position: 'relative', overflow: 'hidden',
+  }
+  const bar: React.CSSProperties = {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+    background: 'linear-gradient(90deg, #4A90D9, #1a5ca8)',
+  }
+  const label12: React.CSSProperties = {
+    fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.25)',
+    textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5,
+  }
+  const value24: React.CSSProperties = { fontSize: 24, fontWeight: 700, color: 'white', lineHeight: 1 }
+  const sub10: React.CSSProperties = { fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 3 }
+
   return (
     <div className="page-main" style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 24px 40px' }}>
 
-      {/* 4-column metrics */}
-      <div className="dash-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
-        <MetricCard label="Palpites ativos" value={totalPalpites ?? 0} sub={`de ${(totalPalpites ?? 0)} cadastrados`} />
-        <MetricCard
-          label="Jogos realizados"
-          value={<>{jogosRealizados ?? 0}<span style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.25)' }}>/{totalJogos ?? 104}</span></>}
-          sub="fase de grupos"
-        />
-        <MetricCard
-          label="Líder do bolão"
-          value={<span style={{ fontSize: 15, paddingTop: 3, display: 'block' }}>{lider?.nome ?? '—'}</span>}
-          sub={lider ? `${lider.total_pontos} pts · ${lider.usuario_nome}` : 'Sem palpites ativos'}
-          subBlue={!!lider}
-        />
-        <MetricCard
-          label="Próxima partida"
-          value={
-            proximosJogos?.[0]
-              ? <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                  {(proximosJogos[0] as JogoCopa).codigo_pais_a && <Flag codigo={(proximosJogos[0] as JogoCopa).codigo_pais_a!} size={20} />}
-                  <span style={{ color: 'rgba(255,255,255,0.25)' }}>×</span>
-                  {(proximosJogos[0] as JogoCopa).codigo_pais_b && <Flag codigo={(proximosJogos[0] as JogoCopa).codigo_pais_b!} size={20} />}
-                </div>
-              : <span style={{ fontSize: 14 }}>—</span>
-          }
-          sub={proximosJogos?.[0] ? `${formatDate((proximosJogos[0] as JogoCopa).data)} · ${formatTime((proximosJogos[0] as JogoCopa).horario)}h` : undefined}
-          subBlue={!!proximosJogos?.[0]}
-        />
-      </div>
+      {/* ── 4 metric cards ───────────────────────────────────────────────── */}
+      <div className="dash-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
 
-      {/* 2-column: standings preview + matches */}
-      <div className="dash-two" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12, marginBottom: 12 }}>
-
-        {/* Tabela grupo snapshot */}
-        <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
-            Tabela oficial — grupo {grupoPreview.grupo}
-            <Link href="/tabela" style={{ fontSize: 10, color: '#4A90D9', fontWeight: 500, textDecoration: 'none', textTransform: 'none', letterSpacing: 0 }}>ver todos →</Link>
+        {/* Card 1 — Palpites */}
+        <div style={card}>
+          <div style={bar} />
+          <div style={label12}>Palpites</div>
+          <div style={value24}>{totalAtivos ?? 0}</div>
+          <div style={sub10}>ativos no bolão</div>
+          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+              <span style={{ color: 'rgba(255,255,255,0.35)' }}>Total cadastrados</span>
+              <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>{totalCadastrados ?? 0}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+              <span style={{ color: 'rgba(255,255,255,0.35)' }}>Participantes</span>
+              <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>{totalUsuarios ?? 0}</span>
+            </div>
           </div>
-          {/* Table header */}
-          <div className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '0 4px 5px', fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-            <span>#</span><span style={{ textAlign: 'left' }}>Seleção</span><span>J</span><span>V</span><span>SG</span><span className="rank-acertos">GP</span><span>Pts</span>
-          </div>
-          {grupoPreview.times.length === 0 ? (
-            <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 12, padding: '16px 0' }}>Jogos em breve</p>
-          ) : grupoPreview.times.map((row: ClassificacaoGrupo, idx) => {
-            const q = idx < 2
-            const sgStr = row.dg > 0 ? `+${row.dg}` : String(row.dg)
-            return (
-              <div key={row.pais_nome} className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '6px 4px', alignItems: 'center', fontSize: 11, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.85)', background: q ? 'rgba(74,144,217,0.07)' : 'transparent', borderRadius: q ? 4 : 0 }}>
-                <span style={{ fontSize: 9, fontWeight: 700, color: q ? '#4A90D9' : 'rgba(255,255,255,0.25)' }}>{idx + 1}</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5, textAlign: 'left' }}>
-                  <Flag codigo={row.pais_codigo} size={18} />
-                  <span style={{ fontSize: 10, fontWeight: 600, color: 'white' }}>{row.pais_nome}</span>
-                </span>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.j}</span>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.c}</span>
-                <span style={{ fontSize: 10, color: row.dg < 0 ? 'rgba(255,100,100,0.75)' : 'rgba(255,255,255,0.6)' }}>{sgStr}</span>
-                <span className="rank-acertos" style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.m}</span>
-                <span style={{ fontWeight: 700, color: '#4A90D9', fontSize: 11 }}>{row.pts}</span>
-              </div>
-            )
-          })}
         </div>
 
-        {/* Matches */}
+        {/* Card 2 — Jogos */}
+        <div style={card}>
+          <div style={bar} />
+          <div style={label12}>Jogos realizados</div>
+          <div style={value24}>
+            {jogosRealizados ?? 0}
+            <span style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.25)' }}>/{totalJogos ?? 104}</span>
+          </div>
+          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+              <span style={{ color: 'rgba(255,255,255,0.35)' }}>Fase atual</span>
+              <span style={{ color: '#4A90D9', fontWeight: 600 }}>{faseAtual}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+              <span style={{ color: 'rgba(255,255,255,0.35)' }}>Máx. de pontos</span>
+              <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>{maxPontosPossiveis} pts</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3 — Líder */}
+        <div style={card}>
+          <div style={bar} />
+          <div style={label12}>Líder do bolão</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'white', lineHeight: 1.2, marginBottom: 2 }}>
+            {lider?.nome ?? '—'}
+          </div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>
+            {lider?.usuario_nome ?? 'Sem palpites ativos'}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+              <span style={{ color: 'rgba(255,255,255,0.35)' }}>Pontuação</span>
+              <span style={{ color: '#4A90D9', fontWeight: 700 }}>{lider?.total_pontos ?? 0} pts</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+              <span style={{ color: 'rgba(255,255,255,0.35)' }}>Sua posição</span>
+              <span style={{ color: myEntry ? '#4A90D9' : 'rgba(255,255,255,0.25)', fontWeight: 600 }}>
+                {myEntry ? `#${myEntry.posicao} · ${myEntry.total_pontos} pts` : '—'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* ── Second row: ranking + groups + matches ───────────────────────── */}
+      <div className="dash-two" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 12 }}>
+
+        {/* Ranking */}
         <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 14 }}>Partidas</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
+            Ranking do bolão
+            <Link href="/ranking" style={{ fontSize: 10, color: '#4A90D9', fontWeight: 500, textDecoration: 'none', textTransform: 'none', letterSpacing: 0 }}>ranking completo →</Link>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {ranking.length === 0 && (
+              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 12, padding: '12px 0' }}>Nenhum palpite ativo ainda</p>
+            )}
+            {ranking.slice(0, 5).map((entry, idx) => {
+              const maxPts = ranking[0]?.total_pontos || 1
+              const pct    = Math.round((entry.total_pontos / maxPts) * 100)
+              const medal  = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : String(entry.posicao)
+              const isMe   = currentUser && entry.usuario_id === currentUser.id
+              return (
+                <div key={entry.palpite_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: isMe ? 'rgba(74,144,217,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isMe ? 'rgba(74,144,217,0.3)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 7 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, minWidth: 22, color: 'rgba(255,255,255,0.25)', textAlign: 'center' }}>{medal}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>{entry.nome}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{entry.usuario_nome}</div>
+                  </div>
+                  <div style={{ width: 56, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{ height: 3, background: 'linear-gradient(90deg, #4A90D9, #7BB8F0)', borderRadius: 2, width: `${pct}%` }} />
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9', minWidth: 52, textAlign: 'right' }}>{entry.total_pontos} pts</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Groups — shows the 2 groups related to next games */}
+        <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
+            Tabela oficial
+            <Link href="/tabela" style={{ fontSize: 10, color: '#4A90D9', fontWeight: 500, textDecoration: 'none', textTransform: 'none', letterSpacing: 0 }}>ver todos →</Link>
+          </div>
+
+          {displayGroups.length === 0 ? (
+            <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 12, padding: '16px 0' }}>Grupos em breve</p>
+          ) : displayGroups.map((grupo, gi) => (
+            <div key={grupo} style={{ marginBottom: gi < displayGroups.length - 1 ? 18 : 0 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#4A90D9', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>
+                Grupo {grupo}
+              </div>
+              <div className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '0 4px 5px', fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <span>#</span><span style={{ textAlign: 'left' }}>Seleção</span><span>J</span><span>V</span><span>SG</span><span className="rank-acertos">GP</span><span>Pts</span>
+              </div>
+              {(byGrupo[grupo] ?? []).length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 11, padding: '10px 0' }}>Jogos em breve</p>
+              ) : (byGrupo[grupo] ?? []).map((row: ClassificacaoGrupo, idx: number) => {
+                const q     = idx < 2
+                const sgStr = row.dg > 0 ? `+${row.dg}` : String(row.dg)
+                return (
+                  <div key={row.pais_nome} className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '6px 4px', alignItems: 'center', fontSize: 11, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.85)', background: q ? 'rgba(74,144,217,0.07)' : 'transparent', borderRadius: q ? 4 : 0 }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: q ? '#4A90D9' : 'rgba(255,255,255,0.25)' }}>{idx + 1}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, textAlign: 'left' }}>
+                      <FlagImg codigo={row.pais_codigo} size={18} />
+                      <span style={{ fontSize: 10, fontWeight: 600, color: 'white' }}>{row.pais_nome}</span>
+                    </span>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.j}</span>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.c}</span>
+                    <span style={{ fontSize: 10, color: row.dg < 0 ? 'rgba(255,100,100,0.75)' : 'rgba(255,255,255,0.6)' }}>{sgStr}</span>
+                    <span className="rank-acertos" style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.m}</span>
+                    <span style={{ fontWeight: 700, color: '#4A90D9', fontSize: 11 }}>{row.pts}</span>
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+
+        {/* Próximas Partidas */}
+        <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 14 }}>Próximas Partidas</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {[...( ultimosResultados ?? []), ...(proximosJogos ?? [])].slice(0, 5).map((j: JogoCopa) => {
-              const isToday = j.data === hoje
+            {(proximosJogos ?? []).slice(0, 5).map((j: JogoCopa) => {
+              const isToday   = j.data === hoje
               const hasPlacar = !!j.resultado
               return (
                 <div key={j.id} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center',
                   padding: '8px 10px',
                   background: isToday ? 'rgba(74,144,217,0.06)' : 'rgba(255,255,255,0.04)',
                   border: `1px solid ${isToday ? 'rgba(74,144,217,0.35)' : 'rgba(255,255,255,0.06)'}`,
                   borderRadius: 7,
                 }}>
+                  {/* Time A */}
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600 }}>
-                      {j.codigo_pais_a && <Flag codigo={j.codigo_pais_a} size={16} />} {(TEAM_ABBR[j.time_a] ?? j.time_a.replace(/\s+/g,'').slice(0,3).toUpperCase())}
+                      {j.codigo_pais_a && <FlagImg codigo={j.codigo_pais_a} size={16} />}
+                      {j.time_a}
                     </div>
                     <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{formatDate(j.data)}</div>
                   </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9', minWidth: 38, textAlign: 'center' }}>
+                  {/* Centro */}
+                  <div style={{ textAlign: 'center', padding: '0 10px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9' }}>
                       {hasPlacar ? `${j.resultado!.placar_real_a} – ${j.resultado!.placar_real_b}` : '– –'}
                     </div>
                     <span style={{
@@ -180,50 +280,46 @@ export default async function DashboardPage() {
                       {hasPlacar ? 'Encerrado' : isToday ? `Hoje ${formatTime(j.horario)}h` : 'Em breve'}
                     </span>
                   </div>
+                  {/* Time B */}
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, justifyContent: 'flex-end' }}>
-                      {(TEAM_ABBR[j.time_b] ?? j.time_b.replace(/\s+/g,'').slice(0,3).toUpperCase())} {j.codigo_pais_b && <Flag codigo={j.codigo_pais_b} size={16} />}
+                      {j.time_b}
+                      {j.codigo_pais_b && <FlagImg codigo={j.codigo_pais_b} size={16} />}
                     </div>
                     <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{j.cidade}</div>
                   </div>
                 </div>
               )
             })}
-            {(!proximosJogos?.length && !ultimosResultados?.length) && (
-              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 12, padding: '20px 0' }}>Nenhuma partida ainda</p>
+            {!(proximosJogos?.length) && (
+              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 12, padding: '20px 0' }}>Nenhuma partida em breve</p>
             )}
           </div>
         </div>
+
       </div>
 
-      {/* Ranking parcial */}
-      <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
-          Ranking do bolão
-          <Link href="/ranking" style={{ fontSize: 10, color: '#4A90D9', fontWeight: 500, textDecoration: 'none', textTransform: 'none', letterSpacing: 0 }}>ranking completo →</Link>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          {ranking.length === 0 && (
-            <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 12, padding: '12px 0' }}>Nenhum palpite ativo ainda</p>
-          )}
-          {ranking.slice(0, 5).map((entry, idx) => {
-            const maxPts = ranking[0]?.total_pontos || 1
-            const pct = Math.round((entry.total_pontos / maxPts) * 100)
-            const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : String(entry.posicao)
-            return (
-              <div key={entry.palpite_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 7 }}>
-                <span style={{ fontSize: idx < 3 ? 13 : 13, fontWeight: 700, minWidth: 22, color: 'rgba(255,255,255,0.25)', textAlign: 'center' }}>{medal}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>{entry.nome}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{entry.usuario_nome}</div>
-                </div>
-                <div style={{ width: 56, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
-                  <div style={{ height: 3, background: 'linear-gradient(90deg, #4A90D9, #7BB8F0)', borderRadius: 2, width: `${pct}%` }} />
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9', minWidth: 52, textAlign: 'right' }}>{entry.total_pontos} pts</span>
-              </div>
-            )
-          })}
+      {/* ── Third row: Informações ────────────────────────────────────────── */}
+      <div style={{ ...card }}>
+        <div style={bar} />
+        <div style={label12}>Informações</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+            <span style={{ color: '#4A90D9', flexShrink: 0 }}>•</span>
+            <span>Prazo de ativação: <strong style={{ color: 'white' }}>antes do início da Copa</strong></span>
+          </div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+            <span style={{ color: '#4A90D9', flexShrink: 0 }}>•</span>
+            <span>Placar exato vale <strong style={{ color: 'white' }}>20 pts</strong></span>
+          </div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+            <span style={{ color: '#4A90D9', flexShrink: 0 }}>•</span>
+            <span>Campeão correto vale <strong style={{ color: 'white' }}>100 pts</strong></span>
+          </div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+            <span style={{ color: '#4A90D9', flexShrink: 0 }}>•</span>
+            <Link href="/instrucoes" style={{ color: '#7BB8F0', textDecoration: 'none' }}>Ver regulamento completo →</Link>
+          </div>
         </div>
       </div>
     </div>

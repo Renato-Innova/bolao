@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef } from 'react'
-import Image from 'next/image'
+import { FlagImg } from '@/components/ui/FlagImg'
 import { createClient } from '@/lib/supabase/client'
 import { FASES, TEAMS } from '@/utils/constants'
 import type { JogoCopa } from '@/types'
@@ -39,12 +39,6 @@ function fmtDay(date: string) {
 
 function fmtTime(horario: string) { return horario.slice(0, 5).replace(':', 'h') }
 
-function Flag({ codigo }: { codigo: string }) {
-  return (
-    <Image src={`https://flagcdn.com/w40/${codigo}.png`} alt={codigo}
-      width={18} height={12} style={{ borderRadius: 1 }} unoptimized draggable={false} />
-  )
-}
 
 // Group games by date, preserving chronological order
 function groupByDay(games: JogoCopa[]): { date: string; label: string; games: JogoCopa[] }[] {
@@ -287,11 +281,11 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
 
         {/* Teams */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
-          {localCodigoA && <Flag codigo={localCodigoA} />}
+          {localCodigoA && <FlagImg codigo={localCodigoA} />}
           <span style={{ fontSize: 12, fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{localTimeA}</span>
           <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>×</span>
           <span style={{ fontSize: 12, fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{localTimeB}</span>
-          {localCodigoB && <Flag codigo={localCodigoB} />}
+          {localCodigoB && <FlagImg codigo={localCodigoB} />}
         </div>
 
         {/* Meta */}

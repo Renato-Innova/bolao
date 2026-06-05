@@ -143,7 +143,58 @@ export const TEAM_ABBR: Record<string, string> = {
 }
 
 export const PIX_VALOR = 40
-export const PIX_CHAVE = 'renatoclpereira@gmail.com'
+export const PIX_CHAVE = ''
+
+// Histórico de confrontos entre seleções — exibido na tela de palpites
+// Chave: "TimeA|TimeB" em ordem alfabética para lookup bidirecional
+export interface ConfrontoHistorico {
+  ultimoConfronto: string   // ex: "Marrocos 2 x 1 Brasil (2023)"
+  raioX: string             // ex: "3 jogos. Brasil 2V, Marrocos 1V"
+  inedito?: boolean         // true quando nunca se enfrentaram oficialmente
+}
+
+export const CONFRONTOS_HISTORICOS: Record<string, ConfrontoHistorico> = {
+  // Grupo A
+  'África do Sul|México':        { ultimoConfronto: 'África do Sul 1 x 1 México',         raioX: '4 jogos. México: 1V · 2E · África do Sul: 1V' },
+  'Coreia do Sul|México':        { ultimoConfronto: 'Coreia do Sul 1 x 2 México',          raioX: '14 jogos. México: 8V · 2E · Coreia do Sul: 4V' },
+  // Grupo B
+  'Bósnia e Herzegovina|Canadá': { ultimoConfronto: '—', raioX: 'Primeiro confronto oficial', inedito: true },
+  'Catar|Suíça':                 { ultimoConfronto: '—', raioX: 'Primeiro confronto oficial', inedito: true },
+  // Grupo C
+  'Brasil|Marrocos':             { ultimoConfronto: 'Marrocos 2 x 1 Brasil (2023)',        raioX: '3 jogos. Brasil: 2V · Marrocos: 1V' },
+  'Escócia|Marrocos':            { ultimoConfronto: 'Marrocos 3 x 0 Escócia (1998)',       raioX: '3 jogos. Marrocos: 2V · 1E' },
+  'Brasil|Haiti':                { ultimoConfronto: 'Brasil 7 x 1 Haiti (2016)',            raioX: '3 jogos. Brasil venceu todos' },
+  'Brasil|Escócia':              { ultimoConfronto: 'Brasil 2 x 1 Escócia (1998)',          raioX: '10 jogos. Brasil: 8V · 2E' },
+  // Grupo D
+  'EUA|Paraguai':                { ultimoConfronto: 'Estados Unidos 1 x 0 Paraguai (2018)',raioX: '8 jogos. EUA: 4V · 2E · Paraguai: 2V' },
+  // Grupo E
+  'Alemanha|Equador':            { ultimoConfronto: 'Equador 2 x 4 Alemanha (2013)',        raioX: '2 jogos. Alemanha venceu ambos' },
+  'Alemanha|Curaçao':            { ultimoConfronto: '—', raioX: 'Primeiro confronto oficial', inedito: true },
+  'Costa do Marfim|Curaçao':     { ultimoConfronto: '—', raioX: 'Primeiro confronto oficial', inedito: true },
+  // Grupo F
+  'Holanda|Japão':               { ultimoConfronto: 'Holanda 2 x 2 Japão (2013)',           raioX: '3 jogos. Holanda: 2V · 1E' },
+  'Holanda|Suécia':              { ultimoConfronto: 'Holanda 2 x 0 Suécia (2017)',           raioX: '25 jogos. Holanda: 11V · Suécia: 8V · 6E' },
+  // Grupo G
+  'Bélgica|Egito':               { ultimoConfronto: 'Bélgica 1 x 2 Egito (2022)',            raioX: '4 jogos. Egito: 3V · Bélgica: 1V' },
+  // Grupo H
+  'Arábia Saudita|Uruguai':      { ultimoConfronto: 'Uruguai 1 x 0 Arábia Saudita (2018)',  raioX: '3 jogos. 1V cada · 1E' },
+  // Grupo I
+  'França|Senegal':              { ultimoConfronto: 'França 0 x 1 Senegal (2002)',            raioX: 'Único confronto oficial. Vitória do Senegal' },
+  // Grupo J
+  'Áustria|Jordânia':            { ultimoConfronto: '—', raioX: 'Primeiro confronto oficial', inedito: true },
+  'Argentina|Jordânia':          { ultimoConfronto: '—', raioX: 'Primeiro confronto oficial', inedito: true },
+  // Grupo K
+  'Portugal|Uzbequistão':        { ultimoConfronto: '—', raioX: 'Primeiro confronto oficial', inedito: true },
+  'Colômbia|Uzbequistão':        { ultimoConfronto: '—', raioX: 'Primeiro confronto oficial', inedito: true },
+  // Grupo L
+  'Croácia|Inglaterra':          { ultimoConfronto: 'Inglaterra 1 x 0 Croácia (Euro 2020)',  raioX: '11 jogos. Inglaterra: 6V · Croácia: 3V · 2E' },
+}
+
+// Retorna o histórico de confronto dado dois nomes de time (ordem não importa)
+export function getConfrontoHistorico(timeA: string, timeB: string): ConfrontoHistorico | null {
+  const key = [timeA, timeB].sort((a, b) => a.localeCompare(b, 'pt-BR')).join('|')
+  return CONFRONTOS_HISTORICOS[key] ?? null
+}
 
 /* ─── Special prediction options ─────────────────────────────────────────────
  * Shared between PalpitesClient (user dropdowns) and AdminConfigClient
