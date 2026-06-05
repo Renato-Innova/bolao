@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     title: 'Bolão 26',
   },
   icons: {
-    apple: '/icons/icon-192.svg',
+    apple: '/icons/icon-192.png',
   },
 }
 
