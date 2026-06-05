@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0D1E3D"/>
+      <stop offset="100%" stop-color="#020F2A"/>
+    </linearGradient>
+    <clipPath id="round">
+      <rect width="192" height="192" rx="38" ry="38"/>
+    </clipPath>
+  </defs>
+  <rect width="192" height="192" rx="38" ry="38" fill="url(#bg)"/>
+  <g clip-path="url(#round)">
+    <rect width="192" height="5" fill="#4A90D9"/>
+    <rect x="0" y="5" width="192" height="3" fill="#7BB8F0" opacity="0.4"/>
+  </g>
+  <text x="96" y="88" font-family="Arial Black,Arial,sans-serif" font-size="69" font-weight="900" fill="white" text-anchor="middle" dominant-baseline="middle">26</text>
+  <text x="96" y="131" font-size="31" text-anchor="middle" dominant-baseline="middle">🏆</text>
+  <text x="96" y="161" font-family="Arial,sans-serif" font-size="17" font-weight="700" fill="#4A90D9" text-anchor="middle" letter-spacing="2">FIFA</text>
+  <text x="96" y="180" font-family="Arial,sans-serif" font-size="13" fill="rgba(255,255,255,0.35)" text-anchor="middle">WORLD CUP™</text>
+</svg>
