@@ -76,6 +76,10 @@ export default function LoginPage() {
 
             {error && <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(255,100,100,0.1)', border: '1px solid rgba(255,100,100,0.3)', borderRadius: 8, fontSize: 13, color: 'rgba(255,130,130,0.9)' }}>{error}</div>}
 
+            <div style={{ textAlign: 'right', marginBottom: 4 }}>
+              <Link href="/auth/esqueci-senha" style={{ fontSize: 12, color: 'rgba(123,184,240,0.7)', textDecoration: 'none' }}>Esqueci minha senha</Link>
+            </div>
+
             <button type="submit" disabled={loading}
               className="auth-btn" style={{ width: '100%', marginTop: 16, background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', border: 'none', borderRadius: 8, padding: 13, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
               {loading ? 'Entrando...' : 'Entrar'}

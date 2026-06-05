@@ -52,9 +52,9 @@ src/
     globals.css           ← CSS variables, responsive rules, global styles
     dashboard/page.tsx
     tabela/page.tsx
-    palpites/page.tsx
+    palpites/page.tsx     ← fetches palpites + todosJogos + scoringConfigs
     ranking/page.tsx
-    instrucoes/page.tsx
+    instrucoes/page.tsx   ← reads configuracoes_pontuacao for live scoring table
     admin/
       resultados/page.tsx
       configuracoes/page.tsx
@@ -64,10 +64,15 @@ src/
       callback/route.ts
     api/
       admin/
-        resultado/route.ts
+        resultado/route.ts          ← saves result + recalculates all palpites for that game
+        especiais/route.ts          ← saves official special results + recalcs pontos_especiais
+        classificacao/route.ts      ← calculates group classification bonus (20pts/qualifier)
+        recalcular/route.ts         ← bulk recalculation of all points for all games
+        reset-resultados/route.ts   ← clears all results and zeroes all points (testing only)
         advance-bracket/route.ts
       palpites/
-        [id]/route.ts
+        [id]/route.ts               ← DELETE palpite
+        [id]/submit/route.ts        ← submit prediction + immediate scoring if result exists
         [id]/downstream-impact/route.ts
         [id]/cascade-clear/route.ts
   components/
@@ -78,10 +83,10 @@ src/
       HeroStrip.tsx
       HeroStripWrapper.tsx
     palpites/
-      PalpitesClient.tsx    ← main palpites UI (all tabs, MatchCard, KO logic)
+      PalpitesClient.tsx    ← main palpites UI (tabs, MatchCard, KO, scoring, checklist)
     admin/
       AdminResultadosClient.tsx
-      AdminConfigClient.tsx
+      AdminConfigClient.tsx ← tabs: Pontuação | Palpites Especiais | Palpites | Usuários
     ranking/
       RankingPodio.tsx
       RankingTabela.tsx
@@ -106,10 +111,27 @@ src/
   types/
     index.ts                ← all shared TypeScript interfaces
   utils/
-    constants.ts            ← PIX_VALOR, PIX_CHAVE, GRUPOS, TEAM_ABBR, FASES
+    constants.ts            ← PIX_VALOR, PIX_CHAVE, GRUPOS, TEAM_ABBR, FASES,
+                               ARTILHEIRO_OPTIONS, GOLEIRO_OPTIONS, ALL_TEAMS, TEAM_QUAL
+    scoring.ts              ← calcularPontos(), calcularPontosEspeciais(), SPECIAL_POINTS
+    classificacao.ts        ← computeGroupStandings(), calcularBonusClassificacao()
     helpers.ts
   proxy.ts
 ```
+
+---
+
+## SQL Migrations (run in order in Supabase SQL Editor)
+
+| File | Description |
+|---|---|
+| `01_tables.sql` | Initial schema |
+| `02_seed_pontuacao.sql` | Old scoring seed (superseded by 15) |
+| `03_seed_jogos.sql` | All 104 games |
+| `04–14_*.sql` | Schema v2, RLS policies, phase codes, penalties, etc. |
+| `15_scoring_overhaul.sql` | **5-criteria scoring** per official regulation. Adds `pontos_especiais` to palpites, creates `resultados_especiais` table |
+| `16_classificacao_grupos.sql` | Adds `pontos_classificacao` to palpites |
+| `17_unique_palpite_nome.sql` | Global UNIQUE constraint on `palpites.nome` |
 
 ---
 
@@ -146,17 +168,6 @@ https://flagcdn.com/w40/{country-code}.png
 ```
 Standard dimensions in tables: width 18–20px, height 12–14px, border-radius 2px.
 Always use `flagcdn.com` images — never emoji flags.
-
-### Cards
-```css
-background: #0D1E3D;
-border: 1px solid rgba(74,144,217,0.15);
-border-radius: 8–10px;
-```
-
-### Buttons
-- **Primary:** `background: linear-gradient(90deg,#4A90D9,#1a5ca8)`, white text, uppercase, font-weight 700
-- **Secondary:** `background: rgba(255,255,255,0.07)`, color rgba(255,255,255,0.6)
 
 ### Score inputs (ScoreControl / ScoreBtn)
 - Unset state uses `-1` as sentinel value — displayed as `—` in the UI
@@ -202,19 +213,31 @@ border-radius: 8–10px;
 | pais_sede | text | |
 | criado_em | timestamp | |
 
-Knockout team slots use bracket placeholders (e.g. `"Vencedor J3"`, `"1º Grupo A"`) until the admin fills them after the group stage. `isPlaceholder()` in `PalpitesClient.tsx` detects these.
+Knockout team slots use bracket placeholders (e.g. `"Vencedor J3"`, `"1º Grupo A"`) until the admin fills them. `isPlaceholder()` in `PalpitesClient.tsx` detects these.
 
 ### resultados
 | Field | Type | Notes |
 |---|---|---|
 | id | serial | PK |
 | jogo_id | integer | FK jogos_copa, unique |
-| placar_real_a | integer | |
-| placar_real_b | integer | |
+| placar_real_a | integer | score after 90 min + ET |
+| placar_real_b | integer | score after 90 min + ET |
 | placar_penalti_a | integer | nullable — KO shootout only |
 | placar_penalti_b | integer | nullable |
-| artilheiro_copa | text | nullable — filled at end of tournament |
 | inserido_em | timestamp | |
+| atualizado_em | timestamp | |
+
+### resultados_especiais
+Single-row table (id = 1). Stores official special award results.
+
+| Field | Type | Notes |
+|---|---|---|
+| id | integer | PK, always 1 |
+| campeao | text | nullable |
+| vice_campeao | text | nullable |
+| artilheiro | text | nullable |
+| melhor_jogador | text | nullable |
+| melhor_goleiro | text | nullable |
 | atualizado_em | timestamp | |
 
 ### palpites
@@ -222,11 +245,15 @@ Knockout team slots use bracket placeholders (e.g. `"Vencedor J3"`, `"1º Grupo 
 |---|---|---|
 | id | serial | PK |
 | usuario_id | uuid | FK users |
-| nome | text | entry name shown in ranking |
+| nome | text | **globally unique** — shown in ranking |
 | status | text | `ativo \| inativo` |
+| campeao | text | predicted champion |
+| vice_campeao | text | predicted runner-up |
 | artilheiro | text | predicted top scorer |
 | melhor_jogador | text | predicted best player |
 | melhor_goleiro | text | predicted best goalkeeper |
+| pontos_especiais | integer | default 0 — sum of special prediction points |
+| pontos_classificacao | integer | default 0 — group stage classification bonus |
 | json_backup | jsonb | nullable |
 | criado_em | timestamp | |
 | atualizado_em | timestamp | |
@@ -250,14 +277,21 @@ Knockout team slots use bracket placeholders (e.g. `"Vencedor J3"`, `"1º Grupo 
 | Field | Type | Notes |
 |---|---|---|
 | id | serial | PK |
-| fase | text | |
-| tipo_acerto | text | `placar_exato \| vencedor` |
+| fase | text | `GS \| R32 \| R16 \| QF \| SF \| TPL \| F` |
+| tipo_acerto | text | `placar_exato \| empate \| vencedor \| gols_equipe \| penalti` |
 | pontos | integer | |
 | atualizado_em | timestamp | |
+
+Unique constraint on `(fase, tipo_acerto)`. 35 rows total (7 phases × 5 types).
 
 ---
 
 ## Business Rules
+
+### Palpite Names
+- **Globally unique** — no two palpites in the entire bolão can share the same name
+- Enforced at DB level (`UNIQUE(nome)`) and checked client-side before insert (case-insensitive)
+- Error code `23505` = duplicate name race condition
 
 ### Predictions (Palpites)
 - User creates a named entry — starts as `inativo`
@@ -267,13 +301,14 @@ Knockout team slots use bracket placeholders (e.g. `"Vencedor J3"`, `"1º Grupo 
 
 ### Match Prediction Flow
 - Unsubmitted scores use `-1` sentinel (displayed as `—`) — 0 is a valid score
-- User sets both scores then clicks "Enviar placar" → `submitted_at` is set
-- After submission, card shows official result + points earned (once admin enters result)
+- User sets both scores then clicks "Enviar placar" → `submitted_at` is set via `/api/palpites/[id]/submit`
+- Submit route checks if official result exists → calculates points immediately if so
+- After submission, card shows official result + points earned
 - Predictions can be edited up to 1 hour before kick-off
 - Editing a KO game that feeds into later rounds triggers a cascade clear dialog
 
 ### Knockout Phase Locking
-- R32 unlocks only after the admin fills all bracket slots (no placeholders)
+- R32 unlocks only after admin fills all bracket slots (no placeholders)
 - Each subsequent KO phase unlocks only after all games in the previous phase are submitted
 - `isPhaseLocked()` in `PalpitesClient.tsx` enforces these rules
 
@@ -282,7 +317,7 @@ Knockout team slots use bracket placeholders (e.g. `"Vencedor J3"`, `"1º Grupo 
 **Five cumulative criteria per match:**
 | Criteria | Description |
 |---|---|
-| `placar_exato` | Exact 90+ET score — maximum, **not** cumulative with gols |
+| `placar_exato` | Exact 90+ET score — maximum, standalone (no gols stacked on top) |
 | `empate` | Predicted draw AND actual draw (wrong score) |
 | `vencedor` | Correct winner (wrong score) |
 | `gols_equipe` | Correct goals of ONE team — **cumulative** with vencedor/empate |
@@ -299,12 +334,17 @@ Knockout team slots use bracket placeholders (e.g. `"Vencedor J3"`, `"1º Grupo 
 | TPL | 100 | 75 | 50 | 25 | 25 |
 | F | 120 | 75 | 60 | 30 | 30 |
 
+**Maximum possible points for a perfect palpite: 3.340 pts**
+- Jogos (all exact scores): 2.380 pts
+- Bônus classificação de grupos: 640 pts (32 × 20)
+- Palpites especiais: 320 pts (100+70+50+50+50)
+
 **KO rules:**
-- Result = 90 min + extra time (admin enters ET score, not just 90-min)
+- Result = 90 min + extra time (admin enters ET score — label shown in admin form)
 - Penalty shootout scores are NOT counted as match goals (regulation note 4)
 - KO draws that go to penalties: can score empate + penalti, or gols + penalti
 
-**Special predictions:**
+**Special predictions (from `resultados_especiais`):**
 | Prediction | Points |
 |---|---|
 | Campeão | 100 |
@@ -313,15 +353,40 @@ Knockout team slots use bracket placeholders (e.g. `"Vencedor J3"`, `"1º Grupo 
 | Melhor Jogador | 50 |
 | Melhor Goleiro | 50 |
 
-**Group classification bonus:** 20 pts per team correctly predicted to qualify from the group stage (not yet implemented — Phase 2 backlog).
+**Group classification bonus:** 20 pts per team correctly predicted to qualify (top 2 per group + 8 best 3rd-place = 32 qualifiers max). Triggered by admin after all group results are confirmed. Logic in `src/utils/classificacao.ts`.
 
-**Implementation:** `src/utils/scoring.ts` — `calcularPontos()` for match points, `calcularPontosEspeciais()` for special predictions. Values stored in `configuracoes_pontuacao` (admin-configurable). Special results stored in `resultados_especiais` (single-row table).
+**Implementation files:**
+- `src/utils/scoring.ts` — `calcularPontos()`, `calcularPontosEspeciais()`, `SPECIAL_POINTS`, `PONTOS_CLASSIFICACAO_GRUPO`
+- `src/utils/classificacao.ts` — `computeGroupStandings()`, `getPrevisaoClassificados()`, `calcularBonusClassificacao()`
+
+### Palpites UI — Tabs
+| # | Tab | Content |
+|---|---|---|
+| 0 | Fase de Grupos | Match cards by day, accordion, group stage games |
+| 1 | Palpites Especiais | Campeão, Vice, Artilheiro, Melhor Jogador, Melhor Goleiro |
+| 2 | Tabela do Palpite | Predicted group standings with FIFA tiebreakers + classification bonus per group |
+| 3 | Mata-Mata | KO bracket (list + chave view), swipe navigation on mobile |
+| 4 | Pontuação | Detailed breakdown: pts/phase + max possible + %, bonus groups, specials, grand total |
+
+**Palpite card checklist** (shown on every carousel card):
+- ⚽ Grupos — X/72 submitted
+- 🌟 Especiais — X/5 filled
+- 🏆 Mata-Mata — X/32 submitted
+
+### Admin Panel — Configurações tabs
+| Tab | Description |
+|---|---|
+| Pontuação | Edit scoring values per phase (5 types × 7 phases) |
+| Palpites Especiais | Enter official special results → "Salvar e Recalcular" updates all palpites. "Recalcular Tudo" bulk-recalcs all game points. "Calcular Bônus de Grupos" runs classification bonus. "Resetar Resultados" clears all results + zeroes all points (testing only) |
+| Palpites | List all palpites, activate/deactivate, see special predictions |
+| Usuários | List all users |
 
 ### Tournament Structure
 - 48 teams in 12 groups of 4 (A–L)
-- Top 2 from each group + 8 best third-place teams advance → 32 in KO
-- Phases: Group Stage (GS) → Round of 32 (R32) → Round of 16 (R16) → Quarters (QF) → Semis (SF) → Third-place play-off (TPL) + Final (F)
-- 104 matches total
+- GS: 72 games (6 per group × 12 groups)
+- KO: 32 games (R32=16, R16=8, QF=4, SF=2, TPL=1, F=1)
+- Total: 104 games
+- Top 2 from each group + 8 best 3rd-place teams → 32 in KO
 
 ### FIFA Standings Tiebreakers
 1. Points (W=3, D=1, L=0)
@@ -329,7 +394,7 @@ Knockout team slots use bracket placeholders (e.g. `"Vencedor J3"`, `"1º Grupo 
 3. Goals scored
 4. Head-to-head result
 5. Fair play (cards)
-6. Drawing of lots
+6. Drawing of lots (seedOrder — deterministic, based on schedule order)
 
 ---
 
@@ -342,9 +407,18 @@ Knockout team slots use bracket placeholders (e.g. `"Vencedor J3"`, `"1º Grupo 
 ---
 
 ## Payment
-- PIX — R$ 40,00 per entry
-- Manual confirmation by admin → sets `status = 'ativo'`
-- PIX key and value defined in `src/utils/constants.ts` (`PIX_CHAVE`, `PIX_VALOR`)
+- PIX — R$ 40,00 per entry (manual confirmation by admin)
+- Admin sets `status = 'ativo'` on the palpite after confirming payment
+- PIX key and value: `src/utils/constants.ts` (`PIX_CHAVE`, `PIX_VALOR`)
+
+---
+
+## Team Qualifying Info
+
+All 48 teams have qualifying data in `src/utils/constants.ts` → `TEAM_QUAL`.
+Each entry has: confederation, zone, position, qualification method, P/W/D/L/GF/GA/Pts, description, obs.
+Keys match exactly the Portuguese team names in `jogos_copa.time_a / time_b`.
+Displayed in `MatchCard` via the `ℹ` button → `TeamInfoPanel` component.
 
 ---
 
@@ -363,4 +437,6 @@ Knockout team slots use bracket placeholders (e.g. `"Vencedor J3"`, `"1º Grupo 
 - Comments: explain the *why*, not the *what*
 - No duplicate logic — reuse functions and hooks
 - Keep `PalpitesClient.tsx` sections clearly separated by comment banners (`/* ─── */`)
-- Match card components: `MatchCard` (group stage) and `KnockoutGameCard` (KO rounds) share the same bottom footer pattern — keep them in sync
+- Match card components: `MatchCard` (GS) and `KnockoutGameCard` (KO) share the same bottom footer pattern — keep them in sync
+- `scoringConfigs` prop flows: `palpites/page.tsx` → `PalpitesClient` → `PontuacaoTab`
+- Palpite name uniqueness: always check with `ilike` before insert; handle error code `23505`
