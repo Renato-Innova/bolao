@@ -44,9 +44,16 @@ export interface Palpite {
   usuario_id: string   // UUID — foreign key to users
   nome: string
   status: 'ativo' | 'inativo'
+  // Special predictions
+  campeao?: string
+  vice_campeao?: string
   artilheiro?: string
   melhor_jogador?: string
   melhor_goleiro?: string
+  // Points earned from special predictions (updated by admin)
+  pontos_especiais: number
+  // Points earned from correctly predicted group-stage qualifiers (updated by admin)
+  pontos_classificacao: number
   json_backup?: Record<string, unknown>
   criado_em: string
   atualizado_em: string
@@ -72,8 +79,19 @@ export interface PalpiteJogo {
 export interface ConfiguracaoPontuacao {
   id: number           // SERIAL
   fase: string
-  tipo_acerto: 'placar_exato' | 'vencedor'
+  tipo_acerto: 'placar_exato' | 'empate' | 'vencedor' | 'gols_equipe' | 'penalti'
   pontos: number
+  atualizado_em: string
+}
+
+// Official special result — single row table resultados_especiais
+export interface ResultadoEspecial {
+  id: 1
+  campeao: string | null
+  vice_campeao: string | null
+  artilheiro: string | null
+  melhor_jogador: string | null
+  melhor_goleiro: string | null
   atualizado_em: string
 }
 

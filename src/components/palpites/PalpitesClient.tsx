@@ -3,27 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { PIX_VALOR, PIX_CHAVE, GRUPOS, TEAM_ABBR, FASES, TEAM_QUAL } from '@/utils/constants'
+import { PIX_VALOR, PIX_CHAVE, GRUPOS, TEAM_ABBR, FASES, TEAM_QUAL, ALL_TEAMS, ARTILHEIRO_OPTIONS, GOLEIRO_OPTIONS } from '@/utils/constants'
 import type { Palpite, JogoCopa, PalpiteJogo } from '@/types'
-
-/* ─── special palpites options ──────────────────────────────── */
-
-const ARTILHEIRO_OPTIONS = [
-  { value: 'Kylian Mbappé',    label: 'Kylian Mbappé (França)'       },
-  { value: 'Lamine Yamal',     label: 'Lamine Yamal (Espanha)'       },
-  { value: 'Harry Kane',       label: 'Harry Kane (Inglaterra)'      },
-  { value: 'Lionel Messi',     label: 'Lionel Messi (Argentina)'     },
-  { value: 'Vinicius Junior',  label: 'Vinicius Junior (Brasil)'     },
-  { value: 'Raphinha',         label: 'Raphinha (Brasil)'            },
-]
-
-const GOLEIRO_OPTIONS = [
-  { value: 'Mike Maignan',          label: 'Mike Maignan (França)'               },
-  { value: 'Emiliano Martínez',     label: 'Emiliano "Dibu" Martínez (Argentina)'},
-  { value: 'Alisson Becker',        label: 'Alisson Becker (Brasil)'             },
-  { value: 'Unai Simón',            label: 'Unai Simón (Espanha)'                },
-  { value: 'Jordan Pickford',       label: 'Jordan Pickford (Inglaterra)'        },
-]
 
 /* ─── helpers ──────────────────────────────────────────────── */
 
@@ -164,6 +145,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
   /* match editing */
   const [matchStates, setMatchStates] = useState<Record<string, MatchState>>({})
   const [visibleDays, setVisibleDays] = useState(1)
+  const [campeao, setCampeao] = useState('')
+  const [viceCampeao, setViceCampeao] = useState('')
   const [artilheiro, setArtilheiro] = useState('')
   const [melhorJogador, setMelhorJogador] = useState('')
   const [melhorGoleiro, setMelhorGoleiro] = useState('')
@@ -213,6 +196,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
     if (palpite?.palpites_jogos) {
       const states = initStates(palpite.palpites_jogos)
       setMatchStates(states)
+      setCampeao(palpite.campeao ?? '')
+      setViceCampeao(palpite.vice_campeao ?? '')
       setArtilheiro(palpite.artilheiro ?? '')
       setMelhorJogador(palpite.melhor_jogador ?? '')
       setMelhorGoleiro(palpite.melhor_goleiro ?? '')
@@ -224,6 +209,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
       setVisibleDays(targetDay)
     } else {
       setMatchStates({})
+      setCampeao('')
+      setViceCampeao('')
       setArtilheiro('')
       setMelhorJogador('')
       setMelhorGoleiro('')
@@ -469,14 +456,18 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
 
   // Saves all three special palpites at once; called whenever any of the three changes
   async function saveSpecialPalpites(
-    nextArtilheiro = artilheiro,
-    nextMelhorJogador = melhorJogador,
-    nextMelhorGoleiro = melhorGoleiro,
+    nextCampeao      = campeao,
+    nextViceCampeao  = viceCampeao,
+    nextArtilheiro   = artilheiro,
+    nextMelhorJogador= melhorJogador,
+    nextMelhorGoleiro= melhorGoleiro,
   ) {
     if (!selectedId) return
     setSpecialSaving(true)
     await supabase.from('palpites').update({
-      artilheiro: nextArtilheiro,
+      campeao:        nextCampeao,
+      vice_campeao:   nextViceCampeao,
+      artilheiro:     nextArtilheiro,
       melhor_jogador: nextMelhorJogador,
       melhor_goleiro: nextMelhorGoleiro,
     }).eq('id', selectedId)
@@ -658,7 +649,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
         <>
           {/* Tabs */}
           <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 18, overflowX: 'auto', WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'] }}>
-            {(['Fase de Grupos', 'Tabela do Palpite', 'Mata-Mata'] as const).map((label, i) => {
+            {(['Fase de Grupos', 'Tabela do Palpite', 'Mata-Mata', 'Palpites Especiais'] as const).map((label, i) => {
               const active = activeTab === i
               return (
                 <div key={i} onClick={() => setActiveTab(i)} style={{
@@ -810,52 +801,71 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos 
             />
           )}
 
-          {/* Tab 3: Tabela do Palpite */}
+          {/* Tab 2: Tabela do Palpite */}
           {activeTab === 1 && <TabelaDoPalpite palpite={selected} todosJogos={todosJogos} />}
 
-          {/* Palpites especiais */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 20, marginBottom: 10 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
-              Palpites especiais
-            </div>
-            {specialSaving && <span style={{ fontSize: 10, color: '#4A90D9' }}>●</span>}
-          </div>
-          <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, overflow: 'hidden', maxWidth: 480, marginBottom: 20 }}>
-            {[
-              {
-                emoji: '⚽', label: 'Artilheiro da Copa',
-                value: artilheiro,
-                options: ARTILHEIRO_OPTIONS,
-                onChange: (v: string) => { setArtilheiro(v); saveSpecialPalpites(v, melhorJogador, melhorGoleiro) },
-              },
-              {
-                emoji: '🌟', label: 'Melhor Jogador',
-                value: melhorJogador,
-                options: ARTILHEIRO_OPTIONS,
-                onChange: (v: string) => { setMelhorJogador(v); saveSpecialPalpites(artilheiro, v, melhorGoleiro) },
-              },
-              {
-                emoji: '🧤', label: 'Melhor Goleiro',
-                value: melhorGoleiro,
-                options: GOLEIRO_OPTIONS,
-                onChange: (v: string) => { setMelhorGoleiro(v); saveSpecialPalpites(artilheiro, melhorJogador, v) },
-              },
-            ].map((item, idx, arr) => (
-              <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: idx < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                <span style={{ fontSize: 16, flexShrink: 0 }}>{item.emoji}</span>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 600, whiteSpace: 'nowrap', flex: '0 0 140px' }}>{item.label}</span>
-                <select
-                  value={item.value}
-                  onChange={e => item.onChange(e.target.value)}
-                  style={{ flex: 1, background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 6, padding: '7px 10px', fontSize: 12, fontWeight: 700, color: item.value ? '#4A90D9' : 'rgba(255,255,255,0.35)', fontFamily: 'Inter,sans-serif', outline: 'none', cursor: 'pointer' }}>
-                  <option value="" style={{ background: '#0D1E3D', color: 'rgba(255,255,255,0.4)' }}>— selecionar —</option>
-                  {item.options.map(opt => (
-                    <option key={opt.value} value={opt.value} style={{ background: '#0D1E3D', color: 'white' }}>{opt.label}</option>
-                  ))}
-                </select>
+          {/* Tab 4: Palpites Especiais */}
+          {activeTab === 3 && (
+            <div style={{ maxWidth: 480 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                  Palpites especiais
+                </div>
+                {specialSaving && <span style={{ fontSize: 10, color: '#4A90D9' }}>● Salvando…</span>}
               </div>
-            ))}
-          </div>
+              <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, overflow: 'hidden' }}>
+                {([
+                  {
+                    emoji: '🏆', label: 'Campeão',        pts: 100,
+                    value: campeao,
+                    options: ALL_TEAMS.map(t => ({ value: t, label: t })),
+                    onChange: (v: string) => { setCampeao(v);       saveSpecialPalpites(v, viceCampeao, artilheiro, melhorJogador, melhorGoleiro) },
+                  },
+                  {
+                    emoji: '🥈', label: 'Vice-Campeão',   pts: 70,
+                    value: viceCampeao,
+                    options: ALL_TEAMS.map(t => ({ value: t, label: t })),
+                    onChange: (v: string) => { setViceCampeao(v);   saveSpecialPalpites(campeao, v, artilheiro, melhorJogador, melhorGoleiro) },
+                  },
+                  {
+                    emoji: '⚽', label: 'Artilheiro',     pts: 50,
+                    value: artilheiro,
+                    options: ARTILHEIRO_OPTIONS,
+                    onChange: (v: string) => { setArtilheiro(v);    saveSpecialPalpites(campeao, viceCampeao, v, melhorJogador, melhorGoleiro) },
+                  },
+                  {
+                    emoji: '🌟', label: 'Melhor Jogador', pts: 50,
+                    value: melhorJogador,
+                    options: ARTILHEIRO_OPTIONS,
+                    onChange: (v: string) => { setMelhorJogador(v); saveSpecialPalpites(campeao, viceCampeao, artilheiro, v, melhorGoleiro) },
+                  },
+                  {
+                    emoji: '🧤', label: 'Melhor Goleiro', pts: 50,
+                    value: melhorGoleiro,
+                    options: GOLEIRO_OPTIONS,
+                    onChange: (v: string) => { setMelhorGoleiro(v); saveSpecialPalpites(campeao, viceCampeao, artilheiro, melhorJogador, v) },
+                  },
+                ] as { emoji: string; label: string; pts: number; value: string; options: { value: string; label: string }[]; onChange: (v: string) => void }[]).map((item, idx, arr) => (
+                  <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: idx < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                    <span style={{ fontSize: 20, flexShrink: 0 }}>{item.emoji}</span>
+                    <div style={{ flex: '0 0 148px' }}>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 700, whiteSpace: 'nowrap' }}>{item.label}</div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,200,80,0.7)', fontWeight: 700 }}>{item.pts} pts</div>
+                    </div>
+                    <select
+                      value={item.value}
+                      onChange={e => item.onChange(e.target.value)}
+                      style={{ flex: 1, background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 6, padding: '8px 10px', fontSize: 12, fontWeight: 700, color: item.value ? '#4A90D9' : 'rgba(255,255,255,0.35)', fontFamily: 'Inter,sans-serif', outline: 'none', cursor: 'pointer' }}>
+                      <option value="" style={{ background: '#0D1E3D', color: 'rgba(255,255,255,0.4)' }}>— selecionar —</option>
+                      {item.options.map(opt => (
+                        <option key={opt.value} value={opt.value} style={{ background: '#0D1E3D', color: 'white' }}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Desktop bottom bar */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.2)', borderRadius: 10 }}>

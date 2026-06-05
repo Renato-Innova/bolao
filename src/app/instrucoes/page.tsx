@@ -3,14 +3,27 @@ import type { ConfiguracaoPontuacao } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
-const FASES_ORDER = ['GS', 'R32', 'R16', 'QF', 'SF', 'F'] as const
+// All 7 phases including TPL (3rd-place play-off)
+const FASES_ORDER = ['GS', 'R32', 'R16', 'QF', 'SF', 'TPL', 'F'] as const
 const FASES_LABEL: Record<string, string> = {
   GS:  'Fase de Grupos',
   R32: 'Segundas de Final',
   R16: 'Oitavas de Final',
   QF:  'Quartas de Final',
   SF:  'Semifinal',
+  TPL: 'Decisão do 3º Lugar',
   F:   'Final',
+}
+
+// Official regulation defaults (fallback if DB is empty)
+const DEFAULTS: Record<string, Record<string, number>> = {
+  GS:  { placar_exato: 20, empate: 15, vencedor: 10, gols_equipe:  5, penalti:  5 },
+  R32: { placar_exato: 30, empate: 22, vencedor: 15, gols_equipe:  8, penalti:  8 },
+  R16: { placar_exato: 40, empate: 30, vencedor: 20, gols_equipe: 10, penalti: 10 },
+  QF:  { placar_exato: 60, empate: 40, vencedor: 30, gols_equipe: 15, penalti: 15 },
+  SF:  { placar_exato: 80, empate: 60, vencedor: 40, gols_equipe: 20, penalti: 20 },
+  TPL: { placar_exato:100, empate: 75, vencedor: 50, gols_equipe: 25, penalti: 25 },
+  F:   { placar_exato:120, empate: 75, vencedor: 60, gols_equipe: 30, penalti: 30 },
 }
 
 const card: React.CSSProperties = {
@@ -43,24 +56,16 @@ export default async function InstrucoesPage() {
     .select('*')
     .order('fase')
 
+  // Build config map with official regulation defaults as fallback
   const configMap: Record<string, Record<string, number>> = {}
+  for (const fase of FASES_ORDER) configMap[fase] = { ...DEFAULTS[fase] }
   for (const c of (configs ?? []) as ConfiguracaoPontuacao[]) {
     if (!configMap[c.fase]) configMap[c.fase] = {}
     configMap[c.fase][c.tipo_acerto] = c.pontos
   }
 
-  function pts(fase: string, tipo: string, fallback: number) {
-    return configMap[fase]?.[tipo] ?? fallback
-  }
-
-  // fallbacks matching reference HTML
-  const scoring: Record<string, { exato: number; vencedor: number }> = {
-    GS:  { exato: pts('GS',  'placar_exato',  10), vencedor: pts('GS',  'vencedor',   5) },
-    R32: { exato: pts('R32', 'placar_exato',  20), vencedor: pts('R32', 'vencedor',  10) },
-    R16: { exato: pts('R16', 'placar_exato',  40), vencedor: pts('R16', 'vencedor',  20) },
-    QF:  { exato: pts('QF',  'placar_exato',  60), vencedor: pts('QF',  'vencedor',  30) },
-    SF:  { exato: pts('SF',  'placar_exato',  80), vencedor: pts('SF',  'vencedor',  40) },
-    F:   { exato: pts('F',   'placar_exato', 100), vencedor: pts('F',   'vencedor',  50) },
+  function pts(fase: string, tipo: string) {
+    return configMap[fase]?.[tipo] ?? 0
   }
 
   return (
@@ -79,7 +84,7 @@ export default async function InstrucoesPage() {
             {[
               { n: 1, title: 'Crie sua conta', desc: <>Cadastre-se com nome, email e WhatsApp. O acesso à plataforma é <strong style={{ color: 'white' }}>gratuito</strong> — você pode acompanhar a Copa sem pagar nada.</> },
               { n: 2, title: 'Crie um palpite e dê um nome', desc: 'Cada palpite precisa de um nome único — esse nome vai aparecer no ranking pra todo mundo ver. Você pode criar quantos palpites quiser.' },
-              { n: 3, title: 'Envie o placar de cada jogo individualmente', desc: <>Chute o placar de cada partida clicando em "Enviar placar". Também indique o <strong style={{ color: 'white' }}>artilheiro</strong> da Copa — esse campo fica travado após o início.</> },
+              { n: 3, title: 'Envie o placar de cada jogo individualmente', desc: <>Chute o placar de cada partida clicando em "Enviar placar". Indique também o <strong style={{ color: 'white' }}>campeão, vice, artilheiro, melhor jogador e melhor goleiro</strong>.</> },
               { n: 4, title: 'Ative pagando R$ 40,00 via PIX', desc: <>Palpites não pagos não valem pra competição. <strong style={{ color: 'white' }}>Após o início da Copa não é mais possível ativar.</strong> Não perca o prazo!</> },
               { n: 5, title: 'Continue no mata-mata', desc: <>Conforme cada fase avança, você edita seu palpite pra adicionar os próximos jogos. É possível editar até <strong style={{ color: 'white' }}>1 hora antes</strong> de cada partida.</> },
             ].map(s => (
@@ -104,10 +109,10 @@ export default async function InstrucoesPage() {
             {cardTitle('💳', 'Pagamento e ativação')}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
-                { icon: '📱', title: 'PIX via QR Code', desc: <>Ao clicar em "Pagar e ativar", um QR code PIX é gerado. Valor: <strong style={{ color: 'white' }}>R$ 40,00 por palpite</strong>.</> },
-                { icon: '✅', title: 'Ativação do palpite', desc: 'Após confirmação do pagamento, seu palpite é ativado automaticamente e passa a valer no ranking.' },
-                { icon: '⏰', title: 'Prazo de ativação', desc: <>Palpites não pagos <strong style={{ color: 'white' }}>não podem ser ativados após o início da Copa</strong> (11 de junho). Não deixe pra última hora.</> },
-                { icon: '♾️', title: 'Mata-mata incluso', desc: 'Um único pagamento cobre todas as fases. Conforme a Copa avança, você edita o mesmo palpite sem pagar novamente.' },
+                { icon: '📱', title: 'PIX', desc: <>Valor: <strong style={{ color: 'white' }}>R$ 40,00 por palpite</strong>. Envie o comprovante após o pagamento para ativação.</> },
+                { icon: '✅', title: 'Ativação manual', desc: 'Após confirmação do pagamento pelo organizador, seu palpite é ativado e passa a valer no ranking.' },
+                { icon: '⏰', title: 'Prazo de ativação', desc: <>Palpites não pagos <strong style={{ color: 'white' }}>não podem ser ativados após o início da Copa</strong>. Não deixe pra última hora.</> },
+                { icon: '♾️', title: 'Mata-mata incluso', desc: 'Um único pagamento cobre todas as fases. Sem taxas adicionais.' },
               ].map(item => (
                 <div key={item.title} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8 }}>
                   <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>{item.icon}</span>
@@ -147,45 +152,96 @@ export default async function InstrucoesPage() {
       <div style={{ ...card, marginBottom: 14 }}>
         <div style={topLine} />
         {cardTitle('📊', 'Sistema de pontuação')}
-        <div className="instr-score-wrap">
-        <table className="instr-score-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              {['Fase', 'Placar exato', 'Vencedor / Empate', 'Artilheiro'].map((h, i) => (
-                <th key={h} className={i === 3 ? 'instr-col-hide' : ''} style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5, padding: '6px 10px', textAlign: h === 'Fase' ? 'left' : 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {FASES_ORDER.map((fase, idx) => {
-              const isHighlight = idx % 2 === 1
-              const s = scoring[fase]
-              return (
-                <tr key={fase} style={{ background: isHighlight ? 'rgba(74,144,217,0.07)' : 'transparent' }}>
-                  <td style={{ fontSize: 12, color: 'white', fontWeight: 600, padding: '8px 10px', borderBottom: idx < FASES_ORDER.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>{FASES_LABEL[fase]}</td>
-                  <td style={{ fontSize: 12, fontWeight: 700, color: '#4A90D9', padding: '8px 10px', textAlign: 'center', borderBottom: idx < FASES_ORDER.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>{s.exato} pts</td>
-                  <td style={{ fontSize: 12, fontWeight: 700, color: '#4A90D9', padding: '8px 10px', textAlign: 'center', borderBottom: idx < FASES_ORDER.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>{s.vencedor} pts</td>
-                  {idx === 0 && (
-                    <td rowSpan={6} className="instr-col-hide" style={{ fontSize: 14, fontWeight: 700, color: '#4A90D9', padding: '8px 10px', textAlign: 'center', verticalAlign: 'middle' }}>40 pts</td>
-                  )}
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-        </div>{/* instr-score-wrap */}
 
-        {/* Mobile-only specials mini-grid (hidden on desktop via CSS) */}
-        <div className="instr-specials-mini" style={{ display: 'none', gridTemplateColumns: '1fr', gap: 8, marginTop: 12 }}>
-          {[{ icon: '⚽', label: 'Artilheiro', val: '40 pts' }].map(s => (
-            <div key={s.label} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginBottom: 3 }}>{s.icon} {s.label}</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#4A90D9' }}>{s.val}</div>
+        {/* Criteria explanation */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, marginBottom: 18 }}>
+          {[
+            { icon: '🎯', label: 'Placar exato', desc: 'Acertou o placar completo da partida', color: '#4A90D9' },
+            { icon: '🤝', label: 'Empate', desc: 'Previu empate e o resultado foi empate (placar diferente)', color: '#7BB8F0' },
+            { icon: '✅', label: 'Vencedor', desc: 'Acertou o vencedor, mas errou o placar', color: '#4ade80' },
+            { icon: '⚽', label: 'Gols de uma equipe', desc: 'Acertou os gols de uma das equipes — cumulativo com vencedor', color: '#f59e0b' },
+            { icon: '🥅', label: 'Pênaltis (KO)', desc: 'Acertou o classificado na disputa de pênaltis — cumulativo', color: '#f97316' },
+          ].map(c => (
+            <div key={c.label} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '10px 12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <span style={{ fontSize: 14 }}>{c.icon}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: c.color }}>{c.label}</span>
+              </div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>{c.desc}</div>
             </div>
           ))}
         </div>
 
-        {tip('Os pontos dobram a cada fase — quem não foi bem nos grupos ainda pode virar o jogo no mata-mata!')}
+        {/* Points table */}
+        <div className="instr-score-wrap">
+          <table className="instr-score-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                {['Fase', 'Exato', 'Empate', 'Vencedor', 'Gols', 'Pênaltis'].map((h, i) => (
+                  <th key={h} style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5, padding: '6px 10px', textAlign: i === 0 ? 'left' : 'center', borderBottom: '1px solid rgba(255,255,255,0.06)', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {FASES_ORDER.map((fase, idx) => {
+                const isHighlight = idx % 2 === 1
+                const isTPL = fase === 'TPL'
+                return (
+                  <tr key={fase} style={{ background: isHighlight ? 'rgba(74,144,217,0.07)' : 'transparent' }}>
+                    <td style={{ fontSize: 12, color: isTPL ? 'rgba(255,255,255,0.5)' : 'white', fontWeight: 600, padding: '8px 10px', borderBottom: idx < FASES_ORDER.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', whiteSpace: 'nowrap' }}>
+                      {FASES_LABEL[fase]}
+                    </td>
+                    {(['placar_exato', 'empate', 'vencedor', 'gols_equipe', 'penalti'] as const).map(tipo => (
+                      <td key={tipo} style={{ fontSize: 12, fontWeight: 700, color: '#4A90D9', padding: '8px 10px', textAlign: 'center', borderBottom: idx < FASES_ORDER.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                        {pts(fase, tipo)} pts
+                      </td>
+                    ))}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {tip(<>
+          <strong style={{ color: 'white' }}>Exemplo:</strong> México 2 × 1 África do Sul — você chutou 2 × 0.
+          Vencedor correto (+{pts('GS', 'vencedor')} pts) + gols do México corretos (+{pts('GS', 'gols_equipe')} pts) = <strong style={{ color: 'white' }}>{pts('GS', 'vencedor') + pts('GS', 'gols_equipe')} pts</strong>.
+          Placar exato valeria <strong style={{ color: 'white' }}>{pts('GS', 'placar_exato')} pts</strong>.
+        </>)}
+      </div>
+
+      {/* Special predictions + group bonus */}
+      <div style={{ ...card, marginBottom: 14 }}>
+        <div style={topLine} />
+        {cardTitle('🌟', 'Palpites especiais')}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8, marginBottom: 12 }}>
+          {[
+            { icon: '🏆', label: 'Campeão',        pts: 100 },
+            { icon: '🥈', label: 'Vice-campeão',   pts: 70  },
+            { icon: '⚽', label: 'Artilheiro',     pts: 50  },
+            { icon: '🌟', label: 'Melhor Jogador', pts: 50  },
+            { icon: '🧤', label: 'Melhor Goleiro', pts: 50  },
+          ].map(s => (
+            <div key={s.label} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '12px 14px', textAlign: 'center' }}>
+              <div style={{ fontSize: 22, marginBottom: 4 }}>{s.icon}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>{s.label}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#4A90D9' }}>{s.pts} pts</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Group classification bonus */}
+        <div style={{ background: 'rgba(74,222,128,0.05)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 8, padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <span style={{ fontSize: 22, flexShrink: 0 }}>🏅</span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 3 }}>Bônus de classificação de grupos</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
+              Ao término da fase de grupos: <strong style={{ color: '#4ade80' }}>20 pontos</strong> para cada seleção que você previu corretamente como classificada para a fase eliminatória,
+              dentro do respectivo grupo (top 2 de cada grupo + 8 melhores 3ºs colocados).
+              Máximo de <strong style={{ color: '#4ade80' }}>640 pts</strong> neste critério (32 classificados × 20 pts).
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Row 3 — 2 cols: rules + FAQ */}
@@ -233,16 +289,20 @@ export default async function InstrucoesPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {[
               {
+                q: 'O que conta como placar exato no mata-mata?',
+                a: 'O placar ao final de 90 minutos + prorrogação. A cobrança de pênaltis não conta como gols da partida (regulamento, artigo 4).',
+              },
+              {
                 q: 'Posso editar meu placar após enviar?',
-                a: 'Sim. Cada partida pode ser editada até 1 hora antes do início do jogo. O palpite do artilheiro fica travado no início da Copa (11 de junho).',
+                a: 'Sim. Cada partida pode ser editada até 1 hora antes do início do jogo. Atenção: editar um jogo do mata-mata pode apagar os palpites das fases seguintes.',
               },
               {
                 q: 'Quantos palpites posso ter?',
-                a: 'Ilimitados. Cada palpite pago custa R$ 40,00 e concorre de forma independente no ranking. Você pode fazer pra sua família também.',
+                a: 'Ilimitados. Cada palpite pago custa R$ 40,00 e concorre de forma independente no ranking.',
               },
               {
-                q: 'Palpite não pago vale alguma coisa?',
-                a: 'Não. Apenas palpites ativos (pagos) são contabilizados no ranking e podem ganhar prêmios.',
+                q: 'O que são os "gols de uma equipe" (cumulativo)?',
+                a: <>Se o México ganha 2 × 0 e você chutou 2 × 1, você acerta o vencedor (+{pts('GS', 'vencedor')} pts) E os gols do México (+{pts('GS', 'gols_equipe')} pts), totalizando {pts('GS', 'vencedor') + pts('GS', 'gols_equipe')} pts.</>,
               },
               {
                 q: 'Como funciona o empate no ranking?',

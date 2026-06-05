@@ -5,11 +5,9 @@ import { calcularPontos } from '@/utils/scoring'
 // POST /api/palpites/[id]/submit
 // Body: { jogoId, placarA, placarB, penaltiA?, penaltiB? }
 //
-// Saves (or updates) a user's match prediction and immediately calculates
-// points if the admin has already entered the official result for this game.
-// This handles two cases that the old direct-Supabase upsert did not:
-//   1. User submits a palpite after the official result is already in the DB
-//   2. User edits and resubmits a palpite after the result was edited by admin
+// Saves (or updates) the user's match prediction and immediately calculates
+// points if the admin has already entered the official result.
+// Handles late submissions and re-submissions after admin corrections.
 
 export async function POST(
   req: NextRequest,
@@ -45,38 +43,47 @@ export async function POST(
 
   const now = new Date().toISOString()
 
-  // For KO games with a draw, include penalty prediction; otherwise null
+  // Fetch game phase
   const { data: jogo } = await supabase
     .from('jogos_copa').select('fase').eq('id', jogoId).single()
-  const isKO = jogo?.fase !== 'GS'
+  if (!jogo) return NextResponse.json({ error: 'Jogo não encontrado.' }, { status: 404 })
+
+  const isKO = jogo.fase !== 'GS'
   const isDraw = placarA === placarB
+
+  // Only store penalty prediction when it's a KO draw
   const finalPenaltiA = isKO && isDraw ? penaltiA : null
   const finalPenaltiB = isKO && isDraw ? penaltiB : null
 
-  // 1 — Check whether an official result already exists for this game
+  // Check if the official result already exists for immediate scoring
   const { data: resultado } = await supabase
     .from('resultados')
     .select('placar_real_a, placar_real_b, placar_penalti_a, placar_penalti_b')
     .eq('jogo_id', jogoId)
     .maybeSingle()
 
-  // 2 — Calculate points immediately if the result is already known;
-  //     otherwise keep 0 (the admin result route will update later)
   let pontos = 0
   if (resultado) {
+    // Result is already known — calculate points immediately
     const { data: configs } = await supabase
-      .from('configuracoes_pontuacao').select('tipo_acerto, pontos').eq('fase', jogo?.fase ?? '')
+      .from('configuracoes_pontuacao')
+      .select('tipo_acerto, pontos')
+      .eq('fase', jogo.fase)
 
     pontos = calcularPontos(
-      { placar_palpite_a: placarA, placar_palpite_b: placarB,
-        placar_penalti_a: finalPenaltiA, placar_penalti_b: finalPenaltiB },
+      {
+        placar_palpite_a: placarA,
+        placar_palpite_b: placarB,
+        placar_penalti_a: finalPenaltiA,
+        placar_penalti_b: finalPenaltiB,
+      },
       resultado,
       isKO,
       configs ?? [],
     )
   }
 
-  // 3 — Save prediction + points atomically
+  // Upsert prediction + computed points
   const { error } = await supabase.from('palpites_jogos').upsert({
     palpite_id: palpiteId,
     jogo_id: jogoId,

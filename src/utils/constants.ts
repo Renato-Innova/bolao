@@ -145,6 +145,28 @@ export const TEAM_ABBR: Record<string, string> = {
 export const PIX_VALOR = 40
 export const PIX_CHAVE = 'renatoclpereira@gmail.com'
 
+/* ─── Special prediction options ─────────────────────────────────────────────
+ * Shared between PalpitesClient (user dropdowns) and AdminConfigClient
+ * (official result dropdowns). Update as needed before the tournament.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+export const ARTILHEIRO_OPTIONS = [
+  { value: 'Kylian Mbappé',   label: 'Kylian Mbappé (França)'        },
+  { value: 'Lamine Yamal',    label: 'Lamine Yamal (Espanha)'        },
+  { value: 'Harry Kane',      label: 'Harry Kane (Inglaterra)'       },
+  { value: 'Lionel Messi',    label: 'Lionel Messi (Argentina)'      },
+  { value: 'Vinicius Junior', label: 'Vinicius Junior (Brasil)'      },
+  { value: 'Raphinha',        label: 'Raphinha (Brasil)'             },
+]
+
+export const GOLEIRO_OPTIONS = [
+  { value: 'Mike Maignan',        label: 'Mike Maignan (França)'                },
+  { value: 'Emiliano Martínez',   label: 'Emiliano "Dibu" Martínez (Argentina)' },
+  { value: 'Alisson Becker',      label: 'Alisson Becker (Brasil)'              },
+  { value: 'Unai Simón',          label: 'Unai Simón (Espanha)'                 },
+  { value: 'Jordan Pickford',     label: 'Jordan Pickford (Inglaterra)'         },
+]
+
 /* ─── Qualifying info ─────────────────────────────────────────────────────────
  * Static data for all 48 teams. Sources:
  *   - CONMEBOL : Wikipedia (verified Jun 2026)

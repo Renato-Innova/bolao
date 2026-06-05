@@ -349,7 +349,13 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
         ) : (
           /* ── PENDING / EDITING state ── */
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0, alignItems: 'flex-end' }}>
-            {/* 90-min score row */}
+            {/* Score label */}
+            {isKO && (
+              <div style={{ fontSize: 9, color: 'rgba(255,200,80,0.65)', fontWeight: 600, textAlign: 'right', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                Placar final (inclui prorrogação)
+              </div>
+            )}
+            {/* 90-min / ET score row */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <input type="number" min={0} value={placarA} onChange={e => setPlacarA(e.target.value)}
                 style={{ width: 42, height: 34, textAlign: 'center', borderRadius: 6, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.4)', color: '#4A90D9', fontSize: 15, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />

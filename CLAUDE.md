@@ -277,11 +277,45 @@ Knockout team slots use bracket placeholders (e.g. `"Vencedor J3"`, `"1º Grupo 
 - Each subsequent KO phase unlocks only after all games in the previous phase are submitted
 - `isPhaseLocked()` in `PalpitesClient.tsx` enforces these rules
 
-### Scoring
-- Correct exact score > correct winner/draw
-- Points scale up per phase (GS < R32 < R16 < QF < SF < FIN)
-- Admin configurable via `configuracoes_pontuacao` — never hardcoded
-- Points auto-calculated when admin inserts a result
+### Scoring — Official Regulation (Regulamento v1.0)
+
+**Five cumulative criteria per match:**
+| Criteria | Description |
+|---|---|
+| `placar_exato` | Exact 90+ET score — maximum, **not** cumulative with gols |
+| `empate` | Predicted draw AND actual draw (wrong score) |
+| `vencedor` | Correct winner (wrong score) |
+| `gols_equipe` | Correct goals of ONE team — **cumulative** with vencedor/empate |
+| `penalti` | Correct penalty-shootout winner — **cumulative** with all (KO only) |
+
+**Official point values per phase:**
+| Phase | Exato | Empate | Vencedor | Gols | Pênaltis |
+|---|---|---|---|---|---|
+| GS | 20 | 15 | 10 | 5 | 5 |
+| R32 | 30 | 22 | 15 | 8 | 8 |
+| R16 | 40 | 30 | 20 | 10 | 10 |
+| QF | 60 | 40 | 30 | 15 | 15 |
+| SF | 80 | 60 | 40 | 20 | 20 |
+| TPL | 100 | 75 | 50 | 25 | 25 |
+| F | 120 | 75 | 60 | 30 | 30 |
+
+**KO rules:**
+- Result = 90 min + extra time (admin enters ET score, not just 90-min)
+- Penalty shootout scores are NOT counted as match goals (regulation note 4)
+- KO draws that go to penalties: can score empate + penalti, or gols + penalti
+
+**Special predictions:**
+| Prediction | Points |
+|---|---|
+| Campeão | 100 |
+| Vice-campeão | 70 |
+| Artilheiro | 50 |
+| Melhor Jogador | 50 |
+| Melhor Goleiro | 50 |
+
+**Group classification bonus:** 20 pts per team correctly predicted to qualify from the group stage (not yet implemented — Phase 2 backlog).
+
+**Implementation:** `src/utils/scoring.ts` — `calcularPontos()` for match points, `calcularPontosEspeciais()` for special predictions. Values stored in `configuracoes_pontuacao` (admin-configurable). Special results stored in `resultados_especiais` (single-row table).
 
 ### Tournament Structure
 - 48 teams in 12 groups of 4 (A–L)

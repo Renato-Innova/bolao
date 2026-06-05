@@ -27,11 +27,18 @@ export default async function AdminConfigPage() {
     .select('*, usuario:users(nome, email)')
     .order('criado_em', { ascending: false })
 
+  const { data: especiais } = await supabase
+    .from('resultados_especiais')
+    .select('*')
+    .eq('id', 1)
+    .maybeSingle()
+
   return (
     <AdminConfigClient
       configs={configs ?? []}
       usuarios={usuarios ?? []}
       palpites={palpites ?? []}
+      especiais={especiais ?? null}
     />
   )
 }
