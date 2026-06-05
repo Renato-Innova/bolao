@@ -28,7 +28,7 @@ export default function OperadorPage() {
       .select('id, nome, status, criado_em, usuario:users(nome, email)')
       .eq('status', 'inativo')
       .order('criado_em', { ascending: false })
-    setPalpites((data ?? []) as PalpiteInativo[])
+    setPalpites((data ?? []) as unknown as PalpiteInativo[])
     setLoading(false)
   }, [])
 
