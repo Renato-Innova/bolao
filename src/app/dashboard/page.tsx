@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getRanking } from '@/services/ranking'
-import { TEAM_ABBR } from '@/utils/constants'
 import { FlagImg } from '@/components/ui/FlagImg'
 import type { JogoCopa, ClassificacaoGrupo } from '@/types'
 
@@ -25,7 +24,6 @@ export default async function DashboardPage() {
 
   const [
     { count: totalAtivos },
-    { count: totalCadastrados },
     { count: totalUsuarios },
     { count: totalJogos },
     { count: jogosRealizados },
@@ -35,7 +33,6 @@ export default async function DashboardPage() {
     { data: grupoJogos },
   ] = await Promise.all([
     supabase.from('palpites').select('*', { count: 'exact', head: true }).eq('status', 'ativo'),
-    supabase.from('palpites').select('*', { count: 'exact', head: true }),
     supabase.from('users').select('*', { count: 'exact', head: true }),
     supabase.from('jogos_copa').select('*', { count: 'exact', head: true }),
     supabase.from('resultados').select('*', { count: 'exact', head: true }),

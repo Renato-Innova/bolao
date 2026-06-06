@@ -62,16 +62,20 @@ export default function OperadorPage() {
     setConfirm(null)
     setActivating(palpiteId)
     setError('')
-    const res = await fetch('/api/operador/ativar', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ palpiteId }),
-    })
-    const json = await res.json()
-    if (!res.ok) {
-      setError(json.error ?? 'Erro ao ativar.')
-    } else {
-      setPalpites(prev => prev.filter(p => p.id !== palpiteId))
+    try {
+      const res = await fetch('/api/operador/ativar', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ palpiteId }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setError(json.error ?? 'Erro ao ativar.')
+      } else {
+        setPalpites(prev => prev.filter(p => p.id !== palpiteId))
+      }
+    } catch {
+      setError('Erro de conexão. Tente novamente.')
     }
     setActivating(null)
   }

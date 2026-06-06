@@ -10,7 +10,7 @@ export function HeroCountdown({ firstGameISO }: { firstGameISO: string }) {
     return () => clearInterval(id)
   }, [firstGameISO])
 
-  if (diff <= 0) return (
+  if (!Number.isFinite(diff) || diff <= 0) return (
     <div style={{ width: 10, height: 10, background: '#4ade80', borderRadius: '50%', flexShrink: 0 }} />
   )
 

@@ -989,7 +989,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                 <div style={{ background: 'rgba(74,144,217,0.08)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 8, padding: '12px 16px', marginBottom: 12 }}>
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>Chave PIX — CPF</div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 6 }}>Ricardo L C Pereira</div>
-                  <div style={{ fontFamily: 'monospace', fontSize: 16, fontWeight: 700, color: 'white', letterSpacing: 1 }}>{PIX_CHAVE}</div>
+                  <div style={{ fontFamily: 'monospace', fontSize: 16, fontWeight: 700, color: 'white', letterSpacing: 1 }}>{PIX_CHAVE.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}</div>
                   <div style={{ fontSize: 13, color: '#4A90D9', marginTop: 6, fontWeight: 700 }}>R$ {PIX_VALOR},00 por palpite</div>
                 </div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 12, lineHeight: 1.6, textAlign: 'left' }}>
