@@ -142,8 +142,8 @@ export const TEAM_ABBR: Record<string, string> = {
   'Panamá':     'PAN',
 }
 
-export const PIX_VALOR = 40
-export const PIX_CHAVE = ''
+export const PIX_VALOR = 30
+export const PIX_CHAVE = '24707698812'
 
 // Histórico de confrontos entre seleções — exibido na tela de palpites
 // Chave: "TimeA|TimeB" em ordem alfabética para lookup bidirecional

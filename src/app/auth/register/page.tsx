@@ -88,7 +88,7 @@ export default function RegisterPage() {
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.40)', marginBottom: 16, lineHeight: 1.5 }}>Preencha seus dados pra participar do bolão.</div>
 
           <div style={{ background: 'rgba(74,144,217,0.07)', border: '1px solid rgba(74,144,217,0.2)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#7BB8F0', marginBottom: 16, lineHeight: 1.5 }}>
-            Acesso gratuito · Palpite ativo custa R$ 40,00 via PIX
+            Acesso gratuito · Palpite ativo custa R$ 30,00 via PIX
           </div>
 
           <form onSubmit={handleSubmit}>

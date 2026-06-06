@@ -986,13 +986,18 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
               <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.35)', borderRadius: 12, padding: '28px 32px', maxWidth: 400, width: '100%', textAlign: 'center' }}>
                 <div style={{ fontSize: 18, fontWeight: 700, color: 'white', marginBottom: 8 }}>Ativar via PIX</div>
-                <div style={{ background: 'rgba(74,144,217,0.08)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Chave PIX</div>
-                  <div style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: 'white' }}>{PIX_CHAVE}</div>
-                  <div style={{ fontSize: 11, color: '#4A90D9', marginTop: 6 }}>R$ {PIX_VALOR},00</div>
+                <div style={{ background: 'rgba(74,144,217,0.08)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 8, padding: '12px 16px', marginBottom: 12 }}>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>Chave PIX — CPF</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 6 }}>Ricardo L C Pereira</div>
+                  <div style={{ fontFamily: 'monospace', fontSize: 16, fontWeight: 700, color: 'white', letterSpacing: 1 }}>{PIX_CHAVE}</div>
+                  <div style={{ fontSize: 13, color: '#4A90D9', marginTop: 6, fontWeight: 700 }}>R$ {PIX_VALOR},00 por palpite</div>
                 </div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 16, lineHeight: 1.5 }}>
-                  Após o pagamento envie o comprovante para que o administrador confirme e ative seu palpite.
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 12, lineHeight: 1.6, textAlign: 'left' }}>
+                  Após pagar, envie o comprovante no{' '}
+                  <a href="https://chat.whatsapp.com/LgoS1djS6eIDwtVBZP6DJ4" target="_blank" rel="noopener noreferrer" style={{ color: '#25D366', fontWeight: 700, textDecoration: 'none' }}>
+                    grupo do WhatsApp
+                  </a>
+                  {' '}informando o <strong style={{ color: 'white' }}>nome do seu palpite</strong>. O organizador ativará em seguida.
                 </div>
                 <button onClick={() => setShowPix(false)}
                   style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)', border: 'none', padding: '8px 20px', borderRadius: 7, fontSize: 12, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>

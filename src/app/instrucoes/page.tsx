@@ -109,7 +109,7 @@ export default async function InstrucoesPage() {
               { n: 1, title: 'Crie sua conta', desc: <>Cadastre-se com nome, email e WhatsApp. O acesso à plataforma é <strong style={{ color: 'white' }}>gratuito</strong> — você pode acompanhar a Copa sem pagar nada.</> },
               { n: 2, title: 'Crie um palpite e dê um nome', desc: 'Cada palpite precisa de um nome único — esse nome vai aparecer no ranking pra todo mundo ver. Você pode criar quantos palpites quiser.' },
               { n: 3, title: 'Envie o placar de cada jogo individualmente', desc: <>Chute o placar de cada partida clicando em "Enviar placar". Indique também o <strong style={{ color: 'white' }}>campeão, vice, artilheiro, melhor jogador e melhor goleiro</strong>.</> },
-              { n: 4, title: 'Ative pagando R$ 40,00 via PIX', desc: <>Palpites não pagos não valem pra competição. <strong style={{ color: 'white' }}>Após o início da Copa não é mais possível ativar.</strong> Não perca o prazo!</> },
+              { n: 4, title: 'Ative pagando R$ 30,00 via PIX', desc: <>Palpites não pagos não valem pra competição. <strong style={{ color: 'white' }}>Após o início da Copa não é mais possível ativar.</strong> Não perca o prazo!</> },
               { n: 5, title: 'Continue no mata-mata', desc: <>Conforme cada fase avança, você edita seu palpite pra adicionar os próximos jogos. É possível editar até <strong style={{ color: 'white' }}>1 hora antes</strong> de cada partida.</> },
             ].map(s => (
               <div key={s.n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -133,7 +133,8 @@ export default async function InstrucoesPage() {
             {cardTitle('💳', 'Pagamento e ativação')}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
-                { icon: '📱', title: 'PIX', desc: <>Valor: <strong style={{ color: 'white' }}>R$ 40,00 por palpite</strong>. Envie o comprovante após o pagamento para ativação.</> },
+                { icon: '📱', title: 'PIX — R$ 30,00 por palpite', desc: <>Chave PIX (CPF do Ricardo): <strong style={{ color: 'white' }}>247.076.988-12</strong></> },
+                { icon: '📲', title: 'Envie o comprovante no grupo do WhatsApp', desc: <>Após pagar, envie o comprovante <strong style={{ color: 'white' }}>no grupo do WhatsApp</strong> informando também o <strong style={{ color: 'white' }}>nome do seu palpite</strong>.</> },
                 { icon: '✅', title: 'Ativação manual', desc: 'Após confirmação do pagamento pelo organizador, seu palpite é ativado e passa a valer no ranking.' },
                 { icon: '⏰', title: 'Prazo de ativação', desc: <>Palpites não pagos <strong style={{ color: 'white' }}>não podem ser ativados após o início da Copa</strong>. Não deixe pra última hora.</> },
                 { icon: '♾️', title: 'Mata-mata incluso', desc: 'Um único pagamento cobre todas as fases. Sem taxas adicionais.' },
@@ -322,7 +323,7 @@ export default async function InstrucoesPage() {
               },
               {
                 q: 'Quantos palpites posso ter?',
-                a: 'Ilimitados. Cada palpite pago custa R$ 40,00 e concorre de forma independente no ranking.',
+                a: 'Ilimitados. Cada palpite pago custa R$ 30,00 e concorre de forma independente no ranking.',
               },
               {
                 q: 'O que são os "gols de uma equipe" (cumulativo)?',
