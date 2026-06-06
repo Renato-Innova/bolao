@@ -300,18 +300,20 @@ export default async function DashboardPage() {
         <div style={bar} />
         <div style={label12}>Informações</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-            <span style={{ color: '#4A90D9', flexShrink: 0 }}>•</span>
-            <span>Prazo de ativação: <strong style={{ color: 'white' }}>antes do início da Copa</strong></span>
-          </div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-            <span style={{ color: '#4A90D9', flexShrink: 0 }}>•</span>
-            <span>Placar exato vale <strong style={{ color: 'white' }}>20 pts</strong></span>
-          </div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-            <span style={{ color: '#4A90D9', flexShrink: 0 }}>•</span>
-            <span>Campeão correto vale <strong style={{ color: 'white' }}>100 pts</strong></span>
-          </div>
+          {[
+            <span><strong style={{ color: 'white' }}>Ativação:</strong> R$ 30,00 via PIX · CPF <strong style={{ color: 'white' }}>247.076.988-12</strong> (Ricardo L C Pereira)</span>,
+            <span><strong style={{ color: 'white' }}>Como ativar:</strong> envie o comprovante no grupo do WhatsApp com o nome do seu palpite</span>,
+            <span><strong style={{ color: 'white' }}>Prazo de ativação:</strong> palpites não podem ser ativados após o início da Copa — <strong style={{ color: 'white' }}>11 de junho</strong></span>,
+            <span><strong style={{ color: 'white' }}>Prazo por jogo:</strong> cada placar deve ser enviado até <strong style={{ color: 'white' }}>1 hora antes</strong> da partida</span>,
+            <span><strong style={{ color: 'white' }}>Placar exato</strong> vale até <strong style={{ color: 'white' }}>20 pts</strong> na fase de grupos (mais nas fases seguintes)</span>,
+            <span><strong style={{ color: 'white' }}>Campeão correto</strong> vale <strong style={{ color: 'white' }}>100 pts</strong> · Vice vale <strong style={{ color: 'white' }}>70 pts</strong></span>,
+            <span><strong style={{ color: 'white' }}>Bônus de grupos:</strong> 20 pts por seleção classificada que você previu corretamente (máx. <strong style={{ color: 'white' }}>640 pts</strong>)</span>,
+          ].map((item, i) => (
+            <div key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+              <span style={{ color: '#4A90D9', flexShrink: 0 }}>•</span>
+              {item}
+            </div>
+          ))}
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
             <span style={{ color: '#4A90D9', flexShrink: 0 }}>•</span>
             <Link href="/instrucoes" style={{ color: '#7BB8F0', textDecoration: 'none' }}>Ver regulamento completo →</Link>
