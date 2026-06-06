@@ -137,6 +137,7 @@ export default async function InstrucoesPage() {
                 { icon: '📲', title: 'Envie o comprovante no grupo do WhatsApp', desc: <>Após pagar, envie o comprovante <strong style={{ color: 'white' }}>no grupo do WhatsApp</strong> informando também o <strong style={{ color: 'white' }}>nome do seu palpite</strong>.</> },
                 { icon: '✅', title: 'Ativação manual', desc: 'Após confirmação do pagamento pelo organizador, seu palpite é ativado e passa a valer no ranking.' },
                 { icon: '⏰', title: 'Prazo de ativação', desc: <>Palpites não pagos <strong style={{ color: 'white' }}>não podem ser ativados após o início da Copa</strong>. Não deixe pra última hora.</> },
+                { icon: '🌟', title: 'Prazo dos palpites especiais', desc: <>Campeão, vice, artilheiro, melhor jogador e goleiro devem ser preenchidos até <strong style={{ color: 'white' }}>1 hora antes da primeira partida (11 jun · 16h00)</strong>. Após esse prazo não será possível editar.</> },
                 { icon: '♾️', title: 'Mata-mata incluso', desc: 'Um único pagamento cobre todas as fases. Sem taxas adicionais.' },
               ].map(item => (
                 <div key={item.title} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8 }}>

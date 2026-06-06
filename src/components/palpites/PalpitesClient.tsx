@@ -485,6 +485,15 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
       melhor_jogador: nextMelhorJogador,
       melhor_goleiro: nextMelhorGoleiro,
     }).eq('id', selectedId)
+    // Sync palpites state so the checklist card reflects the new values immediately
+    setPalpites(prev => prev.map(p => p.id === selectedId ? {
+      ...p,
+      campeao:        nextCampeao,
+      vice_campeao:   nextViceCampeao,
+      artilheiro:     nextArtilheiro,
+      melhor_jogador: nextMelhorJogador,
+      melhor_goleiro: nextMelhorGoleiro,
+    } : p))
     setSpecialSaving(false)
   }
 
@@ -875,11 +884,14 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
           {/* Tab 2: Palpites Especiais */}
           {activeTab === 1 && (
             <div style={{ maxWidth: 480 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
                   Palpites especiais
                 </div>
                 {specialSaving && <span style={{ fontSize: 10, color: '#4A90D9' }}>● Salvando…</span>}
+              </div>
+              <div style={{ background: 'rgba(255,200,80,0.07)', border: '1px solid rgba(255,200,80,0.25)', borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 11, color: 'rgba(255,200,80,0.85)', lineHeight: 1.5 }}>
+                ⚠️ Os palpites especiais devem ser preenchidos até <strong style={{ color: 'rgba(255,220,100,1)' }}>1 hora antes da primeira partida da Copa (11 jun · 16h00)</strong> e não poderão ser editados após esse prazo.
               </div>
               <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, overflow: 'hidden' }}>
                 {([
@@ -914,10 +926,13 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                     onChange: (v: string) => { setMelhorGoleiro(v); saveSpecialPalpites(campeao, viceCampeao, artilheiro, melhorJogador, v) },
                   },
                 ] as { emoji: string; label: string; pts: number; value: string; options: { value: string; label: string }[]; onChange: (v: string) => void }[]).map((item, idx, arr) => (
-                  <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: idx < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                  <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: idx < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', background: item.value ? 'rgba(74,222,128,0.03)' : 'transparent' }}>
                     <span style={{ fontSize: 20, flexShrink: 0 }}>{item.emoji}</span>
                     <div style={{ flex: '0 0 148px' }}>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 700, whiteSpace: 'nowrap' }}>{item.label}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 700, whiteSpace: 'nowrap' }}>{item.label}</div>
+                        {item.value && <span style={{ fontSize: 12, color: '#4ade80', fontWeight: 700 }}>✓</span>}
+                      </div>
                       <div style={{ fontSize: 10, color: 'rgba(255,200,80,0.7)', fontWeight: 700 }}>{item.pts} pts</div>
                     </div>
                     <select

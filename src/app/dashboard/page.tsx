@@ -302,6 +302,7 @@ export default async function DashboardPage() {
             <span><strong style={{ color: 'white' }}>Como ativar:</strong> envie o comprovante no grupo do WhatsApp com o nome do seu palpite</span>,
             <span><strong style={{ color: 'white' }}>Prazo de ativação:</strong> palpites não podem ser ativados após o início da Copa — <strong style={{ color: 'white' }}>11 de junho</strong></span>,
             <span><strong style={{ color: 'white' }}>Prazo por jogo:</strong> cada placar deve ser enviado até <strong style={{ color: 'white' }}>1 hora antes</strong> da partida</span>,
+            <span><strong style={{ color: 'white' }}>Palpites especiais:</strong> devem ser preenchidos até <strong style={{ color: 'white' }}>1h antes da primeira partida (11 jun · 16h00)</strong> — sem edição após esse prazo</span>,
             <span><strong style={{ color: 'white' }}>Placar exato</strong> vale até <strong style={{ color: 'white' }}>20 pts</strong> na fase de grupos (mais nas fases seguintes)</span>,
             <span><strong style={{ color: 'white' }}>Campeão correto</strong> vale <strong style={{ color: 'white' }}>100 pts</strong> · Vice vale <strong style={{ color: 'white' }}>70 pts</strong></span>,
             <span><strong style={{ color: 'white' }}>Bônus de grupos:</strong> 20 pts por seleção classificada que você previu corretamente (máx. <strong style={{ color: 'white' }}>640 pts</strong>)</span>,
