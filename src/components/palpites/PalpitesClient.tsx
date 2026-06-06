@@ -2301,7 +2301,7 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
           <button
             onClick={e => { e.stopPropagation(); setInfoOpen(o => !o) }}
             title="Informações das seleções"
-            style={{ background: infoOpen ? 'rgba(74,144,217,0.2)' : 'none', border: `1px solid ${infoOpen ? 'rgba(74,144,217,0.5)' : 'rgba(255,255,255,0.12)'}`, borderRadius: 6, color: infoOpen ? '#7BB8F0' : 'rgba(255,255,255,0.3)', fontSize: 11, width: 22, height: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s', flexShrink: 0, fontFamily: 'Inter,sans-serif' }}>
+            style={{ background: infoOpen ? 'rgba(74,144,217,0.2)' : 'rgba(74,144,217,0.08)', border: `1px solid ${infoOpen ? 'rgba(74,144,217,0.6)' : 'rgba(74,144,217,0.35)'}`, borderRadius: 6, color: infoOpen ? '#7BB8F0' : '#4A90D9', fontSize: 11, width: 22, height: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s', flexShrink: 0, fontFamily: 'Inter,sans-serif' }}>
             ℹ
           </button>
           {state.submitted && <span style={{ color: '#4ade80', fontSize: 14, fontWeight: 700 }}>✓</span>}
