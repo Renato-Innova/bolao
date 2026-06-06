@@ -689,7 +689,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
       </div>
 
       {/* ── MOBILE CAROUSEL ──────────────────────────────────── */}
-      <div className="car-mobile" ref={mobileOuterRef} style={{ overflow: 'hidden', marginBottom: 4 }}>
+      <div className="car-mobile" ref={mobileOuterRef} style={{ overflow: 'hidden', marginBottom: 4, paddingBottom: 4 }}>
         <div ref={mobileTrackRef} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
           style={{ display: 'flex', gap: 10, transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)', willChange: 'transform' }}>
           {carItems.map(item =>
