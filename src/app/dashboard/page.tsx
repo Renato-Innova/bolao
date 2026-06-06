@@ -104,64 +104,60 @@ export default async function DashboardPage() {
       {/* ── 4 metric cards ───────────────────────────────────────────────── */}
       <div className="dash-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
 
-        {/* Card 1 — Palpites */}
+        {/* Card 1 — Palpites + Participantes */}
         <div style={card}>
           <div style={bar} />
-          <div style={label12}>Palpites</div>
-          <div style={value24}>{totalAtivos ?? 0}</div>
-          <div style={sub10}>ativos no bolão</div>
-          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-              <span style={{ color: 'rgba(255,255,255,0.35)' }}>Total cadastrados</span>
-              <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>{totalCadastrados ?? 0}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={label12}>Palpites</div>
+              <div style={value24}>{totalAtivos ?? 0}</div>
+              <div style={sub10}>ativos no bolão</div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-              <span style={{ color: 'rgba(255,255,255,0.35)' }}>Participantes</span>
-              <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>{totalUsuarios ?? 0}</span>
+            <div style={{ textAlign: 'right' }}>
+              <div style={label12}>Participantes</div>
+              <div style={value24}>{totalUsuarios ?? 0}</div>
+              <div style={sub10}>cadastrados</div>
             </div>
           </div>
         </div>
 
-        {/* Card 2 — Jogos */}
+        {/* Card 2 — Jogos + Máx. pontos */}
         <div style={card}>
           <div style={bar} />
-          <div style={label12}>Jogos realizados</div>
-          <div style={value24}>
-            {jogosRealizados ?? 0}
-            <span style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.25)' }}>/{totalJogos ?? 104}</span>
-          </div>
-          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-              <span style={{ color: 'rgba(255,255,255,0.35)' }}>Fase atual</span>
-              <span style={{ color: '#4A90D9', fontWeight: 600 }}>{faseAtual}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={label12}>Jogos realizados</div>
+              <div style={value24}>
+                {jogosRealizados ?? 0}
+                <span style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.25)' }}>/{totalJogos ?? 104}</span>
+              </div>
+              <div style={sub10}>{faseAtual}</div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-              <span style={{ color: 'rgba(255,255,255,0.35)' }}>Máx. de pontos</span>
-              <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>{maxPontosPossiveis} pts</span>
+            <div style={{ textAlign: 'right' }}>
+              <div style={label12}>Máx. de pontos</div>
+              <div style={value24}>{maxPontosPossiveis}</div>
+              <div style={sub10}>pts possíveis</div>
             </div>
           </div>
         </div>
 
-        {/* Card 3 — Líder */}
+        {/* Card 3 — Sua Posição + Líder */}
         <div style={card}>
           <div style={bar} />
-          <div style={label12}>Líder do bolão</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'white', lineHeight: 1.2, marginBottom: 2 }}>
-            {lider?.nome ?? '—'}
-          </div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>
-            {lider?.usuario_nome ?? 'Sem palpites ativos'}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-              <span style={{ color: 'rgba(255,255,255,0.35)' }}>Pontuação</span>
-              <span style={{ color: '#4A90D9', fontWeight: 700 }}>{lider?.total_pontos ?? 0} pts</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={label12}>Sua posição</div>
+              <div style={value24}>{myEntry ? `#${myEntry.posicao}` : '—'}</div>
+              <div style={sub10}>{myEntry ? `${myEntry.total_pontos} pts` : 'sem palpite ativo'}</div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-              <span style={{ color: 'rgba(255,255,255,0.35)' }}>Sua posição</span>
-              <span style={{ color: myEntry ? '#4A90D9' : 'rgba(255,255,255,0.25)', fontWeight: 600 }}>
-                {myEntry ? `#${myEntry.posicao} · ${myEntry.total_pontos} pts` : '—'}
-              </span>
+            <div style={{ textAlign: 'right' }}>
+              <div style={label12}>Líder do bolão</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'white', lineHeight: 1.2, marginBottom: 2 }}>
+                {lider?.nome ?? '—'}
+              </div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
+                {lider ? `${lider.total_pontos} pts` : 'Sem palpites ativos'}
+              </div>
             </div>
           </div>
         </div>

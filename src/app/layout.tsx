@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header'
 import { HeroStripWrapper } from '@/components/layout/HeroStripWrapper'
 import { HeroStrip } from '@/components/layout/HeroStrip'
 import { BottomNav } from '@/components/layout/BottomNav'
+import { Footer } from '@/components/layout/Footer'
 import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' })
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Header />
         <HeroStripWrapper><HeroStrip /></HeroStripWrapper>
         <main style={{ flex: 1, position: 'relative', zIndex: 1 }}>{children}</main>
+        <Footer />
         <BottomNav />
       </body>
     </html>

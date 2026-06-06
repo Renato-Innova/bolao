@@ -585,16 +585,16 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
         {/* Checklist */}
         <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
           {[
-            { icon: '⚽', label: 'Grupos',   done: gsDone,   total: gsTotal,  st: gsStatus },
-            { icon: '🌟', label: 'Especiais', done: specDone, total: specTotal, st: spStatus },
+            { icon: '⚽', label: 'Fase de Grupos', done: gsDone,   total: gsTotal,  st: gsStatus },
+            { icon: '🌟', label: 'Palpites Especiais', done: specDone, total: specTotal, st: spStatus },
             { icon: '🏆', label: 'Mata-Mata', done: koDone,   total: koTotal,  st: koStatus },
           ].map(item => (
             <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 9, width: 12, textAlign: 'center', flexShrink: 0 }}>{item.icon}</span>
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', flex: 1, fontWeight: 500 }}>{item.label}</span>
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 600 }}>{item.done}/{item.total}</span>
+              <span style={{ fontSize: 11, width: 14, textAlign: 'center', flexShrink: 0 }}>{item.icon}</span>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', flex: 1, fontWeight: 500 }}>{item.label}</span>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 600 }}>{item.done}/{item.total}</span>
               <span style={{
-                fontSize: 8, fontWeight: 800, width: 14, height: 14, borderRadius: '50%',
+                fontSize: 9, fontWeight: 800, width: 16, height: 16, borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 background: `${statusColor[item.st]}18`,
                 color: statusColor[item.st],
@@ -1137,10 +1137,10 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
     const valBorder = isUnset ? '2px solid transparent' : penalti
       ? (state.submitted ? '2px solid rgba(255,200,80,0.5)' : '1px solid rgba(255,200,80,0.3)')
       : scoreBorder
-    const sz = penalti ? 22 : 26
-    const fsz = penalti ? 13 : 15
-    const vsz = penalti ? 22 : 28
-    const vfsz = isUnset ? 14 : penalti ? 14 : 17
+    const sz = penalti ? 24 : 30
+    const fsz = penalti ? 14 : 17
+    const vsz = penalti ? 24 : 32
+    const vfsz = isUnset ? 16 : penalti ? 15 : 19
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <button className="sc-btn" onClick={onDec} disabled={locked}
@@ -1163,7 +1163,7 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
       {/* Team A */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
         <TeamFlag hasTeam={hasTeamA} codigo={displayCodigoA} />
-        <span style={{ fontSize: 12, fontWeight: hasTeamA ? 600 : 400, color: hasTeamA ? 'white' : 'rgba(255,255,255,0.3)', fontStyle: hasTeamA ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 14, fontWeight: hasTeamA ? 600 : 400, color: hasTeamA ? 'white' : 'rgba(255,255,255,0.3)', fontStyle: hasTeamA ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {displayNameA}
         </span>
       </div>
@@ -1199,7 +1199,7 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
 
       {/* Team B */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, justifyContent: 'flex-end' }}>
-        <span style={{ fontSize: 12, fontWeight: hasTeamB ? 600 : 400, color: hasTeamB ? 'white' : 'rgba(255,255,255,0.3)', fontStyle: hasTeamB ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>
+        <span style={{ fontSize: 14, fontWeight: hasTeamB ? 600 : 400, color: hasTeamB ? 'white' : 'rgba(255,255,255,0.3)', fontStyle: hasTeamB ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>
           {displayNameB}
         </span>
         <TeamFlag hasTeam={hasTeamB} codigo={displayCodigoB} />
@@ -1207,7 +1207,7 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
 
       {/* Action */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', whiteSpace: 'nowrap' }}>{dateStr}</span>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', whiteSpace: 'nowrap' }}>{dateStr}</span>
         {state.submitted ? (
           <>
             <span style={{ color: '#4ade80', fontSize: 14, fontWeight: 700 }}>✓</span>
@@ -1232,7 +1232,7 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
             {state.scoreA === state.scoreB && state.penaltiA === state.penaltiB ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                 <button disabled
-                  style={{ padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'not-allowed', border: 'none', fontFamily: 'Inter,sans-serif', background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap' }}>
+                  style={{ padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'not-allowed', border: 'none', fontFamily: 'Inter,sans-serif', background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap' }}>
                   Enviar
                 </button>
                 <span style={{ fontSize: 8, color: 'rgba(255,120,120,0.8)', fontWeight: 600, textAlign: 'center', maxWidth: 80 }}>
@@ -1241,7 +1241,7 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
               </div>
             ) : (
               <button onClick={onSubmit} disabled={state.saving}
-                style={{ padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none', fontFamily: 'Inter,sans-serif', background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', whiteSpace: 'nowrap' }}>
+                style={{ padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', fontFamily: 'Inter,sans-serif', background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', whiteSpace: 'nowrap' }}>
                 {state.saving ? '...' : 'Enviar'}
               </button>
             )}
