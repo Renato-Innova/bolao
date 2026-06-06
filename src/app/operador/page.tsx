@@ -19,6 +19,7 @@ export default function OperadorPage() {
   const [activating, setActivating] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [authorized, setAuthorized] = useState(false)
+  const [confirm, setConfirm] = useState<{ id: number; nome: string; usuario: string } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -52,11 +53,13 @@ export default function OperadorPage() {
   }, [router, load])
 
   async function handleAtivar(palpiteId: number, nomePalpite: string, nomeUsuario: string) {
-    const ok = window.confirm(
-      `Confirma a ativação do palpite?\n\n"${nomePalpite}" — ${nomeUsuario}\n\nEsta ação não pode ser desfeita.`
-    )
-    if (!ok) return
+    setConfirm({ id: palpiteId, nome: nomePalpite, usuario: nomeUsuario })
+  }
 
+  async function confirmarAtivacao() {
+    if (!confirm) return
+    const palpiteId = confirm.id
+    setConfirm(null)
     setActivating(palpiteId)
     setError('')
     const res = await fetch('/api/operador/ativar', {
@@ -82,6 +85,35 @@ export default function OperadorPage() {
 
   return (
     <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px' }}>
+
+      {/* Confirm popup */}
+      {confirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.35)', borderRadius: 12, padding: '28px 32px', maxWidth: 400, width: '100%' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'white', marginBottom: 6 }}>Confirmar ativação</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', marginBottom: 4 }}>
+              Você está ativando o seguinte palpite:
+            </div>
+            <div style={{ background: 'rgba(74,144,217,0.08)', border: '1px solid rgba(74,144,217,0.2)', borderRadius: 8, padding: '12px 16px', marginBottom: 8 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'white', marginBottom: 2 }}>{confirm.nome}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>{confirm.usuario}</div>
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,200,80,0.8)', marginBottom: 20 }}>
+              ⚠️ Esta ação não pode ser desfeita.
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setConfirm(null)}
+                style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)', border: 'none', padding: '9px 20px', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                Cancelar
+              </button>
+              <button onClick={confirmarAtivacao}
+                style={{ background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', border: 'none', padding: '9px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                Confirmar ativação
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: '#4A90D9', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>
