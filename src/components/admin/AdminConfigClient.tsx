@@ -25,7 +25,7 @@ interface Props {
   especiais:       ResultadoEspecial | null
 }
 
-type Aba = 'pontuacao' | 'especiais' | 'palpites' | 'usuarios'
+type Aba = 'pontuacao' | 'especiais' | 'palpites' | 'usuarios' | 'operacoes'
 
 export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Props) {
   const supabase = createClient()
@@ -59,10 +59,11 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
   const [aba, setAba] = useState<Aba>('pontuacao')
 
   const abas: { key: Aba; label: string }[] = [
-    { key: 'pontuacao', label: 'Pontuação' },
-    { key: 'especiais', label: 'Palpites Especiais' },
-    { key: 'palpites',  label: `Palpites (${palpites.length})` },
-    { key: 'usuarios',  label: `Usuários (${usuarios.length})` },
+    { key: 'pontuacao',  label: 'Pontuação' },
+    { key: 'especiais',  label: 'Palpites Especiais' },
+    { key: 'palpites',   label: `Palpites (${palpites.length})` },
+    { key: 'usuarios',   label: `Usuários (${usuarios.length})` },
+    { key: 'operacoes',  label: 'Operações' },
   ]
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -266,8 +267,18 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
             )}
           </div>
 
+        </div>
+      )}
+
+      {/* ── Operações ── */}
+      {aba === 'operacoes' && (
+        <div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 20, lineHeight: 1.6 }}>
+            Operações administrativas que afetam todos os palpites e resultados do bolão.
+          </div>
+
           {/* Bulk recalculation */}
-          <div style={{ marginTop: 28, borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 24 }}>
+          <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '20px 20px', marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 6 }}>
               🔄 Recalcular todos os pontos
             </div>
@@ -289,7 +300,7 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
           </div>
 
           {/* Group classification bonus */}
-          <div style={{ marginTop: 28, borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 24 }}>
+          <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '20px 20px', marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 6 }}>
               🏅 Bônus de Classificação de Grupos
             </div>
@@ -311,16 +322,16 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
               )}
             </div>
           </div>
+
           {/* Reset all results */}
-          <div style={{ marginTop: 28, borderTop: '1px solid rgba(255,80,80,0.15)', paddingTop: 24 }}>
+          <div style={{ background: '#0D1E3D', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 10, padding: '20px 20px' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,130,130,0.9)', marginBottom: 6 }}>
               ⚠️ Resetar todos os resultados
             </div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 16, lineHeight: 1.6 }}>
-              Apaga <strong style={{ color: 'rgba(255,255,255,0.7)' }}>todos</strong> os resultados oficiais e zera todos os pontos.
+              Apaga <strong style={{ color: 'rgba(255,255,255,0.7)' }}>todos</strong> os resultados oficiais, zera todos os pontos e restaura os times do Mata-Mata para os placeholders originais.
               Os palpites e suas predições são preservados. Use apenas para testes.
             </div>
-
             {!resetConfirm ? (
               <button onClick={() => { setResetConfirm(true); setResetMsg('') }}
                 style={{ background: 'rgba(255,80,80,0.12)', border: '1px solid rgba(255,80,80,0.35)', color: 'rgba(255,130,130,0.9)', padding: '10px 24px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -329,7 +340,7 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
             ) : (
               <div style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.3)', borderRadius: 8, padding: '14px 16px' }}>
                 <div style={{ fontSize: 12, color: 'rgba(255,200,200,0.9)', fontWeight: 600, marginBottom: 12 }}>
-                  Tem certeza? Esta ação apagará todos os resultados e zerará todos os pontos. Os palpites não serão apagados.
+                  Tem certeza? Esta ação apagará todos os resultados, zerará todos os pontos e restaurará o Mata-Mata. Os palpites não serão apagados.
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button onClick={resetResultados} disabled={resetSaving}
@@ -343,7 +354,6 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
                 </div>
               </div>
             )}
-
             {resetMsg && (
               <div style={{ marginTop: 10, fontSize: 12, color: resetMsg.startsWith('✅') ? '#4ade80' : 'rgba(255,100,100,0.9)' }}>
                 {resetMsg}
