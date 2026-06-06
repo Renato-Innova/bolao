@@ -51,7 +51,12 @@ export default function OperadorPage() {
     checkAccess()
   }, [router, load])
 
-  async function handleAtivar(palpiteId: number) {
+  async function handleAtivar(palpiteId: number, nomePalpite: string, nomeUsuario: string) {
+    const ok = window.confirm(
+      `Confirma a ativação do palpite?\n\n"${nomePalpite}" — ${nomeUsuario}\n\nEsta ação não pode ser desfeita.`
+    )
+    if (!ok) return
+
     setActivating(palpiteId)
     setError('')
     const res = await fetch('/api/operador/ativar', {
@@ -125,7 +130,7 @@ export default function OperadorPage() {
                 </div>
               </div>
               <button
-                onClick={() => handleAtivar(p.id)}
+                onClick={() => handleAtivar(p.id, p.nome, p.usuario?.nome ?? p.usuario?.email ?? '?')}
                 disabled={activating === p.id}
                 style={{
                   background: activating === p.id ? 'rgba(74,144,217,0.2)' : 'linear-gradient(90deg,#4A90D9,#1a5ca8)',
