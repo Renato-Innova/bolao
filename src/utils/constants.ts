@@ -143,7 +143,7 @@ export const TEAM_ABBR: Record<string, string> = {
 }
 
 export const PIX_VALOR = 30
-export const PIX_CHAVE = '24707698812'
+export const PIX_CHAVE = '24707699812'
 
 // Histórico de confrontos entre seleções — exibido na tela de palpites
 // Chave: "TimeA|TimeB" em ordem alfabética para lookup bidirecional

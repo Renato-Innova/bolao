@@ -298,7 +298,7 @@ export default async function DashboardPage() {
         <div style={label12}>Informações</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
           {[
-            <span><strong style={{ color: 'white' }}>Ativação:</strong> R$ 30,00 via PIX · CPF <strong style={{ color: 'white' }}>247.076.988-12</strong> (Ricardo L C Pereira)</span>,
+            <span><strong style={{ color: 'white' }}>Ativação:</strong> R$ 30,00 via PIX · CPF <strong style={{ color: 'white' }}>247.076.998-12</strong> (Ricardo L C Pereira)</span>,
             <span><strong style={{ color: 'white' }}>Como ativar:</strong> envie o comprovante no grupo do WhatsApp com o nome do seu palpite</span>,
             <span><strong style={{ color: 'white' }}>Prazo de ativação:</strong> palpites não podem ser ativados após o início da Copa — <strong style={{ color: 'white' }}>11 de junho</strong></span>,
             <span><strong style={{ color: 'white' }}>Prazo por jogo:</strong> cada placar deve ser enviado até <strong style={{ color: 'white' }}>1 hora antes</strong> da partida</span>,
