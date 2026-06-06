@@ -3,14 +3,20 @@
 import { useEffect, useState } from 'react'
 
 export function HeroCountdown({ firstGameISO }: { firstGameISO: string }) {
-  const [diff, setDiff] = useState(() => Date.parse(firstGameISO) - Date.now())
+  // null until mounted — avoids server/client mismatch (hydration error)
+  const [diff, setDiff] = useState<number | null>(null)
 
   useEffect(() => {
-    const id = setInterval(() => setDiff(Date.parse(firstGameISO) - Date.now()), 1000)
+    const target = Date.parse(firstGameISO)
+    setDiff(target - Date.now())
+    const id = setInterval(() => setDiff(target - Date.now()), 1000)
     return () => clearInterval(id)
   }, [firstGameISO])
 
-  if (!Number.isFinite(diff) || diff <= 0) return (
+  // render nothing until client mounts (matches server output)
+  if (diff === null) return null
+
+  if (diff <= 0) return (
     <div style={{ width: 10, height: 10, background: '#4ade80', borderRadius: '50%', flexShrink: 0 }} />
   )
 
@@ -24,7 +30,6 @@ export function HeroCountdown({ firstGameISO }: { firstGameISO: string }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-      {/* flashing orange dot */}
       <div style={{ position: 'relative', width: 12, height: 12, flexShrink: 0 }}>
         <div style={{
           position: 'absolute', inset: 0, background: '#f97316',

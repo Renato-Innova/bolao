@@ -961,6 +961,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                     )}
                   </div>
                 ))}
+              </div>
             </div>
           )}
 
