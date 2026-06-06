@@ -71,7 +71,7 @@ export default async function InstrucoesPage() {
   return (
     <div className="page-main" style={{ maxWidth: 1000, margin: '0 auto', padding: '20px 24px 48px', position: 'relative', zIndex: 1 }}>
       <div style={{ fontSize: 18, fontWeight: 800, color: 'white', marginBottom: 4 }}>Instruções do bolão</div>
-      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 24 }}>Tudo que você precisa saber pra participar e ganhar</div>
+      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginBottom: 24 }}>Tudo que você precisa saber pra participar e ganhar</div>
 
       {/* WhatsApp group banner */}
       <a
@@ -92,7 +92,7 @@ export default async function InstrucoesPage() {
         </div>
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 2 }}>Entre no grupo do WhatsApp</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Acompanhe as novidades, tire dúvidas e interaja com os outros participantes do bolão.</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>Acompanhe as novidades, tire dúvidas e interaja com os outros participantes do bolão.</div>
         </div>
         <div style={{ marginLeft: 'auto', fontSize: 18, color: '#25D366', flexShrink: 0 }}>→</div>
       </a>
@@ -116,7 +116,7 @@ export default async function InstrucoesPage() {
                 <div style={{ width: 24, height: 24, background: 'linear-gradient(135deg, #4A90D9, #1a5ca8)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: 'white', flexShrink: 0, marginTop: 1 }}>{s.n}</div>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 2 }}>{s.title}</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>{s.desc}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>{s.desc}</div>
                 </div>
               </div>
             ))}
@@ -143,7 +143,7 @@ export default async function InstrucoesPage() {
                   <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>{item.icon}</span>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 2 }}>{item.title}</div>
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>{item.desc}</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>{item.desc}</div>
                   </div>
                 </div>
               ))}
@@ -162,9 +162,9 @@ export default async function InstrucoesPage() {
               ].map(p => (
                 <div key={p.place} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: 12, textAlign: 'center' }}>
                   <div style={{ fontSize: 24, marginBottom: 4 }}>{p.medal}</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{p.place}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.50)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{p.place}</div>
                   <div style={{ fontSize: 15, fontWeight: 800, color: '#4A90D9' }}>{p.val}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>do total arrecadado</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', marginTop: 2 }}>do total arrecadado</div>
                 </div>
               ))}
             </div>
@@ -203,7 +203,7 @@ export default async function InstrucoesPage() {
             <thead>
               <tr>
                 {['Fase', 'Exato', 'Empate', 'Vencedor', 'Gols', 'Pênaltis'].map((h, i) => (
-                  <th key={h} style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5, padding: '6px 10px', textAlign: i === 0 ? 'left' : 'center', borderBottom: '1px solid rgba(255,255,255,0.06)', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.50)', textTransform: 'uppercase', letterSpacing: 0.5, padding: '6px 10px', textAlign: i === 0 ? 'left' : 'center', borderBottom: '1px solid rgba(255,255,255,0.06)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -249,7 +249,7 @@ export default async function InstrucoesPage() {
           ].map(s => (
             <div key={s.label} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '12px 14px', textAlign: 'center' }}>
               <div style={{ fontSize: 22, marginBottom: 4 }}>{s.icon}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>{s.label}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', marginBottom: 4 }}>{s.label}</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: '#4A90D9' }}>{s.pts} pts</div>
             </div>
           ))}
@@ -260,7 +260,7 @@ export default async function InstrucoesPage() {
           <span style={{ fontSize: 22, flexShrink: 0 }}>🏅</span>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 3 }}>Bônus de classificação de grupos</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>
               Ao término da fase de grupos: <strong style={{ color: '#4ade80' }}>20 pontos</strong> para cada seleção que você previu corretamente como classificada para a fase eliminatória,
               dentro do respectivo grupo (top 2 de cada grupo + 8 melhores 3ºs colocados).
               Máximo de <strong style={{ color: '#4ade80' }}>640 pts</strong> neste critério (32 classificados × 20 pts).
@@ -276,7 +276,7 @@ export default async function InstrucoesPage() {
         <div style={card}>
           <div style={topLine} />
           {cardTitle('📋', 'Regras oficiais da Copa 2026')}
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Formato do torneio</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Formato do torneio</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
             {[
               { n: '48', text: <><strong style={{ color: 'white' }}>seleções</strong> divididas em 12 grupos de 4 times cada (grupos A a L)</> },
@@ -285,11 +285,11 @@ export default async function InstrucoesPage() {
             ].map(r => (
               <div key={r.n} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 7, borderLeft: '2px solid rgba(74,144,217,0.4)' }}>
                 <span style={{ fontSize: 10, fontWeight: 800, color: '#4A90D9', minWidth: 18, marginTop: 1 }}>{r.n}</span>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>{r.text}</span>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>{r.text}</span>
               </div>
             ))}
           </div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Critérios de classificação nos grupos</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Critérios de classificação nos grupos</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {[
               'Pontos (vitória = 3 pts · empate = 1 pt · derrota = 0)',
@@ -299,7 +299,7 @@ export default async function InstrucoesPage() {
               'Fair play (menor número de cartões)',
               'Sorteio',
             ].map((t, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>
                 <span style={{ fontSize: 10, fontWeight: 800, color: '#4A90D9', minWidth: 18, textAlign: 'center' }}>{i + 1}</span>
                 <span>{t}</span>
               </div>
@@ -336,7 +336,7 @@ export default async function InstrucoesPage() {
             ].map((faq, idx) => (
               <div key={idx} style={{ paddingTop: idx > 0 ? 12 : 0, borderTop: idx > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none', marginTop: idx > 0 ? 12 : 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 3 }}>{faq.q}</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>{faq.a}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>{faq.a}</div>
               </div>
             ))}
           </div>

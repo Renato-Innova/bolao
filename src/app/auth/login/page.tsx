@@ -95,7 +95,7 @@ export default function LoginPage() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '18px 0' }}>
             <div style={{ flex: 1, height: 1, background: 'rgba(74,144,217,0.18)' }} />
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>ou</span>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)' }}>ou</span>
             <div style={{ flex: 1, height: 1, background: 'rgba(74,144,217,0.18)' }} />
           </div>
           <div style={{ textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.40)' }}>

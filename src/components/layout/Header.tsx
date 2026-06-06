@@ -94,12 +94,12 @@ export function Header() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}>
           <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 30, color: 'white', letterSpacing: -2, lineHeight: 1 }}>26</span>
           <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 9, color: 'white', letterSpacing: 3 }}>FIFA</span>
-          <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.25)', letterSpacing: 1.5, fontWeight: 500 }}>WORLD CUP™</span>
+          <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.50)', letterSpacing: 1.5, fontWeight: 500 }}>WORLD CUP™</span>
         </div>
         <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.12)' }} />
         <div>
           <div style={{ color: 'white', fontSize: 13, fontWeight: 700, letterSpacing: 0.2 }}>Bolão Copa 2026</div>
-          <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, marginTop: 1 }}>EUA · CAN · MEX · 11 jun – 19 jul</div>
+          <div style={{ color: 'rgba(255,255,255,0.50)', fontSize: 9, marginTop: 1 }}>EUA · CAN · MEX · 11 jun – 19 jul</div>
         </div>
       </Link>
 
@@ -163,7 +163,7 @@ export function Header() {
               {/* User name header */}
               <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(74,144,217,0.12)' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>{nome || user.email}</div>
-                {nome && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>{user.email}</div>}
+                {nome && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{user.email}</div>}
               </div>
               <button
                 onClick={handleLogout}
@@ -181,7 +181,7 @@ export function Header() {
         </div>
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          <Link href="/auth/login" style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', textDecoration: 'none', fontWeight: 500 }}>Entrar</Link>
+          <Link href="/auth/login" style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', textDecoration: 'none', fontWeight: 500 }}>Entrar</Link>
           <Link href="/auth/register" style={{
             fontSize: 12, fontWeight: 700, color: 'white', textDecoration: 'none',
             background: 'linear-gradient(90deg, #4A90D9, #1a5ca8)',

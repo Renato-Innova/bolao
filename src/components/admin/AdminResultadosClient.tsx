@@ -289,7 +289,7 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
         </div>
 
         {/* Meta */}
-        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
           <span>{fmtTime(jogo.horario)} · {FASE_LABEL[jogo.fase] ?? jogo.fase}{jogo.grupo ? ` · Gr.${jogo.grupo}` : ''}</span>
           {jogo.cidade && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.18)' }}>{jogo.cidade}</span>}
         </div>
@@ -309,7 +309,7 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
                 <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: '#4ade80', minWidth: 14, textAlign: 'center' }}>{savedB}</span>
               </div>
               {savedPenA != null && savedPenB != null && (
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: 0.3 }}>
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', letterSpacing: 0.3 }}>
                   pen {savedPenA}–{savedPenB}
                 </span>
               )}
@@ -319,7 +319,7 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
             {/* ⋮ menu */}
             <div ref={menuRef} style={{ position: 'relative' }}>
               <button onClick={() => setMenuOpen(o => !o)}
-                style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'rgba(255,255,255,0.35)', fontSize: 14, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>⋮</button>
+                style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'rgba(255,255,255,0.55)', fontSize: 14, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>⋮</button>
               {menuOpen && (
                 <div style={{ position: 'absolute', top: 30, right: 0, background: '#1a2d50', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 8, padding: 4, minWidth: 160, zIndex: 20, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
                   <div onClick={startEdit}
@@ -533,7 +533,7 @@ export function AdminResultadosClient({ jogos }: { jogos: JogoCopa[] }) {
             <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.3, background: 'rgba(74,222,128,0.15)', color: '#4ade80' }}>Admin</span>
             <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: 'white', letterSpacing: 1 }}>Inserir Resultados</span>
           </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>
             {pendentes.length} pendentes · {enviados.length} enviados
           </div>
         </div>

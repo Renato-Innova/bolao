@@ -88,7 +88,7 @@ export default function OperadorPage() {
           Painel do Operador
         </div>
         <div style={{ fontSize: 20, fontWeight: 700, color: 'white' }}>Ativação de Palpites</div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>
           Ative os palpites após confirmação do pagamento via PIX.
         </div>
       </div>
@@ -100,12 +100,12 @@ export default function OperadorPage() {
       )}
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>Carregando...</div>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.50)', fontSize: 13 }}>Carregando...</div>
       ) : palpites.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 0', background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10 }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>✅</div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'white' }}>Tudo em dia!</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>Nenhum palpite aguardando ativação.</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>Nenhum palpite aguardando ativação.</div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -120,7 +120,7 @@ export default function OperadorPage() {
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 2 }}>{p.nome}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)' }}>
                   {p.usuario?.nome ?? '—'}
                   <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 6px' }}>·</span>
                   {p.usuario?.email ?? '—'}

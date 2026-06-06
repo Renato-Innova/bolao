@@ -32,7 +32,7 @@ export function HeroCountdown({ firstGameISO }: { firstGameISO: string }) {
         }} />
         <div style={{ position: 'absolute', inset: 1, background: '#fb923c', borderRadius: '50%' }} />
       </div>
-      <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>
+      <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11 }}>
         Copa em{' '}
         <span style={{ color: '#fb923c', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
           {days}d {pad(hours)}:{pad(mins)}:{pad(secs)}

@@ -27,9 +27,9 @@ function Podium({ top3 }: { top3: RankingEntry[] }) {
             {isFirst && <div className="podium-crown" style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', fontSize: 22 }}>👑</div>}
             <div className="podium-medal" style={{ fontSize: 26, marginBottom: 6 }}>{medals[idx]}</div>
             <div className="podium-name" style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{entry.nome}</div>
-            <div className="podium-user" style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', margin: '2px 0 8px' }}>{entry.usuario_nome}</div>
+            <div className="podium-user" style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', margin: '2px 0 8px' }}>{entry.usuario_nome}</div>
             <div className="podium-pts" style={{ fontSize: 26, fontWeight: 800, color: '#4A90D9', lineHeight: 1 }}>{entry.total_pontos}</div>
-            <div className="podium-pts-l" style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>pontos</div>
+            <div className="podium-pts-l" style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', marginTop: 2 }}>pontos</div>
           </div>
         )
       })}
@@ -53,7 +53,7 @@ export default async function RankingPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
           <div style={{ fontSize: 18, fontWeight: 800, color: 'white' }}>Ranking geral</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>
             {ranking.length} palpite{ranking.length !== 1 ? 's' : ''} ativo{ranking.length !== 1 ? 's' : ''} · atualizado em tempo real
           </div>
         </div>
@@ -74,7 +74,7 @@ export default async function RankingPage() {
           {/* Desktop table / Mobile card list */}
           <div className="rank-table-wrap" style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, overflow: 'hidden' }}>
             {/* Desktop header */}
-            <div className="rank-header" style={{ display: 'grid', gridTemplateColumns: '50px 1fr 80px 90px 70px', padding: '8px 18px', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.15)' }}>
+            <div className="rank-header" style={{ display: 'grid', gridTemplateColumns: '50px 1fr 80px 90px 70px', padding: '8px 18px', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.50)', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.15)' }}>
               <span style={{ textAlign: 'center' }}>#</span>
               <span>Palpite</span>
               <span className="rank-acertos" style={{ textAlign: 'center' }}>Acertos</span>
@@ -105,17 +105,17 @@ export default async function RankingPage() {
                         {entry.nome}
                         {isMe && <span style={{ fontSize: 8, background: 'rgba(74,144,217,0.2)', color: '#7BB8F0', padding: '1px 5px', borderRadius: 6, fontWeight: 600, marginLeft: 5 }}>você</span>}
                       </div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{entry.usuario_nome}</div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)' }}>{entry.usuario_nome}</div>
                     </div>
                     {/* acertos — hidden on mobile */}
-                    <span className="rank-acertos" style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                    <span className="rank-acertos" style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>
                       {entry.acertos_exatos + entry.acertos_vencedor}
                     </span>
                     {/* pts */}
                     <div className="rank-right" style={{ display: 'contents' }}>
                       <span className="rank-pts" style={{ textAlign: 'center', fontSize: 15, fontWeight: 800, color: '#4A90D9' }}>{entry.total_pontos}</span>
                       {/* variação */}
-                      <span className="rank-var eq" style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.25)' }}>—</span>
+                      <span className="rank-var eq" style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.50)' }}>—</span>
                     </div>
                   </div>
                 )

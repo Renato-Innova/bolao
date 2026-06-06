@@ -92,11 +92,11 @@ export default async function DashboardPage() {
     background: 'linear-gradient(90deg, #4A90D9, #1a5ca8)',
   }
   const label12: React.CSSProperties = {
-    fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.25)',
+    fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.50)',
     textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5,
   }
   const value24: React.CSSProperties = { fontSize: 24, fontWeight: 700, color: 'white', lineHeight: 1 }
-  const sub10: React.CSSProperties = { fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 3 }
+  const sub10: React.CSSProperties = { fontSize: 10, color: 'rgba(255,255,255,0.50)', marginTop: 3 }
 
   return (
     <div className="page-main" style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 24px 40px' }}>
@@ -129,7 +129,7 @@ export default async function DashboardPage() {
               <div style={label12}>Jogos realizados</div>
               <div style={value24}>
                 {jogosRealizados ?? 0}
-                <span style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.25)' }}>/{totalJogos ?? 104}</span>
+                <span style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}>/{totalJogos ?? 104}</span>
               </div>
               <div style={sub10}>{faseAtual}</div>
             </div>
@@ -155,7 +155,7 @@ export default async function DashboardPage() {
               <div style={{ fontSize: 15, fontWeight: 700, color: 'white', lineHeight: 1.2, marginBottom: 2 }}>
                 {lider?.nome ?? '—'}
               </div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>
                 {lider ? `${lider.total_pontos} pts` : 'Sem palpites ativos'}
               </div>
             </div>
@@ -175,7 +175,7 @@ export default async function DashboardPage() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {ranking.length === 0 && (
-              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 12, padding: '12px 0' }}>Nenhum palpite ativo ainda</p>
+              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 12, padding: '12px 0' }}>Nenhum palpite ativo ainda</p>
             )}
             {ranking.slice(0, 5).map((entry, idx) => {
               const maxPts = ranking[0]?.total_pontos || 1
@@ -184,10 +184,10 @@ export default async function DashboardPage() {
               const isMe   = currentUser && entry.usuario_id === currentUser.id
               return (
                 <div key={entry.palpite_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: isMe ? 'rgba(74,144,217,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isMe ? 'rgba(74,144,217,0.3)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 7 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, minWidth: 22, color: 'rgba(255,255,255,0.25)', textAlign: 'center' }}>{medal}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, minWidth: 22, color: 'rgba(255,255,255,0.50)', textAlign: 'center' }}>{medal}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>{entry.nome}</div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{entry.usuario_nome}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)' }}>{entry.usuario_nome}</div>
                   </div>
                   <div style={{ width: 56, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
                     <div style={{ height: 3, background: 'linear-gradient(90deg, #4A90D9, #7BB8F0)', borderRadius: 2, width: `${pct}%` }} />
@@ -207,17 +207,17 @@ export default async function DashboardPage() {
           </div>
 
           {displayGroups.length === 0 ? (
-            <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 12, padding: '16px 0' }}>Grupos em breve</p>
+            <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 12, padding: '16px 0' }}>Grupos em breve</p>
           ) : displayGroups.map((grupo, gi) => (
             <div key={grupo} style={{ marginBottom: gi < displayGroups.length - 1 ? 18 : 0 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#4A90D9', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>
                 Grupo {grupo}
               </div>
-              <div className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '0 4px 5px', fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <div className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '0 4px 5px', fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.50)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                 <span>#</span><span style={{ textAlign: 'left' }}>Seleção</span><span>J</span><span>V</span><span>SG</span><span className="rank-acertos">GP</span><span>Pts</span>
               </div>
               {(byGrupo[grupo] ?? []).length === 0 ? (
-                <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 11, padding: '10px 0' }}>Jogos em breve</p>
+                <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 11, padding: '10px 0' }}>Jogos em breve</p>
               ) : (byGrupo[grupo] ?? []).map((row: ClassificacaoGrupo, idx: number) => {
                 const q     = idx < 2
                 const sgStr = row.dg > 0 ? `+${row.dg}` : String(row.dg)
@@ -261,7 +261,7 @@ export default async function DashboardPage() {
                       {j.codigo_pais_a && <FlagImg codigo={j.codigo_pais_a} size={16} />}
                       {j.time_a}
                     </div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{formatDate(j.data)}</div>
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.50)', marginTop: 2 }}>{formatDate(j.data)}</div>
                   </div>
                   {/* Centro */}
                   <div style={{ textAlign: 'center', padding: '0 10px' }}>
@@ -282,13 +282,13 @@ export default async function DashboardPage() {
                       {j.time_b}
                       {j.codigo_pais_b && <FlagImg codigo={j.codigo_pais_b} size={16} />}
                     </div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{j.cidade}</div>
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.50)', marginTop: 2 }}>{j.cidade}</div>
                   </div>
                 </div>
               )
             })}
             {!(proximosJogos?.length) && (
-              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 12, padding: '20px 0' }}>Nenhuma partida em breve</p>
+              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 12, padding: '20px 0' }}>Nenhuma partida em breve</p>
             )}
           </div>
         </div>

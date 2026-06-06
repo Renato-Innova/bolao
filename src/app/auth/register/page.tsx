@@ -107,7 +107,7 @@ export default function RegisterPage() {
               <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5 }}>WhatsApp</label>
               <input type="tel" value={telefone} onChange={e => setTelefone(e.target.value)} placeholder="(11) 99999-9999"
                 className="auth-input" style={inputStyle} />
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 4 }}>Para contato em caso de premiação</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', marginTop: 4 }}>Para contato em caso de premiação</div>
             </div>
 
             {/* password fields — 2-col on desktop, stacked on mobile */}

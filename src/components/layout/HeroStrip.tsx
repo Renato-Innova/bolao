@@ -55,11 +55,11 @@ export async function HeroStrip() {
         }}>
           {faseLabel}
         </span>
-        <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
+        <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>
           {realizados} de {total} jogos realizados
         </span>
       </div>
-      <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10 }}>11 jun – 19 jul 2026</span>
+      <span style={{ color: 'rgba(255,255,255,0.50)', fontSize: 10 }}>11 jun – 19 jul 2026</span>
     </div>
   )
 }

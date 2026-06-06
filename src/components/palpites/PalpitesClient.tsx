@@ -544,7 +544,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{userName}</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', marginTop: 2 }}>{userName}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
             <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.3, background: isInativo ? 'rgba(255,255,255,0.07)' : 'rgba(74,222,128,0.15)', color: isInativo ? 'rgba(255,255,255,0.4)' : '#4ade80' }}>
@@ -573,13 +573,13 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
           </div>
         </div>
         <div style={{ fontSize: 22, fontWeight: 800, color: isInativo ? 'rgba(255,255,255,0.2)' : '#4A90D9', lineHeight: 1 }}>
-          {isInativo ? '—' : pts} <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.25)' }}>pts</span>
+          {isInativo ? '—' : pts} <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}>pts</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
           <div style={{ flex: 1, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2 }}>
             <div style={{ height: 3, background: isInativo ? 'rgba(255,255,255,0.15)' : 'linear-gradient(90deg,#4A90D9,#7BB8F0)', borderRadius: 2, width: `${pct}%` }} />
           </div>
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap' }}>{preenchi}/{totalJogos}</span>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', whiteSpace: 'nowrap' }}>{preenchi}/{totalJogos}</span>
         </div>
 
         {/* Checklist */}
@@ -591,8 +591,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
           ].map(item => (
             <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 11, width: 14, textAlign: 'center', flexShrink: 0 }}>{item.icon}</span>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', flex: 1, fontWeight: 500 }}>{item.label}</span>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 600 }}>{item.done}/{item.total}</span>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', flex: 1, fontWeight: 500 }}>{item.label}</span>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)', fontWeight: 600 }}>{item.done}/{item.total}</span>
               <span style={{
                 fontSize: 9, fontWeight: 800, width: 16, height: 16, borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
@@ -621,7 +621,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
           ...extraStyle,
         }}>
         <span style={{ fontSize: 22, color: 'rgba(255,255,255,0.2)' }}>+</span>
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 500 }}>Criar novo palpite</span>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)', fontWeight: 500 }}>Criar novo palpite</span>
       </div>
     )
   }
@@ -637,7 +637,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
           <div style={{ fontSize: 18, fontWeight: 800, color: 'white' }}>Meus palpites</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>Navegue entre seus palpites ou crie um novo</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>Navegue entre seus palpites ou crie um novo</div>
         </div>
         <button onClick={() => setShowNovo(true)}
           style={{ background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', border: 'none', padding: '5px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: 0.4 }}>
@@ -754,7 +754,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                     Recolher todos
                   </button>
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.50)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
                   Jogos em ordem cronológica — envie cada placar individualmente
                 </div>
               </div>
@@ -774,10 +774,10 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                       <>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                           <span style={{ fontSize: 12, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>Dia {group.dayNum}</span>
-                          <span className="day-date-full" style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap' }}>{group.label}</span>
-                          <span className="day-date-short" style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap', display: 'none' }}>{group.labelShort}</span>
+                          <span className="day-date-full" style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', whiteSpace: 'nowrap' }}>{group.label}</span>
+                          <span className="day-date-short" style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', whiteSpace: 'nowrap', display: 'none' }}>{group.labelShort}</span>
                           <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
-                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap' }}>{group.matches.length} jogos</span>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', whiteSpace: 'nowrap' }}>{group.matches.length} jogos</span>
                         </div>
                         <div className="match-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
                           {group.matches.map(jogo => (
@@ -838,7 +838,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                     style={{ background: 'rgba(74,144,217,0.1)', border: '1px solid rgba(74,144,217,0.25)', color: '#7BB8F0', padding: '10px 28px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.5, width: '100%' }}>
                     Carregar próximo dia →
                   </button>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)' }}>
                     Dia {nextDay.dayNum} · {nextDay.label} · {nextDay.matches.length} jogos
                   </div>
                 </div>
@@ -876,7 +876,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
           {activeTab === 1 && (
             <div style={{ maxWidth: 480 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
                   Palpites especiais
                 </div>
                 {specialSaving && <span style={{ fontSize: 10, color: '#4A90D9' }}>● Salvando…</span>}
@@ -940,7 +940,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
 
           {/* Desktop bottom bar */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.2)', borderRadius: 10 }}>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>
               Palpite <strong style={{ color: 'white' }}>{selected.status === 'ativo' ? 'ativo' : 'inativo'}</strong>
               {selected.status === 'inativo' && <> · Ative pagando <strong style={{ color: 'white' }}>R$ {PIX_VALOR},00</strong> via PIX para participar</>}
             </div>
@@ -1014,7 +1014,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setConfirmDelete(null)}>
           <div style={{ background: '#0D1E3D', border: '1px solid rgba(255,80,80,0.35)', borderRadius: 12, padding: '24px 28px', maxWidth: 340, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'white', marginBottom: 8 }}>Excluir este palpite?</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 20, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginBottom: 20, lineHeight: 1.5 }}>
               Esta ação não pode ser desfeita. Todos os palpites de jogos serão removidos.
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
@@ -1178,7 +1178,7 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
         {/* 90-min score */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <ScoreBtn val={state.scoreA} onDec={() => onScoreChange('A', Math.max(0, state.scoreA - 1))} onInc={() => onScoreChange('A', state.scoreA + 1)} />
-          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', padding: '0 2px', fontWeight: 300 }}>×</span>
+          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.50)', padding: '0 2px', fontWeight: 300 }}>×</span>
           <ScoreBtn val={state.scoreB} onDec={() => onScoreChange('B', Math.max(0, state.scoreB - 1))} onInc={() => onScoreChange('B', state.scoreB + 1)} />
         </div>
         {/* Penalty row — shown when both scores are set (≥ 0) and equal */}
@@ -1218,7 +1218,7 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
             <span style={{ color: '#4ade80', fontSize: 14, fontWeight: 700 }}>✓</span>
             <div ref={menuRef} style={{ position: 'relative' }}>
               <button onClick={() => setMenuOpen(o => !o)}
-                style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'rgba(255,255,255,0.25)', fontSize: 13, width: 24, height: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⋮</button>
+                style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'rgba(255,255,255,0.50)', fontSize: 13, width: 24, height: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⋮</button>
               {menuOpen && (
                 <div style={{ position: 'absolute', top: 28, right: 0, background: '#1a2d50', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 8, padding: 4, minWidth: 155, zIndex: 20 }}>
                   <div onClick={() => { if (editable) { onEdit(); setMenuOpen(false) } }}
@@ -1253,7 +1253,7 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
           </>
         )}
       </div>
-      {locked && <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>🔒</div>}
+      {locked && <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.50)', flexShrink: 0 }}>🔒</div>}
     </div>
 
     {/* Histórico de confronto */}
@@ -1263,7 +1263,7 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
         {confronto.inedito
           ? <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.6)', fontWeight: 600 }}>Primeiro confronto oficial entre as seleções</span>
           : <>
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)' }}>{confronto.ultimoConfronto}</span>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.65)' }}>{confronto.ultimoConfronto}</span>
               <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>·</span>
               <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>{confronto.raioX}</span>
             </>
@@ -1281,8 +1281,8 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
       const ptsColor = pontos && pontos > 0 ? '#4ade80' : 'rgba(255,255,255,0.3)'
       return (
         <div style={{ padding: '5px 16px 8px', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>
-            <span style={{ color: 'rgba(255,255,255,0.25)' }}>🌍 </span>
+          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)' }}>
+            <span style={{ color: 'rgba(255,255,255,0.50)' }}>🌍 </span>
             <strong style={{ color: 'rgba(255,255,255,0.55)' }}>{jogo.time_a}</strong>
             {' '}<strong style={{ color: 'rgba(255,255,255,0.7)' }}>{ra} × {rb}</strong>{' '}
             <strong style={{ color: 'rgba(255,255,255,0.55)' }}>{jogo.time_b}</strong>
@@ -1367,7 +1367,7 @@ function MataMataTab({
                   <span style={{ fontSize: 18, flexShrink: 0 }}>{locked ? '🔒' : complete ? '✅' : '⚽'}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 0.5, lineHeight: 1.1, color: 'white' }}>{phase.label}</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>{phase.dates}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>{phase.dates}</div>
                   </div>
                   <span style={{
                     fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, whiteSpace: 'nowrap',
@@ -1390,7 +1390,7 @@ function MataMataTab({
                         <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
                           Aguardando término da fase de grupos
                         </div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.50)' }}>
                           Disponível após a divulgação dos classificados da Fase de Grupos pelo administrador.
                         </div>
                       </>
@@ -1399,7 +1399,7 @@ function MataMataTab({
                         <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
                           Disponível após {phase.prevLabel}
                         </div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.50)' }}>
                           Preencha todos os {KO_PHASES.find(p => p.code === phase.prevCode)?.total ?? '?'} jogos da {phase.prevLabel} para liberar.
                         </div>
                       </>
@@ -1411,7 +1411,7 @@ function MataMataTab({
                 {!locked && isOpen && (
                   <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                     {phaseJogos.length === 0 ? (
-                      <div style={{ padding: '20px', textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 12 }}>Jogos em breve</div>
+                      <div style={{ padding: '20px', textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 12 }}>Jogos em breve</div>
                     ) : (
                       Object.entries(
                         phaseJogos.reduce((acc, j) => {
@@ -1426,7 +1426,7 @@ function MataMataTab({
                         const dayLabel = `${DAYS_PT[d.getDay()]} · ${d.getDate()} de ${MONTHS_PT[d.getMonth()]}`
                         return (
                           <div key={data}>
-                            <div style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.7, background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.7, background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                               {dayLabel}
                             </div>
                             {jogos.map(jogo => (
@@ -1608,7 +1608,7 @@ function ChaveKnockout({ jogosKO, selected, matchStates, chaveView, setChaveView
         borderRadius: 8, padding: '8px 10px',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>{meta}</span>
+          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.50)' }}>{meta}</span>
           {isTPL && <span style={{ fontSize: 8, fontWeight: 700, color: '#4A90D9', background: 'rgba(74,144,217,0.18)', padding: '1px 5px', borderRadius: 6, textTransform: 'uppercase', letterSpacing: 0.3 }}>3º Lugar</span>}
         </div>
         <TeamRow side="A" />
@@ -1673,7 +1673,7 @@ function ChaveKnockout({ jogosKO, selected, matchStates, chaveView, setChaveView
                   <MatchCard2 key={jogo.id} jogo={jogo} isFinal={jogo.fase === 'F'} />
                 ))}
                 {col.code === 'FIN' && (colsByCode[col.code] ?? []).some(j => j.fase === 'F' && (chaveView === 'oficial' ? j.resultado : matchStates[String(j.id)]?.submitted)) && (
-                  <div style={{ textAlign: 'center', fontSize: 9, color: 'rgba(255,255,255,0.25)', letterSpacing: 0.7 }}>— Campeão Mundial —</div>
+                  <div style={{ textAlign: 'center', fontSize: 9, color: 'rgba(255,255,255,0.50)', letterSpacing: 0.7 }}>— Campeão Mundial —</div>
                 )}
               </div>
               {ci < CHAVE_COLS.length - 1 && (
@@ -1852,7 +1852,7 @@ function TabelaDoPalpite({ palpite, todosJogos }: { palpite: Palpite; todosJogos
 
   return (
     <div>
-      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginBottom: 14, fontWeight: 500 }}>
+      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', marginBottom: 14, fontWeight: 500 }}>
         Classificação calculada a partir dos seus palpites · Critérios FIFA
       </div>
 
@@ -1861,7 +1861,7 @@ function TabelaDoPalpite({ palpite, todosJogos }: { palpite: Palpite; todosJogos
           <div key={grupo} style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, overflow: 'hidden' }}>
             <div style={{ padding: '8px 12px', background: 'rgba(74,144,217,0.08)', borderBottom: '1px solid rgba(74,144,217,0.15)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, color: '#4A90D9', letterSpacing: 1 }}>{grupo}</span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 }}>Grupo {grupo}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.50)', textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 }}>Grupo {grupo}</span>
               {/* Classification bonus badge — shown only when official results are in */}
               {classifBonus !== null && (
                 <span style={{
@@ -1904,7 +1904,7 @@ function TabelaDoPalpite({ palpite, todosJogos }: { palpite: Palpite; todosJogos
                         </div>
                       </td>
                       {[row.j, row.v, row.e, row.d, sgStr].map((val, ci) => (
-                        <td key={ci} style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', textAlign: 'center', padding: '6px 6px', background: rowBg, borderBottom: '1px solid rgba(255,255,255,0.03)' }}>{val}</td>
+                        <td key={ci} style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', textAlign: 'center', padding: '6px 6px', background: rowBg, borderBottom: '1px solid rgba(255,255,255,0.03)' }}>{val}</td>
                       ))}
                       <td style={{ fontSize: 11, fontWeight: 800, color: ptsColor, textAlign: 'center', padding: '6px 6px', background: rowBg, borderBottom: '1px solid rgba(255,255,255,0.03)' }}>{row.pts}</td>
                     </tr>
@@ -1922,7 +1922,7 @@ function TabelaDoPalpite({ palpite, todosJogos }: { palpite: Palpite; todosJogos
           { color: '#fbbf24',             label: 'Depende dos 3ºs' },
           { color: 'rgba(255,255,255,0.2)', label: 'Eliminado' },
         ].map(({ color, label }) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: 'rgba(255,255,255,0.50)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
             {label}
           </div>
@@ -2005,7 +2005,7 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
 
       {/* Per-phase game points */}
       <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>
           ⚽ Pontos por fase
         </div>
         {FASE_ORDER.filter(f => byFase[f]).map((fase, idx, arr) => {
@@ -2026,7 +2026,7 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
                   <span style={{ fontSize: 13, fontWeight: 800, color: earned > 0 ? '#4A90D9' : 'rgba(255,255,255,0.25)' }}>
                     {earned}
                   </span>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginLeft: 3 }}>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)', marginLeft: 3 }}>
                     / {max} pts
                   </span>
                 </div>
@@ -2036,7 +2036,7 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
                 <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${pct}%`, background: pct >= 70 ? '#4ade80' : pct >= 40 ? '#4A90D9' : '#f97316', borderRadius: 3, transition: 'width 0.4s ease' }} />
                 </div>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', minWidth: 32, textAlign: 'right' }}>{pct}%</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.55)', minWidth: 32, textAlign: 'right' }}>{pct}%</span>
               </div>
             </div>
           )
@@ -2048,7 +2048,7 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
         {Object.keys(byFase).length > 0 && (
           <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subtotal jogos</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subtotal jogos</span>
               <span style={{ fontSize: 12, fontWeight: 800, color: '#4A90D9' }}>{ptsJogos} / {maxJogos} pts</span>
             </div>
             <ProgressBar earned={ptsJogos} max={maxJogos} />
@@ -2058,7 +2058,7 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
 
       {/* Classification bonus */}
       <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
           🏅 Bônus de classificação de grupos
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
@@ -2077,7 +2077,7 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
 
       {/* Special predictions */}
       <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
           🌟 Palpites especiais
         </div>
         {[
@@ -2091,7 +2091,7 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 14 }}>{item.emoji}</span>
               <div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>{item.label}</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}>{item.label}</div>
                 <div style={{ fontSize: 11, color: item.value ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)', fontStyle: item.value ? 'normal' : 'italic' }}>
                   {item.value || '— não preenchido'}
                 </div>
@@ -2102,7 +2102,7 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
         ))}
         <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subtotal especiais</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subtotal especiais</span>
             <span style={{ fontSize: 12, fontWeight: 800, color: ptsEspeciais > 0 ? '#4A90D9' : 'rgba(255,255,255,0.25)' }}>
               {ptsEspeciais} / {maxEspeciais} pts
             </span>
@@ -2117,7 +2117,7 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
           <span style={{ fontSize: 13, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.5 }}>Total Geral</span>
           <div style={{ textAlign: 'right' }}>
             <span style={{ fontSize: 22, fontWeight: 800, color: '#4ade80' }}>{ptsTotal}</span>
-            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', marginLeft: 4 }}>/ {maxTotal} pts</span>
+            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginLeft: 4 }}>/ {maxTotal} pts</span>
           </div>
         </div>
         {/* Overall progress bar */}
@@ -2147,8 +2147,8 @@ function Accordion({ isOpen, onToggle, dayNum, label, labelShort, sentCount, pen
     <div style={{ marginBottom: 10 }}>
       <div onClick={onToggle} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, background: col.bg, border: `1px solid ${col.border}`, borderRadius: 8, padding: '9px 14px', cursor: 'pointer', userSelect: 'none', transition: 'background 0.15s' }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>Dia {dayNum}</span>
-        <span className="day-date-full" style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap' }}>{label}</span>
-        <span className="day-date-short" style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap', display: 'none' }}>{labelShort}</span>
+        <span className="day-date-full" style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', whiteSpace: 'nowrap' }}>{label}</span>
+        <span className="day-date-short" style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', whiteSpace: 'nowrap', display: 'none' }}>{labelShort}</span>
         {/* Flex spacer */}
         <div style={{ flex: 1 }} />
         {/* Points badge — absolutely centered so all accordions share the same midpoint */}
@@ -2197,7 +2197,7 @@ function TeamInfoPanel({ nome }: { nome: string }) {
       </div>
       {/* Confederation + method badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: hasStats ? 8 : 6, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.6 }}>
+        <span style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.6 }}>
           {info.zona}
         </span>
         <span style={{ fontSize: 9, fontWeight: 700, color: methodColor, background: `${methodColor}18`, border: `1px solid ${methodColor}40`, borderRadius: 10, padding: '1px 6px', whiteSpace: 'nowrap' }}>
@@ -2294,7 +2294,7 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
               Grupo {jogo.grupo}
             </span>
           )}
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.3 }}>{mmDate}</span>
+          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.65)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.3 }}>{mmDate}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
           {/* ℹ️ info toggle */}
@@ -2308,7 +2308,7 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
           {state.submitted && (
             <div ref={menuRef} style={{ position: 'relative' }}>
               <button onClick={() => setMenuOpen(o => !o)}
-                style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'rgba(255,255,255,0.25)', fontSize: 13, width: 24, height: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⋮</button>
+                style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'rgba(255,255,255,0.50)', fontSize: 13, width: 24, height: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⋮</button>
               {menuOpen && (
                 <div style={{ position: 'absolute', top: 28, right: 0, background: '#1a2d50', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 8, padding: 4, minWidth: 155, zIndex: 10 }}>
                   {editable ? (
@@ -2319,7 +2319,7 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
                       ✏️ Editar placar
                     </div>
                   ) : (
-                    <div style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.25)', borderRadius: 6, cursor: 'not-allowed', whiteSpace: 'nowrap' }}
+                    <div style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.50)', borderRadius: 6, cursor: 'not-allowed', whiteSpace: 'nowrap' }}
                       title="Prazo encerrado — jogo começa em menos de 1 hora">✏️ Editar placar</div>
                   )}
                 </div>
@@ -2332,27 +2332,27 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
           <FlagImg codigo={jogo.codigo_pais_a ?? ''} size={24} />
-          <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{abbr(jogo.time_a)}</span>
+          <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{abbr(jogo.time_a)}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <ScoreControl value={state.scoreA} onChange={v => onScoreChange('A', v)} />
-          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', padding: '0 2px', fontWeight: 300 }}>×</span>
+          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.50)', padding: '0 2px', fontWeight: 300 }}>×</span>
           <ScoreControl value={state.scoreB} onChange={v => onScoreChange('B', v)} />
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
           <FlagImg codigo={jogo.codigo_pais_b ?? ''} size={24} />
-          <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{abbr(jogo.time_b)}</span>
+          <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{abbr(jogo.time_b)}</span>
         </div>
       </div>
 
       {state.error && <div style={{ marginTop: 6, fontSize: 10, color: 'rgba(255,100,100,0.9)', textAlign: 'center' }}>{state.error}</div>}
 
       {locked ? (
-        <div style={{ marginTop: 6, fontSize: 9, color: 'rgba(255,255,255,0.25)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3 }}>🔒 Jogo em andamento</div>
+        <div style={{ marginTop: 6, fontSize: 9, color: 'rgba(255,255,255,0.50)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3 }}>🔒 Jogo em andamento</div>
       ) : (
         <div style={{ marginTop: 10, display: state.submitted ? 'none' : 'block' }}>
           {notEntered ? (
-            <div style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.25)', padding: 6, borderRadius: 6, fontSize: 10, fontWeight: 700, textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+            <div style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.50)', padding: 6, borderRadius: 6, fontSize: 10, fontWeight: 700, textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.4 }}>
               Informe o placar
             </div>
           ) : (
@@ -2372,8 +2372,8 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
         const ptsColor = pontos && pontos > 0 ? '#4ade80' : 'rgba(255,255,255,0.3)'
         return (
           <div style={{ marginTop: 8, padding: '5px 8px', background: 'rgba(255,255,255,0.03)', borderRadius: 5, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>
-              <span style={{ color: 'rgba(255,255,255,0.35)' }}>Jogo Oficial: </span>
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)' }}>
+              <span style={{ color: 'rgba(255,255,255,0.55)' }}>Jogo Oficial: </span>
               <strong style={{ color: 'rgba(255,255,255,0.55)' }}>{jogo.time_a}</strong>
               {' '}<strong style={{ color: 'rgba(255,255,255,0.7)' }}>{ra} × {rb}</strong>{' '}
               <strong style={{ color: 'rgba(255,255,255,0.55)' }}>{jogo.time_b}</strong>
@@ -2393,7 +2393,7 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
           {/* Histórico de confronto */}
           {confronto && (
             <div style={{ padding: '7px 10px', background: 'rgba(74,144,217,0.05)', borderBottom: '1px solid rgba(74,144,217,0.15)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5, flexShrink: 0 }}>Confronto direto</span>
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.50)', textTransform: 'uppercase', letterSpacing: 0.5, flexShrink: 0 }}>Confronto direto</span>
               {confronto.inedito ? (
                 <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.7)', fontWeight: 600 }}>Primeiro confronto oficial entre as seleções</span>
               ) : (
@@ -2405,7 +2405,7 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
               )}
             </div>
           )}
-          <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.7, padding: '5px 10px', background: 'rgba(74,144,217,0.07)', borderBottom: '1px solid rgba(74,144,217,0.15)' }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.7, padding: '5px 10px', background: 'rgba(74,144,217,0.07)', borderBottom: '1px solid rgba(74,144,217,0.15)' }}>
             Eliminatórias · informações das seleções
           </div>
           <TeamInfoPanel nome={jogo.time_a} />

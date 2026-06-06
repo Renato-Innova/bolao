@@ -17,7 +17,7 @@ export function RankingTabela({ entries, currentUserId }: Props) {
         style={{
           background: 'rgba(74,144,217,0.08)',
           borderBottom: '1px solid rgba(74,144,217,0.15)',
-          color: 'rgba(255,255,255,0.35)',
+          color: 'rgba(255,255,255,0.55)',
         }}
       >
         <div className="col-span-1">#</div>
@@ -73,7 +73,7 @@ export function RankingTabela({ entries, currentUserId }: Props) {
 
             {/* User */}
             <div className="col-span-3">
-              <span className="text-sm truncate" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              <span className="text-sm truncate" style={{ color: 'rgba(255,255,255,0.65)' }}>
                 {entry.usuario_nome}
               </span>
             </div>

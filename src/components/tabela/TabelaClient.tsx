@@ -119,7 +119,7 @@ function GameRow({ jogo }: { jogo: JogoCopa }) {
           </div>
         )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.50)', whiteSpace: 'nowrap' }}>
             {FASE_LABEL[jogo.fase] ?? jogo.fase}
             {jogo.grupo ? ` · Gr. ${jogo.grupo}` : ''}
           </span>
@@ -277,13 +277,13 @@ function ClassificacaoTab({ classificacao }: { classificacao: ClassificacaoGrupo
             {/* Group header */}
             <div style={{ background: 'linear-gradient(90deg, #0a1f4e, #091a42)', padding: '7px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(74,144,217,0.2)' }}>
               <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, color: 'white', letterSpacing: 1 }}>Grupo {grupo}</span>
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Fase de Grupos</span>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.50)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Fase de Grupos</span>
             </div>
             {/* Table */}
             <div className="mobile-scroll">
               <div className="mobile-scroll-inner">
                 {/* Header row */}
-                <div style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '5px 10px', fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '5px 10px', fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.50)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   <span>#</span><span style={{ textAlign: 'left' }}>Seleção</span><span>J</span><span>V</span><span>SG</span><span>GP</span><span>Pts</span>
                 </div>
                 {times.map((t, idx) => {
@@ -316,12 +316,12 @@ function ClassificacaoTab({ classificacao }: { classificacao: ClassificacaoGrupo
       {/* Legend */}
       <div className="legend-row" style={{ marginTop: 14, padding: '10px 16px', background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'rgba(255,255,255,0.65)' }}>
             <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(74,144,217,0.5)' }} />
             Classifica para o mata-mata (1º, 2º e melhores 3ºs colocados)
           </div>
         </div>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>Critérios FIFA: Pts → SG → GP → Confronto direto</span>
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)' }}>Critérios FIFA: Pts → SG → GP → Confronto direto</span>
       </div>
     </div>
   )
@@ -487,7 +487,7 @@ function ChaveTab({ jogosKO }: { jogosKO: JogoCopa[] }) {
                   <MatchCard key={jogo.id} jogo={jogo} isFinal={jogo.fase === 'F'} />
                 ))}
                 {col.code === 'FIN' && (colsByCode[col.code] ?? []).some(j => j.fase === 'F' && j.resultado) && (
-                  <div style={{ textAlign: 'center', fontSize: 9, color: 'rgba(255,255,255,0.25)', letterSpacing: 0.7 }}>— Campeão Mundial —</div>
+                  <div style={{ textAlign: 'center', fontSize: 9, color: 'rgba(255,255,255,0.50)', letterSpacing: 0.7 }}>— Campeão Mundial —</div>
                 )}
               </div>
               {ci < CHAVE_COLS.length - 1 && (
@@ -526,7 +526,7 @@ export function TabelaClient({ todosJogos, jogosKO, classificacao }: Props) {
       {/* Page header */}
       <div style={{ marginBottom: 18 }}>
         <div style={{ fontSize: 18, fontWeight: 800, color: 'white', marginBottom: 3 }}>Tabela oficial</div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>
           Classificação e jogos atualizados em tempo real · Critérios FIFA
         </div>
       </div>

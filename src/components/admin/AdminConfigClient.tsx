@@ -155,7 +155,7 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
             <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.3, background: 'rgba(74,222,128,0.15)', color: '#4ade80' }}>Admin</span>
             <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: 'white', letterSpacing: 1 }}>Configurações</span>
           </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Pontuação, palpites especiais, ativação de palpites</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>Pontuação, palpites especiais, ativação de palpites</div>
         </div>
         <a href="/admin/resultados" style={{ fontSize: 11, color: '#4A90D9', background: 'rgba(74,144,217,0.1)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 7, padding: '7px 14px', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}>
           ← Resultados
@@ -178,7 +178,7 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
       {/* ── Pontuação ── */}
       {aba === 'pontuacao' && (
         <div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 14, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginBottom: 14, lineHeight: 1.6 }}>
             Valores por fase conforme o Regulamento v1.0. Os critérios <strong style={{ color: 'rgba(255,255,255,0.6)' }}>gols_equipe</strong> e <strong style={{ color: 'rgba(255,255,255,0.6)' }}>pênaltis</strong> são <em>cumulativos</em> — somam-se ao vencedor/empate.
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -224,7 +224,7 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
       {/* ── Palpites Especiais — Official Results ── */}
       {aba === 'especiais' && (
         <div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 16, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginBottom: 16, lineHeight: 1.6 }}>
             Insira os resultados oficiais dos palpites especiais. Ao salvar, os pontos serão recalculados automaticamente para todos os palpites.
           </div>
 
@@ -273,7 +273,7 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
       {/* ── Operações ── */}
       {aba === 'operacoes' && (
         <div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 20, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginBottom: 20, lineHeight: 1.6 }}>
             Operações administrativas que afetam todos os palpites e resultados do bolão.
           </div>
 
