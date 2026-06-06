@@ -202,12 +202,14 @@ export function getConfrontoHistorico(timeA: string, timeB: string): ConfrontoHi
  * ──────────────────────────────────────────────────────────────────────────── */
 
 export const ARTILHEIRO_OPTIONS = [
-  { value: 'Kylian Mbappé',   label: 'Kylian Mbappé (França)'        },
-  { value: 'Lamine Yamal',    label: 'Lamine Yamal (Espanha)'        },
-  { value: 'Harry Kane',      label: 'Harry Kane (Inglaterra)'       },
-  { value: 'Lionel Messi',    label: 'Lionel Messi (Argentina)'      },
-  { value: 'Vinicius Junior', label: 'Vinicius Junior (Brasil)'      },
-  { value: 'Raphinha',        label: 'Raphinha (Brasil)'             },
+  { value: 'Kylian Mbappé',        label: 'Kylian Mbappé (França)'              },
+  { value: 'Lamine Yamal',         label: 'Lamine Yamal (Espanha)'              },
+  { value: 'Harry Kane',           label: 'Harry Kane (Inglaterra)'             },
+  { value: 'Lionel Messi',         label: 'Lionel Messi (Argentina)'            },
+  { value: 'Vinicius Junior',      label: 'Vinicius Junior (Brasil)'            },
+  { value: 'Raphinha',             label: 'Raphinha (Brasil)'                   },
+  { value: 'Neymar Jr',            label: 'Neymar Jr (Brasil)'                  },
+  { value: 'Cristiano Ronaldo',    label: 'Cristiano Ronaldo (Portugal)'        },
 ]
 
 export const GOLEIRO_OPTIONS = [
