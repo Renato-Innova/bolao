@@ -499,7 +499,7 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
           )}
           {palpitesState.map(p => {
             const jogosSubmetidos = p.palpites_jogos?.filter(pj => pj.submitted_at).length ?? 0
-            const totalJogos      = p.palpites_jogos?.length ?? 0
+            const totalJogos      = 104 // always 104 games in the tournament
             const speciais        = [p.campeao, p.vice_campeao, p.artilheiro, p.melhor_jogador, p.melhor_goleiro]
             const specialCount    = speciais.filter(Boolean).length
             const pct             = totalJogos > 0 ? Math.round((jogosSubmetidos / totalJogos) * 100) : 0
