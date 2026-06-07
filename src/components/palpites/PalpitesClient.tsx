@@ -552,13 +552,26 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
     // Não salva se campeão e vice forem iguais — preserva configuração anterior
     if (nextCampeao && nextViceCampeao && nextCampeao === nextViceCampeao) return
     setSpecialSaving(true)
-    await supabase.from('palpites').update({
-      campeao:        nextCampeao,
-      vice_campeao:   nextViceCampeao,
-      artilheiro:     nextArtilheiro,
-      melhor_jogador: nextMelhorJogador,
-      melhor_goleiro: nextMelhorGoleiro,
-    }).eq('id', selectedId)
+
+    // Usa API route (service role) para garantir que o RLS não bloqueia silenciosamente
+    const res = await fetch(`/api/palpites/${selectedId}/especiais`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        campeao:        nextCampeao,
+        vice_campeao:   nextViceCampeao,
+        artilheiro:     nextArtilheiro,
+        melhor_jogador: nextMelhorJogador,
+        melhor_goleiro: nextMelhorGoleiro,
+      }),
+    })
+
+    if (!res.ok) {
+      // Falhou — não atualiza o estado local, mantém o que estava antes
+      setSpecialSaving(false)
+      return
+    }
+
     // Sync palpites state so the checklist card reflects the new values immediately
     setPalpites(prev => prev.map(p => p.id === selectedId ? {
       ...p,
