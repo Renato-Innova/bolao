@@ -29,7 +29,7 @@ export async function GET(
   const { data: { user } } = await userClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
 
-  const admin = await createAdminClient()
+  const admin = createAdminClient()
 
   // Verify ownership
   const { data: palpite } = await admin

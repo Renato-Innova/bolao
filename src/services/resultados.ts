@@ -5,14 +5,14 @@ export async function inserirResultado(
   placarA: number,
   placarB: number
 ): Promise<void> {
-  const supabase = await createAdminClient()
+  const supabase = createAdminClient()
   await supabase
     .from('resultados')
     .upsert({ jogo_id: jogoId, placar_real_a: placarA, placar_real_b: placarB }, { onConflict: 'jogo_id' })
 }
 
 export async function calcularPontosPalpites(jogoId: string): Promise<void> {
-  const supabase = await createAdminClient()
+  const supabase = createAdminClient()
 
   const { data: resultado } = await supabase
     .from('resultados')

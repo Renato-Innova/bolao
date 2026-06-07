@@ -19,7 +19,7 @@ export async function PATCH(req: NextRequest) {
   if (!palpiteId) return NextResponse.json({ error: 'palpiteId obrigatório.' }, { status: 400 })
 
   // Use admin client to bypass RLS for status update
-  const admin = await createAdminClient()
+  const admin = createAdminClient()
   const { data, error } = await admin
     .from('palpites')
     .update({ status: 'ativo' })

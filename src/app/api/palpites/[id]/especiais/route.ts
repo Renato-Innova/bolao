@@ -23,7 +23,7 @@ export async function POST(
   }
 
   // 2. Usa admin client (service role) para TUDO — bypassa RLS completamente
-  const admin = await createAdminClient()
+  const admin = createAdminClient()
 
   // Valida que o palpite pertence ao usuário
   const { data: palpite, error: fetchError } = await admin
