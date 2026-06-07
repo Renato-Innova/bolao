@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { calcularBonusClassificacao } from '@/utils/classificacao'
 
 // POST /api/admin/classificacao
@@ -15,9 +15,8 @@ import { calcularBonusClassificacao } from '@/utils/classificacao'
 // (top 2 from each group + best 8 third-place teams by FIFA tiebreaker).
 
 export async function POST() {
+  // Auth check via anon client (reads session cookie)
   const supabase = await createClient()
-
-  // Auth + admin guard
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
 
@@ -25,8 +24,11 @@ export async function POST() {
     .from('users').select('is_admin').eq('id', user.id).single()
   if (!userData?.is_admin) return NextResponse.json({ error: 'Sem permissão.' }, { status: 403 })
 
+  // All DB reads/writes use admin client (service role) to bypass RLS
+  const admin = await createAdminClient()
+
   // ── 1. Fetch all group-stage games ────────────────────────────────────────
-  const { data: gsJogos, error: jogosErr } = await supabase
+  const { data: gsJogos, error: jogosErr } = await admin
     .from('jogos_copa')
     .select('id, grupo, time_a, time_b, codigo_pais_a, codigo_pais_b')
     .eq('fase', 'GS')
@@ -34,7 +36,7 @@ export async function POST() {
   if (jogosErr || !gsJogos) return NextResponse.json({ error: 'Erro ao buscar jogos.' }, { status: 500 })
 
   // ── 2. Determine official qualifiers from classificacao_grupos ────────────
-  const { data: classifOficial } = await supabase
+  const { data: classifOficial } = await admin
     .from('classificacao_grupos')
     .select('grupo, pais_nome, pts, dg, m')  // pts, dg=goal_diff, m=goals_for
     .order('grupo').order('pts', { ascending: false })
@@ -70,7 +72,7 @@ export async function POST() {
   for (const t of best8thirds) oficiais.add(t.pais_nome)
 
   // ── 3. Fetch all palpites with their GS predictions ───────────────────────
-  const { data: palpites } = await supabase
+  const { data: palpites } = await admin
     .from('palpites')
     .select('id, palpites_jogos(jogo_id, placar_palpite_a, placar_palpite_b, submitted_at)')
 
@@ -98,7 +100,7 @@ export async function POST() {
     }
 
     const pontos_classificacao = calcularBonusClassificacao(gsJogos, predicoes, oficiais)
-    await supabase.from('palpites').update({ pontos_classificacao }).eq('id', palpite.id)
+    await admin.from('palpites').update({ pontos_classificacao }).eq('id', palpite.id)
     updatedCount++
   }
 

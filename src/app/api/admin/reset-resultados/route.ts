@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 // POST /api/admin/reset-resultados
 //
@@ -58,8 +58,8 @@ const BRACKET_PLACEHOLDERS: Record<number, { time_a: string; time_b: string; cod
 }
 
 export async function POST() {
+  // Auth check via anon client (reads session cookie)
   const supabase = await createClient()
-
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
 
@@ -67,30 +67,33 @@ export async function POST() {
     .from('users').select('is_admin').eq('id', user.id).single()
   if (!userData?.is_admin) return NextResponse.json({ error: 'Sem permissão.' }, { status: 403 })
 
+  // All DB writes use admin client (service role) to bypass RLS
+  const admin = await createAdminClient()
+
   // 1 — Delete all official match results
-  const { error: e1 } = await supabase.from('resultados').delete().neq('id', 0)
+  const { error: e1 } = await admin.from('resultados').delete().neq('id', 0)
   if (e1) return NextResponse.json({ error: e1.message }, { status: 500 })
 
   // 2 — Clear special results (keep the single row, null all fields)
-  const { error: e2 } = await supabase
+  const { error: e2 } = await admin
     .from('resultados_especiais')
     .update({ campeao: null, vice_campeao: null, artilheiro: null, melhor_jogador: null, melhor_goleiro: null })
     .eq('id', 1)
   if (e2) return NextResponse.json({ error: e2.message }, { status: 500 })
 
   // 3 — Zero all game points
-  const { error: e3 } = await supabase
+  const { error: e3 } = await admin
     .from('palpites_jogos').update({ pontos: 0 }).neq('id', 0)
   if (e3) return NextResponse.json({ error: e3.message }, { status: 500 })
 
   // 4 — Zero special + classification bonus points on every palpite
-  const { error: e4 } = await supabase
+  const { error: e4 } = await admin
     .from('palpites').update({ pontos_especiais: 0, pontos_classificacao: 0 }).neq('id', 0)
   if (e4) return NextResponse.json({ error: e4.message }, { status: 500 })
 
   // 5 — Restore KO bracket games to original placeholder names
   //     Fetch KO games to get their ids by numero_jogo
-  const { data: koJogos, error: e5 } = await supabase
+  const { data: koJogos, error: e5 } = await admin
     .from('jogos_copa')
     .select('id, numero_jogo')
     .in('fase', ['R32', 'R16', 'QF', 'SF', 'TPL', 'F'])
@@ -99,7 +102,7 @@ export async function POST() {
   for (const jogo of koJogos ?? []) {
     const placeholder = BRACKET_PLACEHOLDERS[jogo.numero_jogo]
     if (!placeholder) continue
-    const { error: eu } = await supabase
+    const { error: eu } = await admin
       .from('jogos_copa')
       .update(placeholder)
       .eq('id', jogo.id)

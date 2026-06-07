@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { calcularPontos, type PontuacaoConfig } from '@/utils/scoring'
 
 // POST /api/admin/recalcular
@@ -13,8 +13,8 @@ import { calcularPontos, type PontuacaoConfig } from '@/utils/scoring'
 //   • Manual corrections to official results
 
 export async function POST() {
+  // Auth check via anon client (reads session cookie)
   const supabase = await createClient()
-
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
 
@@ -22,8 +22,11 @@ export async function POST() {
     .from('users').select('is_admin').eq('id', user.id).single()
   if (!userData?.is_admin) return NextResponse.json({ error: 'Sem permissão.' }, { status: 403 })
 
+  // All DB reads/writes use admin client (service role) to bypass RLS
+  const admin = await createAdminClient()
+
   // 1 — Fetch all games that have an official result
-  const { data: jogos } = await supabase
+  const { data: jogos } = await admin
     .from('jogos_copa')
     .select('id, fase, resultado:resultados(placar_real_a, placar_real_b, placar_penalti_a, placar_penalti_b)')
     .not('resultado', 'is', null)
@@ -33,7 +36,7 @@ export async function POST() {
   }
 
   // 2 — Fetch all scoring configs once
-  const { data: allConfigs } = await supabase
+  const { data: allConfigs } = await admin
     .from('configuracoes_pontuacao')
     .select('fase, tipo_acerto, pontos')
 
@@ -54,7 +57,7 @@ export async function POST() {
     const isKO = jogo.fase !== 'GS'
     const configs = configsByFase[jogo.fase] ?? []
 
-    const { data: palpitesJogos } = await supabase
+    const { data: palpitesJogos } = await admin
       .from('palpites_jogos')
       .select('id, placar_palpite_a, placar_palpite_b, placar_penalti_a, placar_penalti_b, submitted_at')
       .eq('jogo_id', jogo.id)
@@ -79,7 +82,7 @@ export async function POST() {
         configs,
       )
 
-      await supabase.from('palpites_jogos').update({ pontos }).eq('id', pj.id)
+      await admin.from('palpites_jogos').update({ pontos }).eq('id', pj.id)
       updatedCount++
     }
   }
