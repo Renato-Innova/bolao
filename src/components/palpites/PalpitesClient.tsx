@@ -932,26 +932,26 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                   },
                 ] as { emoji: string; label: string; pts: number; value: string; error: boolean | string | null | undefined; options: { value: string; label: string }[]; onChange: (v: string) => void }[]).map((item, idx, arr) => (
                   <div key={item.label}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: (idx < arr.length - 1 && !(idx === 1 && campeao && viceCampeao && campeao === viceCampeao)) ? '1px solid rgba(255,255,255,0.05)' : 'none', background: item.error ? 'rgba(255,100,100,0.04)' : item.value ? 'rgba(74,222,128,0.03)' : 'transparent' }}>
-                      <span style={{ fontSize: 20, flexShrink: 0 }}>{item.emoji}</span>
-                      <div style={{ flex: '0 0 148px' }}>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 700, whiteSpace: 'nowrap' }}>{item.label}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: (idx < arr.length - 1 && !(idx === 1 && campeao && viceCampeao && campeao === viceCampeao)) ? '1px solid rgba(255,255,255,0.05)' : 'none', background: item.error ? 'rgba(255,100,100,0.04)' : item.value ? 'rgba(74,222,128,0.03)' : 'transparent' }}>
+                      <span style={{ fontSize: 18, flexShrink: 0 }}>{item.emoji}</span>
+                      <div style={{ flex: '0 0 auto', minWidth: 90, maxWidth: 120 }}>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 700, whiteSpace: 'nowrap' }}>{item.label}</div>
                         <div style={{ fontSize: 10, color: 'rgba(255,200,80,0.7)', fontWeight: 700 }}>{item.pts} pts</div>
                       </div>
                       <select
                         value={item.value}
                         onChange={e => item.onChange(e.target.value)}
-                        style={{ flex: 1, background: '#0D1E3D', border: `1px solid ${item.error ? 'rgba(255,100,100,0.5)' : 'rgba(74,144,217,0.3)'}`, borderRadius: 6, padding: '8px 10px', fontSize: 12, fontWeight: 700, color: item.value ? '#4A90D9' : 'rgba(255,255,255,0.35)', fontFamily: 'Inter,sans-serif', outline: 'none', cursor: 'pointer' }}>
+                        style={{ flex: 1, minWidth: 0, background: '#0D1E3D', border: `1px solid ${item.error ? 'rgba(255,100,100,0.5)' : 'rgba(74,144,217,0.3)'}`, borderRadius: 6, padding: '7px 6px', fontSize: 12, fontWeight: 700, color: item.value ? '#4A90D9' : 'rgba(255,255,255,0.35)', fontFamily: 'Inter,sans-serif', outline: 'none', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         <option value="" style={{ background: '#0D1E3D', color: 'rgba(255,255,255,0.4)' }}>— selecionar —</option>
                         {item.options.map(opt => (
                           <option key={opt.value} value={opt.value} style={{ background: '#0D1E3D', color: 'white' }}>{opt.label}</option>
                         ))}
                       </select>
                       {item.error
-                        ? <span style={{ fontSize: 12, color: 'rgba(255,100,100,0.85)', fontWeight: 700, flexShrink: 0 }}>!</span>
+                        ? <span style={{ fontSize: 13, color: 'rgba(255,100,100,0.85)', fontWeight: 700, flexShrink: 0 }}>⚠️</span>
                         : item.value
-                          ? <span style={{ fontSize: 14, color: '#4ade80', fontWeight: 700, flexShrink: 0 }}>✓</span>
-                          : <span style={{ width: 14, flexShrink: 0 }} />
+                          ? <span style={{ fontSize: 16, color: '#4ade80', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                          : <span style={{ width: 16, flexShrink: 0 }} />
                       }
                     </div>
                     {idx === 1 && campeao && viceCampeao && campeao === viceCampeao && (
