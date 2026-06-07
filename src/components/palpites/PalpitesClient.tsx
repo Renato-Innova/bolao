@@ -549,6 +549,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
     nextMelhorGoleiro= melhorGoleiro,
   ) {
     if (!selectedId) return
+    // Não salva se campeão e vice forem iguais — preserva configuração anterior
+    if (nextCampeao && nextViceCampeao && nextCampeao === nextViceCampeao) return
     setSpecialSaving(true)
     await supabase.from('palpites').update({
       campeao:        nextCampeao,
