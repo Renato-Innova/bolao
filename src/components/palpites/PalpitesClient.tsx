@@ -310,21 +310,38 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
     })
   }
 
+  // Normaliza nome para comparação: minúsculo + remove acentos + ç→c
+  // "João" === "joao" === "JOAO", "Cangaço" === "cangaco"
+  function normalizarNome(s: string): string {
+    return s
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')                      // decompõe letras acentuadas (ã → a + combining)
+      .replace(/[̀-ͯ]/g, '')       // remove os diacríticos (combining marks)
+      .replace(/[^a-z0-9\s]/g, '')          // remove qualquer outro caractere especial restante
+      .replace(/\s+/g, ' ')                 // colapsa espaços múltiplos
+      .trim()
+  }
+
+  async function checarDuplicidadeNome(nomeTrimmed: string, ignorarId?: number): Promise<boolean> {
+    // Busca todos os nomes e compara normalizados — única forma confiável com acentos/ç
+    const { data: todos } = await supabase.from('palpites').select('id, nome')
+    if (!todos) return false
+    const chave = normalizarNome(nomeTrimmed)
+    return todos.some(p => p.id !== ignorarId && normalizarNome(p.nome) === chave)
+  }
+
   async function criarPalpite() {
     if (!novoNome.trim()) return
     if (novoPalpiteLocked) { setCriarError('Prazo para criação de novos palpites encerrado.'); return }
     setCriando(true); setCriarError('')
 
-    // Check globally — no two palpites can share the same name
     const nomeTrimmed = novoNome.trim()
-    const { data: existing } = await supabase
-      .from('palpites')
-      .select('id')
-      .ilike('nome', nomeTrimmed)   // case-insensitive match
-      .maybeSingle()
 
-    if (existing) {
-      setCriarError(`❌ O nome "${nomeTrimmed}" já está em uso por outro participante. Escolha um nome diferente.`)
+    // Checa duplicidade normalizando acentos, ç, maiúsculas/minúsculas
+    const duplicado = await checarDuplicidadeNome(nomeTrimmed)
+    if (duplicado) {
+      setCriarError(`❌ O nome "${nomeTrimmed}" já está em uso (ou é muito similar a um existente). Escolha outro.`)
       setCriando(false)
       return
     }
@@ -359,20 +376,16 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
     if (!nomeTrimmed) { setRenameError('O nome não pode ser vazio.'); return }
     setRenameSaving(true); setRenameError('')
 
-    // Check current name — skip duplicate check if unchanged
+    // Se o nome normalizado não mudou, fecha sem chamar o DB
     const current = palpites.find(p => p.id === renameId)
-    if (current && current.nome.toLowerCase() === nomeTrimmed.toLowerCase()) {
+    if (current && normalizarNome(current.nome) === normalizarNome(nomeTrimmed)) {
       setRenameId(null); setRenameSaving(false); return
     }
 
-    // Global uniqueness check (case-insensitive)
-    const { data: existing } = await supabase
-      .from('palpites')
-      .select('id')
-      .ilike('nome', nomeTrimmed)
-      .maybeSingle()
-    if (existing) {
-      setRenameError('Este nome já está em uso. Escolha outro.')
+    // Checa duplicidade global normalizando acentos, ç, case — ignora o próprio palpite
+    const duplicado = await checarDuplicidadeNome(nomeTrimmed, renameId)
+    if (duplicado) {
+      setRenameError('Este nome já está em uso (ou é muito similar). Escolha outro.')
       setRenameSaving(false)
       return
     }
