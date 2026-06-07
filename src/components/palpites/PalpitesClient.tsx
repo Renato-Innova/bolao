@@ -1033,8 +1033,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                 </div>
                 {specialSaving && <span style={{ fontSize: 10, color: '#4A90D9' }}>● Salvando…</span>}
                 {!specialSaving && specialSaved && <span style={{ fontSize: 10, color: '#4ade80', fontWeight: 700 }}>✓ Salvo</span>}
-                {!specialSaving && specialError && <span style={{ fontSize: 10, color: 'rgba(255,100,100,0.9)', fontWeight: 600 }}>⚠️ {specialError}</span>}
-                {!specialSaving && !specialSaved && !specialError && !especiaisLocked && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Auto-salva ao selecionar</span>}
+                {!specialSaving && !specialSaved && !especiaisLocked && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Auto-salva ao selecionar</span>}
               </div>
               {especiaisLocked ? (
                 <div style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,100,100,0.25)', borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 11, color: 'rgba(255,150,150,0.9)', lineHeight: 1.5 }}>
