@@ -1110,7 +1110,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
           {activeTab === 4 && <PontuacaoTab palpite={selected} todosJogos={todosJogos} scoringConfigs={scoringConfigs} />}
 
           {/* Desktop bottom bar */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.2)', borderRadius: 10 }}>
+          <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.2)', borderRadius: 10 }}>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>
               Palpite <strong style={{ color: 'white' }}>{selected.status === 'ativo' ? 'ativo' : 'inativo'}</strong>
               {selected.status === 'inativo' && <> · Ative pagando <strong style={{ color: 'white' }}>R$ {PIX_VALOR},00</strong> via PIX para participar</>}
