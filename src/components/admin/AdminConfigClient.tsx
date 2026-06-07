@@ -21,7 +21,7 @@ const TIPO_ORDER = ['placar_exato', 'empate', 'vencedor', 'gols_equipe', 'penalt
 interface Props {
   configs:         ConfiguracaoPontuacao[]
   usuarios:        User[]
-  palpites:        (Palpite & { usuario?: { nome: string; email: string } })[]
+  palpites:        (Palpite & { usuario?: { nome: string; email: string }; palpites_jogos?: { submitted_at: string | null }[] })[]
   especiais:       ResultadoEspecial | null
 }
 
@@ -288,16 +288,16 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
               { key: 'melhor_jogador'as const, emoji: '🌟', label: 'Melhor Jogador', pts: SPECIAL_POINTS.melhor_jogador,options: ARTILHEIRO_OPTIONS },
               { key: 'melhor_goleiro'as const, emoji: '🧤', label: 'Melhor Goleiro', pts: SPECIAL_POINTS.melhor_goleiro, options: GOLEIRO_OPTIONS },
             ]).map((item, idx, arr) => (
-              <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: idx < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                <span style={{ fontSize: 18, flexShrink: 0 }}>{item.emoji}</span>
-                <div style={{ flex: '0 0 150px' }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.65)' }}>{item.label}</div>
+              <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: idx < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                <span style={{ fontSize: 16, flexShrink: 0 }}>{item.emoji}</span>
+                <div style={{ flex: '0 0 auto', minWidth: 90, maxWidth: 120 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.65)', whiteSpace: 'nowrap' }}>{item.label}</div>
                   <div style={{ fontSize: 10, color: 'rgba(255,200,80,0.7)', fontWeight: 700 }}>{item.pts} pts</div>
                 </div>
                 <select
                   value={(especiaisState[item.key] as string | null | undefined) ?? ''}
                   onChange={e => setEspeciaisState(prev => ({ ...prev, [item.key]: e.target.value || null }))}
-                  style={{ flex: 1, background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 6, padding: '8px 10px', fontSize: 12, fontWeight: 700, color: especiaisState[item.key] ? '#4ade80' : 'rgba(255,255,255,0.35)', fontFamily: 'Inter,sans-serif', outline: 'none', cursor: 'pointer' }}>
+                  style={{ flex: 1, minWidth: 0, background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 6, padding: '7px 6px', fontSize: 12, fontWeight: 700, color: especiaisState[item.key] ? '#4ade80' : 'rgba(255,255,255,0.35)', fontFamily: 'Inter,sans-serif', outline: 'none', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   <option value="">— não definido —</option>
                   {item.options.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -493,38 +493,83 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
 
       {/* ── Palpites ── */}
       {aba === 'palpites' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {palpitesState.length === 0 && (
             <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>Nenhum palpite criado</div>
           )}
-          {palpitesState.map(p => (
-            <div key={p.id} style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 8, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 2 }}>{p.nome}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-                  {p.usuario?.nome} · {p.usuario?.email}
+          {palpitesState.map(p => {
+            const jogosSubmetidos = p.palpites_jogos?.filter(pj => pj.submitted_at).length ?? 0
+            const totalJogos      = p.palpites_jogos?.length ?? 0
+            const speciais        = [p.campeao, p.vice_campeao, p.artilheiro, p.melhor_jogador, p.melhor_goleiro]
+            const specialCount    = speciais.filter(Boolean).length
+            const pct             = totalJogos > 0 ? Math.round((jogosSubmetidos / totalJogos) * 100) : 0
+
+            // Color helpers
+            const jogosColor  = jogosSubmetidos === totalJogos && totalJogos > 0 ? '#4ade80' : jogosSubmetidos > 0 ? '#f97316' : 'rgba(255,255,255,0.3)'
+            const specColor   = specialCount === 5 ? '#4ade80' : specialCount > 0 ? '#f97316' : 'rgba(255,255,255,0.3)'
+
+            return (
+              <div key={p.id} style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, overflow: 'hidden' }}>
+                {/* Progress bar top */}
+                <div style={{ height: 2, background: 'rgba(255,255,255,0.06)' }}>
+                  <div style={{ height: 2, width: `${pct}%`, background: pct === 100 ? '#4ade80' : 'linear-gradient(90deg,#4A90D9,#7BB8F0)', transition: 'width 0.3s' }} />
                 </div>
-                {/* Special predictions summary */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 10px', marginTop: 4 }}>
-                  {p.campeao      && <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.7)' }}>🏆 {p.campeao}</span>}
-                  {p.vice_campeao && <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.7)' }}>🥈 {p.vice_campeao}</span>}
-                  {p.artilheiro   && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>⚽ {p.artilheiro}</span>}
+
+                <div style={{ padding: '12px 14px' }}>
+                  {/* Top row: name + status + button */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>{p.usuario?.nome} · {p.usuario?.email}</div>
+                    </div>
+                    <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.3, flexShrink: 0, background: p.status === 'ativo' ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.07)', color: p.status === 'ativo' ? '#4ade80' : 'rgba(255,255,255,0.4)' }}>
+                      {p.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                    </span>
+                    <button onClick={() => toggleStatus(p.id, p.status === 'ativo' ? 'inativo' : 'ativo')}
+                      style={{ padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none', fontFamily: 'Inter,sans-serif', flexShrink: 0, background: p.status === 'ativo' ? 'rgba(255,255,255,0.07)' : 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: p.status === 'ativo' ? 'rgba(255,255,255,0.5)' : 'white' }}>
+                      {p.status === 'ativo' ? 'Desativar' : 'Ativar'}
+                    </button>
+                  </div>
+
+                  {/* Stats row */}
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    {/* Jogos submetidos */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.04)', borderRadius: 6, padding: '5px 10px' }}>
+                      <span style={{ fontSize: 12 }}>⚽</span>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>Jogos</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: jogosColor }}>{jogosSubmetidos}/{totalJogos}</span>
+                    </div>
+
+                    {/* Palpites especiais */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.04)', borderRadius: 6, padding: '5px 10px' }}>
+                      <span style={{ fontSize: 12 }}>🌟</span>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>Especiais</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: specColor }}>{specialCount}/5</span>
+                    </div>
+
+                    {/* Pontos totais */}
+                    {p.status === 'ativo' && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(74,144,217,0.08)', borderRadius: 6, padding: '5px 10px' }}>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>Pts</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#4A90D9' }}>{(p.pontos_especiais ?? 0) + (p.pontos_classificacao ?? 0)}</span>
+                      </div>
+                    )}
+
+                    {/* Especiais detalhes */}
+                    {specialCount > 0 && (
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                        {p.campeao      && <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.75)', background: 'rgba(255,200,80,0.08)', borderRadius: 4, padding: '2px 6px' }}>🏆 {p.campeao}</span>}
+                        {p.vice_campeao && <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.75)', background: 'rgba(255,200,80,0.08)', borderRadius: 4, padding: '2px 6px' }}>🥈 {p.vice_campeao}</span>}
+                        {p.artilheiro   && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.05)', borderRadius: 4, padding: '2px 6px' }}>⚽ {p.artilheiro}</span>}
+                        {p.melhor_jogador && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.05)', borderRadius: 4, padding: '2px 6px' }}>🌟 {p.melhor_jogador}</span>}
+                        {p.melhor_goleiro && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.05)', borderRadius: 4, padding: '2px 6px' }}>🧤 {p.melhor_goleiro}</span>}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                {p.pontos_especiais > 0 && (
-                  <span style={{ fontSize: 10, fontWeight: 700, color: '#4ade80' }}>+{p.pontos_especiais} pts esp.</span>
-                )}
-                <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.3, background: p.status === 'ativo' ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.07)', color: p.status === 'ativo' ? '#4ade80' : 'rgba(255,255,255,0.4)' }}>
-                  {p.status === 'ativo' ? 'Ativo' : 'Inativo'}
-                </span>
-                <button onClick={() => toggleStatus(p.id, p.status === 'ativo' ? 'inativo' : 'ativo')}
-                  style={{ padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none', fontFamily: 'Inter,sans-serif', background: p.status === 'ativo' ? 'rgba(255,255,255,0.07)' : 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: p.status === 'ativo' ? 'rgba(255,255,255,0.5)' : 'white' }}>
-                  {p.status === 'ativo' ? 'Desativar' : 'Ativar'}
-                </button>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

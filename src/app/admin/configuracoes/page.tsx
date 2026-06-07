@@ -24,7 +24,7 @@ export default async function AdminConfigPage() {
 
   const { data: palpites } = await supabase
     .from('palpites')
-    .select('*, usuario:users(nome, email)')
+    .select('*, usuario:users(nome, email), palpites_jogos(submitted_at)')
     .order('criado_em', { ascending: false })
 
   const { data: especiais } = await supabase

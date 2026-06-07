@@ -164,6 +164,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
   const [melhorJogador, setMelhorJogador] = useState('')
   const [melhorGoleiro, setMelhorGoleiro] = useState('')
   const [specialSaving, setSpecialSaving] = useState(false)
+  const [specialSaved,  setSpecialSaved]  = useState(false)
   const [accOpen, setAccOpen] = useState<Record<string, boolean>>({})
 
   /* tabs */
@@ -202,7 +203,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
   /* ─── effects ─────────────────────────────────────────────── */
 
   useEffect(() => {
-    setActiveTab(0)
+    // Don't reset the active tab — user stays where they were when switching palpites
     setMataMataSubTab(0)
     setPhaseSectionOpen({})
     const palpite = palpites.find(p => p.id === selectedId)
@@ -566,6 +567,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
       melhor_goleiro: nextMelhorGoleiro,
     } : p))
     setSpecialSaving(false)
+    setSpecialSaved(true)
+    setTimeout(() => setSpecialSaved(false), 2000)
   }
 
   /* ─── card renderer (shared desktop + mobile) ────────────── */
@@ -1003,6 +1006,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                   Palpites especiais
                 </div>
                 {specialSaving && <span style={{ fontSize: 10, color: '#4A90D9' }}>● Salvando…</span>}
+                {!specialSaving && specialSaved && <span style={{ fontSize: 10, color: '#4ade80', fontWeight: 700 }}>✓ Salvo</span>}
+                {!specialSaving && !specialSaved && !especiaisLocked && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Auto-salva ao selecionar</span>}
               </div>
               {especiaisLocked ? (
                 <div style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,100,100,0.25)', borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 11, color: 'rgba(255,150,150,0.9)', lineHeight: 1.5 }}>

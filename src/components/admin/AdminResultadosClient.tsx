@@ -276,11 +276,11 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
       margin: isSent ? '6px 10px' : 0,
       borderBottom: isSent ? undefined : '1px solid rgba(255,255,255,0.05)',
     }}>
-      {/* Main row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px' }}>
+      {/* Main row — wraps on mobile so score inputs don't overflow */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', flexWrap: 'wrap' }}>
 
-        {/* Teams */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
+        {/* Teams + meta — takes all available width, score section goes below on wrap */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: '1 1 160px', minWidth: 0 }}>
           {localCodigoA && <FlagImg codigo={localCodigoA} />}
           <span style={{ fontSize: 12, fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{localTimeA}</span>
           <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>×</span>
@@ -342,7 +342,7 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
           </div>
         ) : (
           /* ── PENDING / EDITING state ── */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0, alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '1 1 auto', alignItems: 'flex-end' }}>
             {/* Score label */}
             {isKO && (
               <div style={{ fontSize: 9, color: 'rgba(255,200,80,0.65)', fontWeight: 600, textAlign: 'right', textTransform: 'uppercase', letterSpacing: 0.4 }}>
@@ -350,23 +350,23 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
               </div>
             )}
             {/* 90-min / ET score row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <input type="number" min={0} value={placarA} onChange={e => setPlacarA(e.target.value)}
-                style={{ width: 42, height: 34, textAlign: 'center', borderRadius: 6, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.4)', color: '#4A90D9', fontSize: 15, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
-              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>×</span>
+                style={{ width: 38, height: 32, textAlign: 'center', borderRadius: 6, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.4)', color: '#4A90D9', fontSize: 14, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>×</span>
               <input type="number" min={0} value={placarB} onChange={e => setPlacarB(e.target.value)}
-                style={{ width: 42, height: 34, textAlign: 'center', borderRadius: 6, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.4)', color: '#4A90D9', fontSize: 15, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
+                style={{ width: 38, height: 32, textAlign: 'center', borderRadius: 6, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.4)', color: '#4A90D9', fontSize: 14, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
               <button onClick={salvar} disabled={saving || !canSave}
-                style={{ padding: '6px 14px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: (saving || !canSave) ? 'not-allowed' : 'pointer', border: 'none', fontFamily: 'Inter,sans-serif', background: canSave ? 'linear-gradient(90deg,#4A90D9,#1a5ca8)' : 'rgba(255,255,255,0.12)', color: canSave ? 'white' : 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap', opacity: saving ? 0.7 : 1 }}>
+                style={{ padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: (saving || !canSave) ? 'not-allowed' : 'pointer', border: 'none', fontFamily: 'Inter,sans-serif', background: canSave ? 'linear-gradient(90deg,#4A90D9,#1a5ca8)' : 'rgba(255,255,255,0.12)', color: canSave ? 'white' : 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap', opacity: saving ? 0.7 : 1 }}>
                 {saving ? 'Salvando…' : 'Salvar'}
               </button>
               {isSent && (
                 <button onClick={() => setEditing(false)}
-                  style={{ padding: '6px 10px', borderRadius: 6, fontSize: 12, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', fontFamily: 'Inter,sans-serif' }}>×</button>
+                  style={{ padding: '6px 9px', borderRadius: 6, fontSize: 12, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', fontFamily: 'Inter,sans-serif' }}>×</button>
               )}
               {isKO && (
                 <button onClick={() => setEditTimes(v => !v)}
-                  style={{ padding: '6px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: `1px solid ${editTimes ? 'rgba(240,192,64,0.4)' : 'rgba(255,255,255,0.1)'}`, background: editTimes ? 'rgba(240,192,64,0.1)' : 'rgba(255,255,255,0.05)', color: editTimes ? '#f0c040' : 'rgba(255,255,255,0.4)', fontFamily: 'Inter,sans-serif', flexShrink: 0 }}>
+                  style={{ padding: '6px 9px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: `1px solid ${editTimes ? 'rgba(240,192,64,0.4)' : 'rgba(255,255,255,0.1)'}`, background: editTimes ? 'rgba(240,192,64,0.1)' : 'rgba(255,255,255,0.05)', color: editTimes ? '#f0c040' : 'rgba(255,255,255,0.4)', fontFamily: 'Inter,sans-serif', flexShrink: 0 }}>
                   ✏️
                 </button>
               )}

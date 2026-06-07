@@ -49,18 +49,23 @@ export async function POST(
   if (!jogo) return NextResponse.json({ error: 'Jogo não encontrado.' }, { status: 404 })
 
   // Check lock: impede edição X minutos antes do jogo
-  const { data: sysConfig } = await supabase
-    .from('configuracoes_sistema').select('minutos_lock_jogo').eq('id', 1).maybeSingle()
-  const minutosLock = sysConfig?.minutos_lock_jogo ?? 60
-  if (jogo.data && jogo.horario) {
-    const kickoff = new Date(`${jogo.data}T${jogo.horario}-03:00`).getTime()
-    const lockMs  = minutosLock * 60 * 1000
-    if (Date.now() >= kickoff - lockMs) {
-      return NextResponse.json(
-        { error: `Edição encerrada: prazo de ${minutosLock} min antes do jogo expirou.` },
-        { status: 403 }
-      )
+  // Wrap in try/catch — configuracoes_sistema table may not exist yet (migration 18)
+  try {
+    const { data: sysConfig } = await supabase
+      .from('configuracoes_sistema').select('minutos_lock_jogo').eq('id', 1).maybeSingle()
+    const minutosLock = sysConfig?.minutos_lock_jogo ?? 60
+    if (jogo.data && jogo.horario) {
+      const kickoff = new Date(`${jogo.data}T${jogo.horario}-03:00`).getTime()
+      const lockMs  = minutosLock * 60 * 1000
+      if (Date.now() >= kickoff - lockMs) {
+        return NextResponse.json(
+          { error: `Edição encerrada: prazo de ${minutosLock} min antes do jogo expirou.` },
+          { status: 403 }
+        )
+      }
     }
+  } catch {
+    // Table doesn't exist yet — skip lock check, allow submission
   }
 
   const isKO = jogo.fase !== 'GS'
