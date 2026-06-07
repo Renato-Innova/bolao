@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { AdminConfigClient } from '@/components/admin/AdminConfigClient'
 
 export const dynamic = 'force-dynamic'
@@ -27,7 +27,9 @@ export default async function AdminConfigPage() {
     .select('*, usuario:users(nome, email), palpites_jogos(submitted_at)')
     .order('criado_em', { ascending: false })
 
-  const { data: especiais } = await supabase
+  // Use admin client to bypass RLS on resultados_especiais
+  const admin = createAdminClient()
+  const { data: especiais } = await admin
     .from('resultados_especiais')
     .select('*')
     .eq('id', 1)
