@@ -165,6 +165,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
   const [melhorGoleiro, setMelhorGoleiro] = useState('')
   const [specialSaving, setSpecialSaving] = useState(false)
   const [specialSaved,  setSpecialSaved]  = useState(false)
+  const [specialError,  setSpecialError]  = useState('')
   const [accOpen, setAccOpen] = useState<Record<string, boolean>>({})
 
   /* tabs */
@@ -552,22 +553,32 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
     // Não salva se campeão e vice forem iguais — preserva configuração anterior
     if (nextCampeao && nextViceCampeao && nextCampeao === nextViceCampeao) return
     setSpecialSaving(true)
+    setSpecialError('')
 
     // Usa API route (service role) para garantir que o RLS não bloqueia silenciosamente
-    const res = await fetch(`/api/palpites/${selectedId}/especiais`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        campeao:        nextCampeao,
-        vice_campeao:   nextViceCampeao,
-        artilheiro:     nextArtilheiro,
-        melhor_jogador: nextMelhorJogador,
-        melhor_goleiro: nextMelhorGoleiro,
-      }),
-    })
+    let res: Response
+    try {
+      res = await fetch(`/api/palpites/${selectedId}/especiais`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campeao:        nextCampeao,
+          vice_campeao:   nextViceCampeao,
+          artilheiro:     nextArtilheiro,
+          melhor_jogador: nextMelhorJogador,
+          melhor_goleiro: nextMelhorGoleiro,
+        }),
+      })
+    } catch {
+      setSpecialError('Erro de rede. Verifique sua conexão.')
+      setSpecialSaving(false)
+      return
+    }
 
     if (!res.ok) {
-      // Falhou — não atualiza o estado local, mantém o que estava antes
+      // Mostra o erro real para diagnóstico
+      const body = await res.json().catch(() => ({}))
+      setSpecialError(`Erro ${res.status}: ${body.error ?? 'Falha ao salvar'}`)
       setSpecialSaving(false)
       return
     }
@@ -1022,7 +1033,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                 </div>
                 {specialSaving && <span style={{ fontSize: 10, color: '#4A90D9' }}>● Salvando…</span>}
                 {!specialSaving && specialSaved && <span style={{ fontSize: 10, color: '#4ade80', fontWeight: 700 }}>✓ Salvo</span>}
-                {!specialSaving && !specialSaved && !especiaisLocked && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Auto-salva ao selecionar</span>}
+                {!specialSaving && specialError && <span style={{ fontSize: 10, color: 'rgba(255,100,100,0.9)', fontWeight: 600 }}>⚠️ {specialError}</span>}
+                {!specialSaving && !specialSaved && !specialError && !especiaisLocked && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Auto-salva ao selecionar</span>}
               </div>
               {especiaisLocked ? (
                 <div style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,100,100,0.25)', borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 11, color: 'rgba(255,150,150,0.9)', lineHeight: 1.5 }}>
