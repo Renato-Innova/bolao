@@ -136,10 +136,16 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
   const [showPix, setShowPix] = useState(false)
 
   /* delete menu */
-  const [cardMenuOpen, setCardMenuOpen] = useState<number | null>(null)
+  const [cardMenuOpen,  setCardMenuOpen]  = useState<number | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  const [deleting,      setDeleting]      = useState(false)
   const cardMenuRef = useRef<HTMLDivElement>(null)
+
+  /* rename */
+  const [renameId,    setRenameId]    = useState<number | null>(null)
+  const [renameNome,  setRenameNome]  = useState('')
+  const [renameSaving,setRenameSaving]= useState(false)
+  const [renameError, setRenameError] = useState('')
 
   /* cascade edit modal */
   const [cascadeModal, setCascadeModal] = useState<{
@@ -345,6 +351,45 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
       .eq('id', p.id).single()
     if (full) { setPalpites(prev => [full as Palpite, ...prev]); setSelectedId(full.id) }
     setNovoNome(''); setShowNovo(false); setCriando(false)
+  }
+
+  async function renamePalpite() {
+    if (!renameId) return
+    const nomeTrimmed = renameNome.trim()
+    if (!nomeTrimmed) { setRenameError('O nome não pode ser vazio.'); return }
+    setRenameSaving(true); setRenameError('')
+
+    // Check current name — skip duplicate check if unchanged
+    const current = palpites.find(p => p.id === renameId)
+    if (current && current.nome.toLowerCase() === nomeTrimmed.toLowerCase()) {
+      setRenameId(null); setRenameSaving(false); return
+    }
+
+    // Global uniqueness check (case-insensitive)
+    const { data: existing } = await supabase
+      .from('palpites')
+      .select('id')
+      .ilike('nome', nomeTrimmed)
+      .maybeSingle()
+    if (existing) {
+      setRenameError('Este nome já está em uso. Escolha outro.')
+      setRenameSaving(false)
+      return
+    }
+
+    const { error } = await supabase
+      .from('palpites')
+      .update({ nome: nomeTrimmed })
+      .eq('id', renameId)
+
+    if (error) {
+      // 23505 = unique_violation race condition
+      setRenameError(error.code === '23505' ? 'Nome já em uso (conflito). Tente outro.' : 'Erro ao salvar.')
+    } else {
+      setPalpites(prev => prev.map(p => p.id === renameId ? { ...p, nome: nomeTrimmed } : p))
+      setRenameId(null)
+    }
+    setRenameSaving(false)
   }
 
   // Keeps palpites.palpites_jogos in sync so TabelaDoPalpite re-renders
@@ -572,15 +617,23 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
             <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.3, background: isInativo ? 'rgba(255,255,255,0.07)' : 'rgba(74,222,128,0.15)', color: isInativo ? 'rgba(255,255,255,0.4)' : '#4ade80' }}>
               {isInativo ? 'Inativo' : 'Ativo'}
             </span>
-            {isInativo && (
-              <div ref={isMenuOpen ? cardMenuRef : null} style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
-                <button onClick={() => { setCardMenuOpen(isMenuOpen ? null : p.id); setConfirmDelete(null) }}
-                  style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: 'rgba(255,255,255,0.3)', fontSize: 14, width: 22, height: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, lineHeight: 1 }}>
-                  ⋮
-                </button>
-                {/* Simple dropdown — only "Excluir palpite" option */}
-                {isMenuOpen && !isConfirming && (
-                  <div style={{ position: 'absolute', top: 26, right: 0, background: '#1a2d50', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 8, padding: 4, minWidth: 150, zIndex: 20, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+            <div ref={isMenuOpen ? cardMenuRef : null} style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+              <button onClick={() => { setCardMenuOpen(isMenuOpen ? null : p.id); setConfirmDelete(null); setRenameId(null) }}
+                style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: 'rgba(255,255,255,0.3)', fontSize: 14, width: 22, height: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, lineHeight: 1 }}>
+                ⋮
+              </button>
+              {isMenuOpen && !isConfirming && (
+                <div style={{ position: 'absolute', top: 26, right: 0, background: '#1a2d50', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 8, padding: 4, minWidth: 160, zIndex: 20, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+                  {/* Renomear */}
+                  <div
+                    onMouseDown={e => { e.stopPropagation(); setRenameId(p.id); setRenameNome(p.nome); setRenameError(''); setCardMenuOpen(null) }}
+                    style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.75)', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(74,144,217,0.12)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    ✏️ Renomear
+                  </div>
+                  {/* Excluir — somente inativos */}
+                  {isInativo && (
                     <div
                       onMouseDown={e => { e.stopPropagation(); setConfirmDelete(p.id); setCardMenuOpen(null) }}
                       style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: 'rgba(255,130,130,0.85)', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}
@@ -588,12 +641,41 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                       🗑 Excluir palpite
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        {/* Rename inline input */}
+        {renameId === p.id && (
+          <div style={{ marginBottom: 8 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                autoFocus
+                value={renameNome}
+                onChange={e => { setRenameNome(e.target.value); setRenameError('') }}
+                onKeyDown={e => { if (e.key === 'Enter') renamePalpite(); if (e.key === 'Escape') setRenameId(null) }}
+                maxLength={40}
+                placeholder="Novo nome..."
+                style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(74,144,217,0.5)', borderRadius: 6, padding: '6px 10px', fontSize: 12, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none' }}
+              />
+              <button onClick={renamePalpite} disabled={renameSaving || !renameNome.trim()}
+                style={{ background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: renameSaving ? 'not-allowed' : 'pointer', flexShrink: 0, fontFamily: 'Inter,sans-serif' }}>
+                {renameSaving ? '...' : '✓'}
+              </button>
+              <button onClick={() => setRenameId(null)}
+                style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.45)', border: 'none', borderRadius: 6, padding: '6px 10px', fontSize: 12, cursor: 'pointer', flexShrink: 0, fontFamily: 'Inter,sans-serif' }}>
+                ×
+              </button>
+            </div>
+            {renameError && (
+              <div style={{ marginTop: 4, fontSize: 10, color: 'rgba(255,130,130,0.9)', fontWeight: 600 }}>
+                ⚠️ {renameError}
               </div>
             )}
           </div>
-        </div>
+        )}
         <div style={{ fontSize: 22, fontWeight: 800, color: isInativo ? 'rgba(255,255,255,0.2)' : '#4A90D9', lineHeight: 1 }}>
           {isInativo ? '—' : pts} <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}>pts</span>
         </div>
