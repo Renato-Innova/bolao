@@ -43,10 +43,25 @@ export async function POST(
 
   const now = new Date().toISOString()
 
-  // Fetch game phase
+  // Fetch game info (fase + horário para checar lock)
   const { data: jogo } = await supabase
-    .from('jogos_copa').select('fase').eq('id', jogoId).single()
+    .from('jogos_copa').select('fase, data, horario').eq('id', jogoId).single()
   if (!jogo) return NextResponse.json({ error: 'Jogo não encontrado.' }, { status: 404 })
+
+  // Check lock: impede edição X minutos antes do jogo
+  const { data: sysConfig } = await supabase
+    .from('configuracoes_sistema').select('minutos_lock_jogo').eq('id', 1).maybeSingle()
+  const minutosLock = sysConfig?.minutos_lock_jogo ?? 60
+  if (jogo.data && jogo.horario) {
+    const kickoff = new Date(`${jogo.data}T${jogo.horario}-03:00`).getTime()
+    const lockMs  = minutosLock * 60 * 1000
+    if (Date.now() >= kickoff - lockMs) {
+      return NextResponse.json(
+        { error: `Edição encerrada: prazo de ${minutosLock} min antes do jogo expirou.` },
+        { status: 403 }
+      )
+    }
+  }
 
   const isKO = jogo.fase !== 'GS'
   const isDraw = placarA === placarB

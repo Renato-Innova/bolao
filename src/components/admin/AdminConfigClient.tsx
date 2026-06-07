@@ -55,6 +55,58 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
   const [resetSaving,  setResetSaving]  = useState(false)
   const [resetMsg,     setResetMsg]     = useState('')
 
+  // ── Configurações do sistema (prazos) ─────────────────────────────────────
+  const [especiaisDeadline,    setEspeciaisDeadline]    = useState('')
+  const [novoPalpiteDeadline,  setNovoPalpiteDeadline]  = useState('')
+  const [minutosLock,          setMinutosLock]          = useState('60')
+  const [prazoSaving,          setPrazoSaving]          = useState(false)
+  const [prazoMsg,             setPrazoMsg]             = useState('')
+  const [prazoLoaded,          setPrazoLoaded]          = useState(false)
+
+  // Carrega prazos ao montar (lazy — só quando a aba Operações é acessada)
+  async function carregarPrazos() {
+    if (prazoLoaded) return
+    try {
+      const res = await fetch('/api/admin/configuracoes-sistema')
+      const { data } = await res.json()
+      if (data) {
+        // Converte ISO → formato datetime-local (YYYY-MM-DDTHH:mm) em BRT (UTC-3)
+        const toLocal = (iso: string | null) => {
+          if (!iso) return ''
+          const d = new Date(iso)
+          d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
+          return d.toISOString().slice(0, 16)
+        }
+        setEspeciaisDeadline(toLocal(data.especiais_deadline))
+        setNovoPalpiteDeadline(toLocal(data.novo_palpite_deadline))
+        setMinutosLock(String(data.minutos_lock_jogo ?? 60))
+      }
+      setPrazoLoaded(true)
+    } catch { /* silencioso */ }
+  }
+
+  async function salvarPrazos() {
+    setPrazoSaving(true)
+    setPrazoMsg('')
+    try {
+      const res = await fetch('/api/admin/configuracoes-sistema', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          especiais_deadline:    especiaisDeadline    ? new Date(especiaisDeadline).toISOString()   : null,
+          novo_palpite_deadline: novoPalpiteDeadline  ? new Date(novoPalpiteDeadline).toISOString() : null,
+          minutos_lock_jogo:     parseInt(minutosLock) || 60,
+        }),
+      })
+      const { ok, error } = await res.json()
+      setPrazoMsg(ok ? '✅ Configurações salvas com sucesso.' : `❌ ${error}`)
+    } catch {
+      setPrazoMsg('❌ Erro de rede.')
+    } finally {
+      setPrazoSaving(false)
+    }
+  }
+
   // ── Tabs ──────────────────────────────────────────────────────────────────
   const [aba, setAba] = useState<Aba>('pontuacao')
 
@@ -165,7 +217,7 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
         {abas.map(tab => (
-          <button key={tab.key} onClick={() => setAba(tab.key)} style={{
+          <button key={tab.key} onClick={() => { setAba(tab.key); if (tab.key === 'operacoes') carregarPrazos() }} style={{
             padding: '7px 16px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer',
             fontFamily: 'Inter,sans-serif', border: 'none', transition: 'all 0.15s',
             background: aba === tab.key ? 'rgba(74,144,217,0.2)' : 'rgba(255,255,255,0.05)',
@@ -275,6 +327,82 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
         <div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginBottom: 20, lineHeight: 1.6 }}>
             Operações administrativas que afetam todos os palpites e resultados do bolão.
+          </div>
+
+          {/* ── Prazos e bloqueios ── */}
+          <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 10, padding: '20px', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 4 }}>
+              🔒 Prazos e Bloqueios
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 18, lineHeight: 1.6 }}>
+              Define quando cada tipo de edição é encerrado automaticamente.
+              Deixe em branco para não aplicar o prazo.
+            </div>
+
+            {/* 1. Prazo palpites especiais */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>
+                1 · Prazo para editar Palpites Especiais
+              </label>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>
+                Após este dia e hora, os campos Campeão, Vice, Artilheiro, etc. ficam travados para todos os participantes.
+              </div>
+              <input
+                type="datetime-local"
+                value={especiaisDeadline}
+                onChange={e => setEspeciaisDeadline(e.target.value)}
+                style={{ background: '#020F2A', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 6, padding: '8px 12px', fontSize: 12, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none', width: '100%', maxWidth: 280, colorScheme: 'dark' }}
+              />
+            </div>
+
+            {/* 2. Prazo novo palpite */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>
+                2 · Prazo para criar novo Palpite
+              </label>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>
+                Após este dia e hora, novos palpites não poderão mais ser criados.
+              </div>
+              <input
+                type="datetime-local"
+                value={novoPalpiteDeadline}
+                onChange={e => setNovoPalpiteDeadline(e.target.value)}
+                style={{ background: '#020F2A', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 6, padding: '8px 12px', fontSize: 12, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none', width: '100%', maxWidth: 280, colorScheme: 'dark' }}
+              />
+            </div>
+
+            {/* 3. Minutos antes do jogo */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>
+                3 · Minutos antes do jogo para travar edição
+              </label>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>
+                Impede alteração do placar de um jogo X minutos antes do seu horário de início.
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <input
+                  type="number"
+                  min="0"
+                  max="1440"
+                  value={minutosLock}
+                  onChange={e => setMinutosLock(e.target.value)}
+                  style={{ background: '#020F2A', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 6, padding: '8px 12px', fontSize: 12, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none', width: 100, colorScheme: 'dark' }}
+                />
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>minutos</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button onClick={salvarPrazos} disabled={prazoSaving}
+                style={{ background: prazoSaving ? 'rgba(255,255,255,0.08)' : 'linear-gradient(90deg,#4A90D9,#2563eb)', color: prazoSaving ? 'rgba(255,255,255,0.4)' : 'white', border: 'none', padding: '10px 24px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: prazoSaving ? 'not-allowed' : 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {prazoSaving ? 'Salvando...' : '💾 Salvar Configurações'}
+              </button>
+              {prazoMsg && (
+                <span style={{ fontSize: 12, color: prazoMsg.startsWith('✅') ? '#4ade80' : 'rgba(255,100,100,0.9)' }}>
+                  {prazoMsg}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Bulk recalculation */}

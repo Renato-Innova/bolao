@@ -17,8 +17,13 @@ function getMatchTime(date: string, horario: string): Date {
 function isLocked(date: string, horario: string) {
   return new Date() >= getMatchTime(date, horario)
 }
+// canEdit is called with the minutosLock from system config (default 60)
+function canEditWithLock(date: string, horario: string, minutosLock: number) {
+  return new Date() < new Date(getMatchTime(date, horario).getTime() - minutosLock * 60 * 1000)
+}
+// Legacy 60-min version kept for backward compatibility
 function canEdit(date: string, horario: string) {
-  return new Date() < new Date(getMatchTime(date, horario).getTime() - 60 * 60 * 1000)
+  return canEditWithLock(date, horario, 60)
 }
 
 interface DayGroup {
@@ -103,12 +108,19 @@ interface Props {
   palpitesIniciais: Palpite[]
   todosJogos: JogoCopa[]
   scoringConfigs: { fase: string; tipo_acerto: string; pontos: number }[]
+  especiaisDeadline?: string | null   // ISO — prazo para editar palpites especiais
+  novoPalpiteDeadline?: string | null // ISO — prazo para criar novo palpite
+  minutosLockJogo?: number            // minutos antes do jogo para travar edição
 }
 
 const VISIBLE = 3
 
-export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos, scoringConfigs }: Props) {
+export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos, scoringConfigs, especiaisDeadline, novoPalpiteDeadline, minutosLockJogo = 60 }: Props) {
   const supabase = createClient()
+
+  /* ─── deadline flags (recalculated on each render — lightweight) ─── */
+  const especiaisLocked    = especiaisDeadline    ? new Date() >= new Date(especiaisDeadline)    : false
+  const novoPalpiteLocked  = novoPalpiteDeadline  ? new Date() >= new Date(novoPalpiteDeadline)  : false
 
   /* core */
   const [palpites, setPalpites] = useState<Palpite[]>(palpitesIniciais)
@@ -294,6 +306,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
 
   async function criarPalpite() {
     if (!novoNome.trim()) return
+    if (novoPalpiteLocked) { setCriarError('Prazo para criação de novos palpites encerrado.'); return }
     setCriando(true); setCriarError('')
 
     // Check globally — no two palpites can share the same name
@@ -620,7 +633,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
 
   function renderNewCard(keyPrefix: string, extraStyle?: React.CSSProperties) {
     return (
-      <div key={`${keyPrefix}new`} onClick={() => setShowNovo(true)}
+      <div key={`${keyPrefix}new`} onClick={() => { if (!novoPalpiteLocked) setShowNovo(true) }}
         style={{
           background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.12)',
           borderRadius: 10, display: 'flex', flexDirection: 'column',
@@ -648,10 +661,16 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
           <div style={{ fontSize: 18, fontWeight: 800, color: 'white' }}>Meus palpites</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>Navegue entre seus palpites ou crie um novo</div>
         </div>
-        <button onClick={() => setShowNovo(true)}
-          style={{ background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', border: 'none', padding: '5px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: 0.4 }}>
-          <span style={{ fontSize: 13, lineHeight: 1 }}>+</span> Novo palpite
-        </button>
+        {novoPalpiteLocked ? (
+          <div style={{ fontSize: 10, color: 'rgba(255,150,150,0.8)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+            🔒 Novos palpites encerrados
+          </div>
+        ) : (
+          <button onClick={() => setShowNovo(true)}
+            style={{ background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', border: 'none', padding: '5px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+            <span style={{ fontSize: 13, lineHeight: 1 }}>+</span> Novo palpite
+          </button>
+        )}
       </div>
 
       {/* Create form */}
@@ -890,9 +909,15 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                 </div>
                 {specialSaving && <span style={{ fontSize: 10, color: '#4A90D9' }}>● Salvando…</span>}
               </div>
-              <div style={{ background: 'rgba(255,200,80,0.07)', border: '1px solid rgba(255,200,80,0.25)', borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 11, color: 'rgba(255,200,80,0.85)', lineHeight: 1.5 }}>
-                ⚠️ Os palpites especiais devem ser preenchidos até <strong style={{ color: 'rgba(255,220,100,1)' }}>1 hora antes da primeira partida da Copa (11 jun · 16h00)</strong> e não poderão ser editados após esse prazo.
-              </div>
+              {especiaisLocked ? (
+                <div style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,100,100,0.25)', borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 11, color: 'rgba(255,150,150,0.9)', lineHeight: 1.5 }}>
+                  🔒 Prazo encerrado — os palpites especiais não podem mais ser editados.
+                </div>
+              ) : (
+                <div style={{ background: 'rgba(255,200,80,0.07)', border: '1px solid rgba(255,200,80,0.25)', borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 11, color: 'rgba(255,200,80,0.85)', lineHeight: 1.5 }}>
+                  ⚠️ Os palpites especiais devem ser preenchidos até <strong style={{ color: 'rgba(255,220,100,1)' }}>1 hora antes da primeira partida da Copa (11 jun · 16h00)</strong> e não poderão ser editados após esse prazo.
+                </div>
+              )}
               <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, overflow: 'hidden' }}>
                 {([
                   {
@@ -900,35 +925,35 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                     value: campeao,
                     error: campeao && viceCampeao && campeao === viceCampeao,
                     options: ALL_TEAMS.map(t => ({ value: t, label: t })),
-                    onChange: (v: string) => { setCampeao(v);       saveSpecialPalpites(v, viceCampeao, artilheiro, melhorJogador, melhorGoleiro) },
+                    onChange: (v: string) => { if (especiaisLocked) return; setCampeao(v);       saveSpecialPalpites(v, viceCampeao, artilheiro, melhorJogador, melhorGoleiro) },
                   },
                   {
                     emoji: '🥈', label: 'Vice-Campeão',   pts: 70,
                     value: viceCampeao,
                     error: campeao && viceCampeao && campeao === viceCampeao,
                     options: ALL_TEAMS.map(t => ({ value: t, label: t })),
-                    onChange: (v: string) => { setViceCampeao(v);   saveSpecialPalpites(campeao, v, artilheiro, melhorJogador, melhorGoleiro) },
+                    onChange: (v: string) => { if (especiaisLocked) return; setViceCampeao(v);   saveSpecialPalpites(campeao, v, artilheiro, melhorJogador, melhorGoleiro) },
                   },
                   {
                     emoji: '⚽', label: 'Artilheiro',     pts: 50,
                     value: artilheiro,
                     error: false,
                     options: ARTILHEIRO_OPTIONS,
-                    onChange: (v: string) => { setArtilheiro(v);    saveSpecialPalpites(campeao, viceCampeao, v, melhorJogador, melhorGoleiro) },
+                    onChange: (v: string) => { if (especiaisLocked) return; setArtilheiro(v);    saveSpecialPalpites(campeao, viceCampeao, v, melhorJogador, melhorGoleiro) },
                   },
                   {
                     emoji: '🌟', label: 'Melhor Jogador', pts: 50,
                     value: melhorJogador,
                     error: false,
                     options: ARTILHEIRO_OPTIONS,
-                    onChange: (v: string) => { setMelhorJogador(v); saveSpecialPalpites(campeao, viceCampeao, artilheiro, v, melhorGoleiro) },
+                    onChange: (v: string) => { if (especiaisLocked) return; setMelhorJogador(v); saveSpecialPalpites(campeao, viceCampeao, artilheiro, v, melhorGoleiro) },
                   },
                   {
                     emoji: '🧤', label: 'Melhor Goleiro', pts: 50,
                     value: melhorGoleiro,
                     error: false,
                     options: GOLEIRO_OPTIONS,
-                    onChange: (v: string) => { setMelhorGoleiro(v); saveSpecialPalpites(campeao, viceCampeao, artilheiro, melhorJogador, v) },
+                    onChange: (v: string) => { if (especiaisLocked) return; setMelhorGoleiro(v); saveSpecialPalpites(campeao, viceCampeao, artilheiro, melhorJogador, v) },
                   },
                 ] as { emoji: string; label: string; pts: number; value: string; error: boolean | string | null | undefined; options: { value: string; label: string }[]; onChange: (v: string) => void }[]).map((item, idx, arr) => (
                   <div key={item.label}>
@@ -941,7 +966,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                       <select
                         value={item.value}
                         onChange={e => item.onChange(e.target.value)}
-                        style={{ flex: 1, minWidth: 0, background: '#0D1E3D', border: `1px solid ${item.error ? 'rgba(255,100,100,0.5)' : 'rgba(74,144,217,0.3)'}`, borderRadius: 6, padding: '7px 6px', fontSize: 12, fontWeight: 700, color: item.value ? '#4A90D9' : 'rgba(255,255,255,0.35)', fontFamily: 'Inter,sans-serif', outline: 'none', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        disabled={especiaisLocked}
+                        style={{ flex: 1, minWidth: 0, background: '#0D1E3D', border: `1px solid ${item.error ? 'rgba(255,100,100,0.5)' : 'rgba(74,144,217,0.3)'}`, borderRadius: 6, padding: '7px 6px', fontSize: 12, fontWeight: 700, color: especiaisLocked ? 'rgba(255,255,255,0.3)' : item.value ? '#4A90D9' : 'rgba(255,255,255,0.35)', fontFamily: 'Inter,sans-serif', outline: 'none', cursor: especiaisLocked ? 'not-allowed' : 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', opacity: especiaisLocked ? 0.6 : 1 }}>
                         <option value="" style={{ background: '#0D1E3D', color: 'rgba(255,255,255,0.4)' }}>— selecionar —</option>
                         {item.options.map(opt => (
                           <option key={opt.value} value={opt.value} style={{ background: '#0D1E3D', color: 'white' }}>{opt.label}</option>

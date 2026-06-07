@@ -27,7 +27,7 @@ export default async function PalpitesPage() {
     userData = { nome: fallbackNome }
   }
 
-  const [{ data: palpites }, { data: todosJogos }, { data: configs }] = await Promise.all([
+  const [{ data: palpites }, { data: todosJogos }, { data: configs }, { data: sysConfig }] = await Promise.all([
     supabase
       .from('palpites')
       .select('*, palpites_jogos(*, jogo:jogos_copa(*, resultado:resultados(*)))')
@@ -45,6 +45,13 @@ export default async function PalpitesPage() {
     supabase
       .from('configuracoes_pontuacao')
       .select('fase, tipo_acerto, pontos'),
+
+    // System config: deadlines + lock minutes
+    supabase
+      .from('configuracoes_sistema')
+      .select('especiais_deadline, novo_palpite_deadline, minutos_lock_jogo')
+      .eq('id', 1)
+      .maybeSingle(),
   ])
 
   return (
@@ -54,6 +61,9 @@ export default async function PalpitesPage() {
       palpitesIniciais={palpites ?? []}
       todosJogos={todosJogos ?? []}
       scoringConfigs={configs ?? []}
+      especiaisDeadline={sysConfig?.especiais_deadline ?? null}
+      novoPalpiteDeadline={sysConfig?.novo_palpite_deadline ?? null}
+      minutosLockJogo={sysConfig?.minutos_lock_jogo ?? 60}
     />
   )
 }
