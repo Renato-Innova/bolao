@@ -24,19 +24,28 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json() as Partial<SpecialResults>
 
-  console.log('[admin/especiais] body received:', JSON.stringify(body))
-  console.log('[admin/especiais] SERVICE_ROLE_KEY set?', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
+  const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY
 
   // 1 — Save official special results (upsert the single row)
   const upsertPayload = { id: 1, ...body, atualizado_em: new Date().toISOString() }
-  console.log('[admin/especiais] upserting:', JSON.stringify(upsertPayload))
 
   const { data: upsertData, error: upsertError } = await admin
     .from('resultados_especiais')
     .upsert(upsertPayload, { onConflict: 'id' })
     .select()
-  console.log('[admin/especiais] upsert result:', JSON.stringify(upsertData), 'error:', upsertError?.message)
-  if (upsertError) return NextResponse.json({ error: upsertError.message }, { status: 500 })
+
+  if (upsertError) return NextResponse.json({
+    error: upsertError.message,
+    debug: { hasServiceKey, body, upsertPayload }
+  }, { status: 500 })
+
+  // If upsert returned no rows, it may have silently failed
+  if (!upsertData || upsertData.length === 0) {
+    return NextResponse.json({
+      error: 'Upsert did not return any rows — row may not exist or RLS blocked the write.',
+      debug: { hasServiceKey, body, upsertPayload, upsertData }
+    }, { status: 500 })
+  }
 
   // 2 — Read back the full resultados_especiais row (other fields may already be set)
   const { data: especiais } = await admin
