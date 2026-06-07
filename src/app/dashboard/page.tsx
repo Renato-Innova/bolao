@@ -42,7 +42,7 @@ export default async function DashboardPage() {
     supabase.from('classificacao_grupos').select('*').order('grupo').order('pts', { ascending: false }).order('dg', { ascending: false }).order('m', { ascending: false }),
   ])
 
-  const lider   = ranking[0]
+  const lider   = (ranking[0]?.total_pontos ?? 0) > 0 ? ranking[0] : null
   const hoje    = new Date().toISOString().split('T')[0]
   const myEntry = currentUser ? ranking.find(r => r.usuario_id === currentUser.id) : null
 
