@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { calcularPontosEspeciais } from '@/utils/scoring'
 import type { SpecialResults } from '@/utils/scoring'
 
@@ -10,8 +10,8 @@ import type { SpecialResults } from '@/utils/scoring'
 // for every active palpite. Safe to call multiple times (idempotent).
 
 export async function POST(req: NextRequest) {
+  // Auth check via anon client (reads session cookie)
   const supabase = await createClient()
-
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
 
@@ -19,36 +19,47 @@ export async function POST(req: NextRequest) {
     .from('users').select('is_admin').eq('id', user.id).single()
   if (!userData?.is_admin) return NextResponse.json({ error: 'Sem permissão.' }, { status: 403 })
 
+  // All DB writes use admin client (service role) to bypass RLS
+  const admin = createAdminClient()
+
   const body = await req.json() as Partial<SpecialResults>
 
+  console.log('[admin/especiais] body received:', JSON.stringify(body))
+  console.log('[admin/especiais] SERVICE_ROLE_KEY set?', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
+
   // 1 — Save official special results (upsert the single row)
-  const { error: upsertError } = await supabase
+  const upsertPayload = { id: 1, ...body, atualizado_em: new Date().toISOString() }
+  console.log('[admin/especiais] upserting:', JSON.stringify(upsertPayload))
+
+  const { data: upsertData, error: upsertError } = await admin
     .from('resultados_especiais')
-    .upsert({ id: 1, ...body, atualizado_em: new Date().toISOString() }, { onConflict: 'id' })
+    .upsert(upsertPayload, { onConflict: 'id' })
+    .select()
+  console.log('[admin/especiais] upsert result:', JSON.stringify(upsertData), 'error:', upsertError?.message)
   if (upsertError) return NextResponse.json({ error: upsertError.message }, { status: 500 })
 
   // 2 — Read back the full resultados_especiais row (other fields may already be set)
-  const { data: especiais } = await supabase
+  const { data: especiais } = await admin
     .from('resultados_especiais').select('*').eq('id', 1).single()
   if (!especiais) return NextResponse.json({ error: 'Erro ao ler resultados especiais.' }, { status: 500 })
 
   const resultados: SpecialResults = {
-    campeao:       especiais.campeao       ?? null,
-    vice_campeao:  especiais.vice_campeao  ?? null,
-    artilheiro:    especiais.artilheiro    ?? null,
-    melhor_jogador:especiais.melhor_jogador?? null,
-    melhor_goleiro:especiais.melhor_goleiro?? null,
+    campeao:        especiais.campeao        ?? null,
+    vice_campeao:   especiais.vice_campeao   ?? null,
+    artilheiro:     especiais.artilheiro     ?? null,
+    melhor_jogador: especiais.melhor_jogador ?? null,
+    melhor_goleiro: especiais.melhor_goleiro ?? null,
   }
 
-  // 3 — Recalculate pontos_especiais for all palpites that have any special prediction
-  const { data: palpites } = await supabase
+  // 3 — Recalculate pontos_especiais for all palpites
+  const { data: palpites } = await admin
     .from('palpites')
     .select('id, campeao, vice_campeao, artilheiro, melhor_jogador, melhor_goleiro')
 
   let updatedCount = 0
   for (const p of palpites ?? []) {
     const pontos_especiais = calcularPontosEspeciais(p, resultados)
-    await supabase.from('palpites').update({ pontos_especiais }).eq('id', p.id)
+    await admin.from('palpites').update({ pontos_especiais }).eq('id', p.id)
     updatedCount++
   }
 
@@ -57,8 +68,8 @@ export async function POST(req: NextRequest) {
 
 // GET /api/admin/especiais — read current official special results
 export async function GET() {
-  const supabase = await createClient()
-  const { data } = await supabase
+  const admin = createAdminClient()
+  const { data } = await admin
     .from('resultados_especiais').select('*').eq('id', 1).single()
   return NextResponse.json(data ?? {})
 }
