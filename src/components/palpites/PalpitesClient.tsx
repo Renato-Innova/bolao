@@ -1670,7 +1670,7 @@ function MataMataTab({
 /* ─── ChaveKnockout ───────────────────────────────────────── */
 
 const CHAVE_COLS = [
-  { code: 'R32', label: 'Seg. de Final', dates: '29 Jun – 03 Jul', colIdx: 0 },
+  { code: 'R32', label: '16 Avos',       dates: '29 Jun – 03 Jul', colIdx: 0 },
   { code: 'R16', label: 'Oitavas',       dates: '04 Jul – 07 Jul', colIdx: 1 },
   { code: 'QF',  label: 'Quartas',       dates: '09 Jul – 11 Jul', colIdx: 2 },
   { code: 'SF',  label: 'Semifinal',     dates: '14 Jul – 15 Jul', colIdx: 3 },
