@@ -225,6 +225,9 @@ export const GOLEIRO_OPTIONS = [
   { value: 'Alisson Becker',      label: 'Alisson Becker (Brasil)'              },
   { value: 'Unai Simón',          label: 'Unai Simón (Espanha)'                 },
   { value: 'Jordan Pickford',     label: 'Jordan Pickford (Inglaterra)'         },
+  { value: 'Manuel Neuer',        label: 'Manuel Neuer (Alemanha)'              },
+  { value: 'Thibaut Courtois',    label: 'Thibaut Courtois (Bélgica)'           },
+  { value: 'Gregor Kobel',        label: 'Gregor Kobel (Suíça)'                 },
 ]
 
 /* ─── Qualifying info ─────────────────────────────────────────────────────────
