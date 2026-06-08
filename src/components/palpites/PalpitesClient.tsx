@@ -1328,6 +1328,14 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
     const fsz = penalti ? 14 : 17
     const vsz = penalti ? 24 : 32
     const vfsz = isUnset ? 16 : penalti ? 15 : 19
+    // Hide +/− buttons when the game is already submitted — score is read-only until edited
+    if (state.submitted) {
+      return (
+        <div style={{ width: vsz, height: vsz, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: vfsz, fontWeight: 800, color: valColor, borderRadius: 5, border: valBorder, userSelect: 'none' }}>
+          {isUnset ? '—' : val}
+        </div>
+      )
+    }
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <button className="sc-btn" onClick={onDec} disabled={locked}
