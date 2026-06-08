@@ -9,7 +9,7 @@ import type { User } from '@supabase/supabase-js'
 const NAV = [
   { href: '/dashboard',  label: 'Dashboard' },
   { href: '/tabela',     label: 'Tabela' },
-  { href: '/palpites',   label: 'Palpites' },
+  { href: '/palpites',   label: 'Meus Palpites' },
   { href: '/ranking',    label: 'Ranking' },
   { href: '/instrucoes', label: 'Instruções' },
 ]
