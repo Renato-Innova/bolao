@@ -2458,14 +2458,25 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
 
   function ScoreControl({ value, onChange }: { value: number; onChange: (v: number) => void }) {
     const safe = Number.isFinite(value) ? value : -1
+    const displayVal = safe === -1 ? '—' : safe
+    const numColor = safe === -1 ? 'rgba(255,255,255,0.2)' : scoreColor
+    const numBorder = safe === -1 ? '2px solid transparent' : scoreBorder
+    // Hide +/− buttons when submitted — score is read-only until user clicks Edit
+    if (state.submitted) {
+      return (
+        <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: safe === -1 ? 15 : 17, fontWeight: 800, color: numColor, borderRadius: 6, border: numBorder, userSelect: 'none' }}>
+          {displayVal}
+        </div>
+      )
+    }
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
         <button className="sc-btn"
           onClick={() => onChange(safe <= 0 ? (safe === -1 ? -1 : 0) : safe - 1)}
           disabled={locked}
           style={{ width: 24, height: 24, border: '1px solid rgba(74,144,217,0.35)', borderRadius: 5, background: 'rgba(74,144,217,0.1)', color: '#4A90D9', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0, padding: 0 }}>−</button>
-        <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: safe === -1 ? 15 : 17, fontWeight: 800, color: safe === -1 ? 'rgba(255,255,255,0.2)' : scoreColor, borderRadius: 6, border: safe === -1 ? '2px solid transparent' : scoreBorder, transition: 'border-color 0.3s, color 0.3s', userSelect: 'none' }}>
-          {safe === -1 ? '—' : safe}
+        <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: safe === -1 ? 15 : 17, fontWeight: 800, color: numColor, borderRadius: 6, border: numBorder, transition: 'border-color 0.3s, color 0.3s', userSelect: 'none' }}>
+          {displayVal}
         </div>
         <button className="sc-btn"
           onClick={() => onChange(safe < 0 ? 0 : safe + 1)}
