@@ -7,6 +7,8 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const isAuthRoute   = pathname.startsWith('/auth')
   const isPublicFile  = pathname.startsWith('/_next') || pathname.startsWith('/favicon')
+  // Pages accessible without login — ranking and palpites remain protected
+  const isPublicRoute = pathname === '/' || pathname === '/dashboard' || pathname === '/tabela' || pathname === '/instrucoes'
 
   // Guard: if env vars are missing, skip auth checks and let the page render
   // (it will show a Supabase connection error rather than a blank 500).
@@ -36,7 +38,7 @@ export async function proxy(request: NextRequest) {
 
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user && !isAuthRoute && !isPublicFile) {
+    if (!user && !isAuthRoute && !isPublicFile && !isPublicRoute) {
       return NextResponse.redirect(new URL('/auth/login', request.url))
     }
 
@@ -46,7 +48,7 @@ export async function proxy(request: NextRequest) {
   } catch {
     // If Supabase is unreachable, redirect unauthenticated routes to login
     // so users see an auth form rather than a raw 500.
-    if (!isAuthRoute && !isPublicFile) {
+    if (!isAuthRoute && !isPublicFile && !isPublicRoute) {
       return NextResponse.redirect(new URL('/auth/login', request.url))
     }
   }

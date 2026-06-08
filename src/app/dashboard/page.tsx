@@ -144,8 +144,17 @@ export default async function DashboardPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={label12}>Sua posição</div>
-              <div style={value24}>{myEntry && lider ? `#${myEntry.posicao}` : '—'}</div>
-              <div style={sub10}>{myEntry && lider ? `${myEntry.total_pontos} pts` : 'sem palpite ativo'}</div>
+              {currentUser ? (
+                <>
+                  <div style={value24}>{myEntry && lider ? `#${myEntry.posicao}` : '—'}</div>
+                  <div style={sub10}>{myEntry && lider ? `${myEntry.total_pontos} pts` : 'sem palpite ativo'}</div>
+                </>
+              ) : (
+                <>
+                  <div style={value24}>—</div>
+                  <Link href="/auth/login" style={{ fontSize: 10, color: '#4A90D9', textDecoration: 'none', fontWeight: 600 }}>Entrar para ver</Link>
+                </>
+              )}
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={label12}>Líder do bolão</div>
@@ -168,32 +177,44 @@ export default async function DashboardPage() {
         <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
             Ranking do bolão
-            <Link href="/ranking" style={{ fontSize: 10, color: '#4A90D9', fontWeight: 500, textDecoration: 'none', textTransform: 'none', letterSpacing: 0 }}>ranking completo →</Link>
+            {currentUser && <Link href="/ranking" style={{ fontSize: 10, color: '#4A90D9', fontWeight: 500, textDecoration: 'none', textTransform: 'none', letterSpacing: 0 }}>ranking completo →</Link>}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            {ranking.length === 0 && (
-              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 12, padding: '12px 0' }}>Nenhum palpite ativo ainda</p>
-            )}
-            {ranking.slice(0, 5).map((entry, idx) => {
-              const maxPts = ranking[0]?.total_pontos || 1
-              const pct    = Math.round((entry.total_pontos / maxPts) * 100)
-              const medal  = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : String(entry.posicao)
-              const isMe   = currentUser && entry.usuario_id === currentUser.id
-              return (
-                <div key={entry.palpite_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: isMe ? 'rgba(74,144,217,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isMe ? 'rgba(74,144,217,0.3)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 7 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, minWidth: 22, color: 'rgba(255,255,255,0.50)', textAlign: 'center' }}>{medal}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>{entry.nome}</div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)' }}>{entry.usuario_nome}</div>
+          {!currentUser ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '24px 12px' }}>
+              <div style={{ fontSize: 28 }}>🏆</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.65)', textAlign: 'center' }}>
+                Faça login para ter acesso ao ranking
+              </div>
+              <Link href="/auth/login" style={{ fontSize: 12, fontWeight: 700, color: 'white', textDecoration: 'none', background: 'linear-gradient(90deg, #4A90D9, #1a5ca8)', padding: '8px 20px', borderRadius: 8 }}>
+                Entrar
+              </Link>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {ranking.length === 0 && (
+                <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 12, padding: '12px 0' }}>Nenhum palpite ativo ainda</p>
+              )}
+              {ranking.slice(0, 5).map((entry, idx) => {
+                const maxPts = ranking[0]?.total_pontos || 1
+                const pct    = Math.round((entry.total_pontos / maxPts) * 100)
+                const medal  = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : String(entry.posicao)
+                const isMe   = currentUser && entry.usuario_id === currentUser.id
+                return (
+                  <div key={entry.palpite_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: isMe ? 'rgba(74,144,217,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isMe ? 'rgba(74,144,217,0.3)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 7 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, minWidth: 22, color: 'rgba(255,255,255,0.50)', textAlign: 'center' }}>{medal}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>{entry.nome}</div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)' }}>{entry.usuario_nome}</div>
+                    </div>
+                    <div style={{ width: 56, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
+                      <div style={{ height: 3, background: 'linear-gradient(90deg, #4A90D9, #7BB8F0)', borderRadius: 2, width: `${pct}%` }} />
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9', minWidth: 52, textAlign: 'right' }}>{entry.total_pontos} pts</span>
                   </div>
-                  <div style={{ width: 56, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
-                    <div style={{ height: 3, background: 'linear-gradient(90deg, #4A90D9, #7BB8F0)', borderRadius: 2, width: `${pct}%` }} />
-                  </div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9', minWidth: 52, textAlign: 'right' }}>{entry.total_pontos} pts</span>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Groups — shows the 2 groups related to next games */}
