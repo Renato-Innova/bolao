@@ -1,8 +1,11 @@
-import { createAdminClient } from '@/lib/supabase/server'
+import { createAdminClient, createClient } from '@/lib/supabase/server'
 import type { RankingEntry } from '@/types'
 
 export async function getRanking(): Promise<RankingEntry[]> {
-  const supabase = createAdminClient()
+  // Prefer admin client (bypasses RLS); fall back to anon client if key is missing
+  const supabase = process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? createAdminClient()
+    : await createClient()
 
   const { data: palpites, error } = await supabase
     .from('palpites')
