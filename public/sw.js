@@ -4,7 +4,6 @@ self.addEventListener('install', e => {
   // Only pre-cache the manifest and icons — never authenticated routes
   e.waitUntil(
     caches.open(CACHE)
-      .then(cache => cache.addAll(['/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png']))
       .then(() => self.skipWaiting())
   )
 })
@@ -33,7 +32,8 @@ self.addEventListener('fetch', e => {
 
   e.respondWith(
     caches.match(request).then(cached => cached ?? fetch(request).then(res => {
-      caches.open(CACHE).then(c => c.put(request, res.clone()))
+      const clone = res.clone() // clone before consuming the body
+      caches.open(CACHE).then(c => c.put(request, clone))
       return res
     }))
   )
