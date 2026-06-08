@@ -27,11 +27,13 @@ function Podium({ top3 }: { top3: RankingEntry[] }) {
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: isFirst ? 'linear-gradient(90deg,#b8860b,#FFD700,#b8860b)' : 'rgba(74,144,217,0.3)' }} />
             {isFirst && <div className="podium-crown" style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', fontSize: 22 }}>👑</div>}
             <div className="podium-medal" style={{ fontSize: 26, marginBottom: 6 }}>{medals[idx]}</div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
               <PalpiteAvatar nome={entry.nome} avatarType={entry.avatar_type} avatarValue={entry.avatar_value} size={32} />
-              <div className="podium-name" style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{entry.nome}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+                <div className="podium-name" style={{ fontSize: 13, fontWeight: 700, color: 'white', lineHeight: 1 }}>{entry.nome}</div>
+                <div className="podium-user" style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', lineHeight: 1 }}>{entry.usuario_nome}</div>
+              </div>
             </div>
-            <div className="podium-user" style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', margin: '2px 0 8px' }}>{entry.usuario_nome}</div>
             <div className="podium-pts" style={{ fontSize: 26, fontWeight: 800, color: '#4A90D9', lineHeight: 1 }}>{entry.total_pontos}</div>
             <div className="podium-pts-l" style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', marginTop: 2 }}>pontos</div>
           </div>
