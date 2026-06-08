@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getRanking } from '@/services/ranking'
 import type { RankingEntry } from '@/types'
+import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +27,9 @@ function Podium({ top3 }: { top3: RankingEntry[] }) {
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: isFirst ? 'linear-gradient(90deg,#b8860b,#FFD700,#b8860b)' : 'rgba(74,144,217,0.3)' }} />
             {isFirst && <div className="podium-crown" style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', fontSize: 22 }}>👑</div>}
             <div className="podium-medal" style={{ fontSize: 26, marginBottom: 6 }}>{medals[idx]}</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}>
+              <PalpiteAvatar nome={entry.nome} avatarType={entry.avatar_type} avatarValue={entry.avatar_value} size={40} />
+            </div>
             <div className="podium-name" style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{entry.nome}</div>
             <div className="podium-user" style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', margin: '2px 0 8px' }}>{entry.usuario_nome}</div>
             <div className="podium-pts" style={{ fontSize: 26, fontWeight: 800, color: '#4A90D9', lineHeight: 1 }}>{entry.total_pontos}</div>
@@ -100,12 +104,15 @@ export default async function RankingPage() {
                     {/* pos */}
                     <span className="rank-pos" style={{ fontSize: 14, fontWeight: 700, color: posColor, textAlign: 'center' }}>{entry.posicao}</span>
                     {/* name + user */}
-                    <div className="rank-info" style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <div className="rank-info" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <PalpiteAvatar nome={entry.nome} avatarType={entry.avatar_type} avatarValue={entry.avatar_value} size={28} />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>
                         {entry.nome}
                         {isMe && <span style={{ fontSize: 8, background: 'rgba(74,144,217,0.2)', color: '#7BB8F0', padding: '1px 5px', borderRadius: 6, fontWeight: 600, marginLeft: 5 }}>você</span>}
                       </div>
                       <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)' }}>{entry.usuario_nome}</div>
+                      </div>
                     </div>
                     {/* acertos — hidden on mobile */}
                     <span className="rank-acertos" style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>
