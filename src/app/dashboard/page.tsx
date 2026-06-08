@@ -144,8 +144,8 @@ export default async function DashboardPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={label12}>Sua posição</div>
-              <div style={value24}>{myEntry ? `#${myEntry.posicao}` : '—'}</div>
-              <div style={sub10}>{myEntry ? `${myEntry.total_pontos} pts` : 'sem palpite ativo'}</div>
+              <div style={value24}>{myEntry && lider ? `#${myEntry.posicao}` : '—'}</div>
+              <div style={sub10}>{myEntry && lider ? `${myEntry.total_pontos} pts` : 'sem palpite ativo'}</div>
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={label12}>Líder do bolão</div>
