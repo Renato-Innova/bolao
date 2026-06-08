@@ -4,11 +4,15 @@ import type { RankingEntry } from '@/types'
 export async function getRanking(): Promise<RankingEntry[]> {
   const supabase = createAdminClient()
 
-  const { data: palpites } = await supabase
+  const { data: palpites, error } = await supabase
     .from('palpites')
     .select('id, nome, usuario_id, avatar_type, avatar_value, palpites_jogos(pontos), usuario:users(nome)')
     .eq('status', 'ativo')
 
+  if (error) {
+    console.error('[getRanking] query error:', error.message, error.details)
+    return []
+  }
   if (!palpites) return []
 
   const entries = palpites.map((p: Record<string, unknown>, idx: number) => {
