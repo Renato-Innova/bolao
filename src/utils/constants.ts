@@ -202,14 +202,21 @@ export function getConfrontoHistorico(timeA: string, timeB: string): ConfrontoHi
  * ──────────────────────────────────────────────────────────────────────────── */
 
 export const ARTILHEIRO_OPTIONS = [
+  { value: 'Cristiano Ronaldo',    label: 'Cristiano Ronaldo (Portugal)'        },
+  { value: 'Dembélé',              label: 'Dembélé (França)'                    },
+  { value: 'Erling Haaland',       label: 'Erling Haaland (Noruega)'            },
+  { value: 'Harry Kane',           label: 'Harry Kane (Inglaterra)'             },
+  { value: 'Julian Alvarez',       label: 'Julian Alvarez (Argentina)'          },
   { value: 'Kylian Mbappé',        label: 'Kylian Mbappé (França)'              },
   { value: 'Lamine Yamal',         label: 'Lamine Yamal (Espanha)'              },
-  { value: 'Harry Kane',           label: 'Harry Kane (Inglaterra)'             },
   { value: 'Lionel Messi',         label: 'Lionel Messi (Argentina)'            },
-  { value: 'Vinicius Junior',      label: 'Vinicius Junior (Brasil)'            },
-  { value: 'Raphinha',             label: 'Raphinha (Brasil)'                   },
+  { value: 'Memphis Depay',        label: 'Memphis Depay (Holanda)'             },
+  { value: 'Jamal Musiala',        label: 'Jamal Musiala (Alemanha)'            },
   { value: 'Neymar Jr',            label: 'Neymar Jr (Brasil)'                  },
-  { value: 'Cristiano Ronaldo',    label: 'Cristiano Ronaldo (Portugal)'        },
+  { value: 'Nick Woltemade',       label: 'Nick Woltemade (Alemanha)'           },
+  { value: 'Raphinha',             label: 'Raphinha (Brasil)'                   },
+  { value: 'Rodri',                label: 'Rodri (Espanha)'                     },
+  { value: 'Vinicius Junior',      label: 'Vinicius Junior (Brasil)'            },
 ]
 
 export const GOLEIRO_OPTIONS = [
