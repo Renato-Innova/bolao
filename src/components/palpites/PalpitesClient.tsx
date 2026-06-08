@@ -1227,8 +1227,8 @@ const DEFAULT_MATCH_STATE: MatchState = { scoreA: -1, scoreB: -1, penaltiA: 0, p
 /* ─── MataMata helpers ───────────────────────────────────── */
 
 const KO_PHASES = [
-  { code: 'R32', label: 'Segundas de Final', dates: '29 Jun – 03 Jul', prevCode: 'GS',  prevLabel: 'Fase de Grupos',      total: 16 },
-  { code: 'R16', label: 'Oitavas de Final',  dates: '04 Jul – 07 Jul', prevCode: 'R32', prevLabel: 'Segundas de Final',   total: 8  },
+  { code: 'R32', label: '16 Avos de Final', dates: '29 Jun – 03 Jul', prevCode: 'GS',  prevLabel: 'Fase de Grupos',      total: 16 },
+  { code: 'R16', label: 'Oitavas de Final',  dates: '04 Jul – 07 Jul', prevCode: 'R32', prevLabel: '16 Avos de Final',   total: 8  },
   { code: 'QF',  label: 'Quartas de Final',  dates: '09 Jul – 11 Jul', prevCode: 'R16', prevLabel: 'Oitavas de Final',    total: 4  },
   { code: 'SF',  label: 'Semifinal',          dates: '14 Jul – 15 Jul', prevCode: 'QF',  prevLabel: 'Quartas de Final',   total: 2  },
   { code: 'FIN', label: 'Final',              dates: '18 Jul – 19 Jul', prevCode: 'SF',  prevLabel: 'Semifinal',           total: 2  },
@@ -2140,7 +2140,7 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
 }) {
   const FASE_ORDER = ['GS', 'R32', 'R16', 'QF', 'SF', 'TPL', 'F']
   const FASE_NAMES: Record<string, string> = {
-    GS: 'Fase de Grupos', R32: 'Segundas de Final', R16: 'Oitavas de Final',
+    GS: 'Fase de Grupos', R32: '16 Avos de Final', R16: 'Oitavas de Final',
     QF: 'Quartas de Final', SF: 'Semifinal', TPL: 'Decisão 3º Lugar', F: 'Final',
   }
 

@@ -12,8 +12,8 @@ const MESES     = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','
 const WEEKDAYS  = ['domingo','segunda','terça','quarta','quinta','sexta','sábado']
 
 const KO_PHASES = [
-  { code: 'R32', label: 'Segundas de Final',   hint: 'A partir da classificação da Fase de Grupos' },
-  { code: 'R16', label: 'Oitavas de Final',     hint: 'A partir dos resultados das Segundas de Final' },
+  { code: 'R32', label: '16 Avos de Final',   hint: 'A partir da classificação da Fase de Grupos' },
+  { code: 'R16', label: 'Oitavas de Final',     hint: 'A partir dos resultados das 16 Avos de Final' },
   { code: 'QF',  label: 'Quartas de Final',     hint: 'A partir dos resultados das Oitavas de Final' },
   { code: 'SF',  label: 'Semifinal',            hint: 'A partir dos resultados das Quartas de Final' },
   { code: 'TPL', label: 'Decisão do 3º Lugar',  hint: 'A partir dos perdedores da Semifinal' },

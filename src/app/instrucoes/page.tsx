@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 const FASES_ORDER = ['GS', 'R32', 'R16', 'QF', 'SF', 'TPL', 'F'] as const
 const FASES_LABEL: Record<string, string> = {
   GS:  'Fase de Grupos',
-  R32: 'Segundas de Final',
+  R32: '16 Avos de Final',
   R16: 'Oitavas de Final',
   QF:  'Quartas de Final',
   SF:  'Semifinal',

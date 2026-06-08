@@ -2,7 +2,7 @@ export const GRUPOS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L
 
 export const FASES: Record<string, string> = {
   GS:  'Fase de Grupos',
-  R32: 'Segundas de Final',
+  R32: '16 Avos de Final',
   R16: 'Oitavas de Final',
   QF:  'Quartas de Final',
   SF:  'Semifinal',
