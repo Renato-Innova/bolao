@@ -55,6 +55,8 @@ export interface Palpite {
   // Points earned from correctly predicted group-stage qualifiers (updated by admin)
   pontos_classificacao: number
   json_backup?: Record<string, unknown>
+  avatar_type?: string | null
+  avatar_value?: string | null
   criado_em: string
   atualizado_em: string
   usuario?: User
@@ -122,6 +124,8 @@ export interface RankingEntry {
   acertos_exatos: number
   acertos_vencedor: number
   variacao: number
+  avatar_type?: string | null
+  avatar_value?: string | null
 }
 
 export interface BracketSlot {

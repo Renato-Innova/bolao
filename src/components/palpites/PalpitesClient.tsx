@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { FlagImg } from '@/components/ui/FlagImg'
+import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
+import { AvatarPicker } from '@/components/ui/AvatarPicker'
 import { createClient } from '@/lib/supabase/client'
 import { PIX_VALOR, PIX_CHAVE, GRUPOS, TEAM_ABBR, FASES, TEAM_QUAL, ALL_TEAMS, ARTILHEIRO_OPTIONS, GOLEIRO_OPTIONS, getConfrontoHistorico } from '@/utils/constants'
 import type { Palpite, JogoCopa, PalpiteJogo } from '@/types'
@@ -172,6 +174,10 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
   const chaveOuterRef = useRef<HTMLDivElement>(null)
   const chaveTrackRef = useRef<HTMLDivElement>(null)
 
+  /* avatar picker */
+  const [avatarPickerId, setAvatarPickerId] = useState<number | null>(null)
+  const [avatarSaving,   setAvatarSaving]   = useState(false)
+
   /* carousel */
   const [carOffset, setCarOffset] = useState(0)   // desktop: first visible index
   const [mobileIdx, setMobileIdx] = useState(0)   // mobile: current index
@@ -318,6 +324,25 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
       .replace(/[^a-z0-9\s]/g, '')          // remove qualquer outro caractere especial restante
       .replace(/\s+/g, ' ')                 // colapsa espaços múltiplos
       .trim()
+  }
+
+  async function saveAvatar(palpiteId: number, type: string, value: string) {
+    setAvatarSaving(true)
+    try {
+      const res = await fetch(`/api/palpites/${palpiteId}/avatar`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarType: type, avatarValue: value }),
+      })
+      if (res.ok) {
+        setPalpites(prev => prev.map(p =>
+          p.id === palpiteId ? { ...p, avatar_type: type, avatar_value: value } : p
+        ))
+      }
+    } finally {
+      setAvatarSaving(false)
+      setAvatarPickerId(null)
+    }
   }
 
   async function checarDuplicidadeNome(nomeTrimmed: string, ignorarId?: number): Promise<boolean> {
@@ -655,9 +680,12 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
         }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, borderRadius: '10px 10px 0 0', background: isSel ? 'linear-gradient(90deg,#4A90D9,#7BB8F0)' : 'rgba(74,144,217,0.2)', transition: 'background 0.2s' }} />
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', marginTop: 2 }}>{userName}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+            <PalpiteAvatar nome={p.nome} avatarType={p.avatar_type} avatarValue={p.avatar_value} size={38} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', marginTop: 2 }}>{userName}</div>
+            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
             <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.3, background: isInativo ? 'rgba(255,255,255,0.07)' : 'rgba(74,222,128,0.15)', color: isInativo ? 'rgba(255,255,255,0.4)' : '#4ade80' }}>
@@ -670,6 +698,14 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
               </button>
               {isMenuOpen && !isConfirming && (
                 <div style={{ position: 'absolute', top: 26, right: 0, background: '#1a2d50', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 8, padding: 4, minWidth: 160, zIndex: 20, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+                  {/* Avatar */}
+                  <div
+                    onMouseDown={e => { e.stopPropagation(); setAvatarPickerId(p.id); setCardMenuOpen(null) }}
+                    style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.75)', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(74,144,217,0.12)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    🎨 Escolher avatar
+                  </div>
                   {/* Renomear */}
                   <div
                     onMouseDown={e => { e.stopPropagation(); setRenameId(p.id); setRenameNome(p.nome); setRenameError(''); setCardMenuOpen(null) }}
@@ -782,6 +818,22 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
 
   return (
     <div className="page-main palpites-main" style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 24px 40px' }}>
+
+      {/* Avatar Picker modal */}
+      {avatarPickerId !== null && (() => {
+        const p = palpites.find(x => x.id === avatarPickerId)
+        if (!p) return null
+        return (
+          <AvatarPicker
+            nome={p.nome}
+            currentType={p.avatar_type}
+            currentValue={p.avatar_value}
+            saving={avatarSaving}
+            onClose={() => setAvatarPickerId(null)}
+            onSave={(type, value) => saveAvatar(avatarPickerId, type, value)}
+          />
+        )
+      })()}
 
       {/* Page header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>

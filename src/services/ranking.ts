@@ -6,7 +6,7 @@ export async function getRanking(): Promise<RankingEntry[]> {
 
   const { data: palpites } = await supabase
     .from('palpites')
-    .select('id, nome, usuario_id, palpites_jogos(pontos), usuario:users(nome)')
+    .select('id, nome, usuario_id, avatar_type, avatar_value, palpites_jogos(pontos), usuario:users(nome)')
     .eq('status', 'ativo')
 
   if (!palpites) return []
@@ -24,6 +24,8 @@ export async function getRanking(): Promise<RankingEntry[]> {
       acertos_exatos: 0,
       acertos_vencedor: 0,
       variacao: 0,
+      avatar_type: p.avatar_type as string | null,
+      avatar_value: p.avatar_value as string | null,
     }
   })
 

@@ -1,4 +1,5 @@
 import type { RankingEntry } from '@/types'
+import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
 
 interface Props {
   entries: RankingEntry[]
@@ -60,6 +61,7 @@ export function RankingTabela({ entries, currentUserId }: Props) {
 
             {/* Entry name */}
             <div className="col-span-5 flex items-center gap-2">
+              <PalpiteAvatar nome={entry.nome} avatarType={entry.avatar_type} avatarValue={entry.avatar_value} size={26} />
               <span className="text-sm font-medium text-white truncate">{entry.nome}</span>
               {isMe && (
                 <span

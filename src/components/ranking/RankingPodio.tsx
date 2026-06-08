@@ -1,4 +1,5 @@
 import type { RankingEntry } from '@/types'
+import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
 
 interface Props {
   top3: RankingEntry[]
@@ -22,11 +23,14 @@ export function RankingPodio({ top3 }: Props) {
             {isFirst && (
               <div className="text-2xl mb-1">👑</div>
             )}
-            <div className="text-center mb-3">
+            <div className="flex flex-col items-center mb-3">
+              <PalpiteAvatar nome={entry.nome} avatarType={entry.avatar_type} avatarValue={entry.avatar_value} size={40} />
+              <div className="text-center mt-2">
               <div className="font-bold text-white text-sm leading-tight">{entry.nome}</div>
               <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{entry.usuario_nome}</div>
               <div className="text-xl font-bold mt-1" style={{ color: '#4A90D9' }}>{entry.total_pontos}</div>
               <div className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>pts</div>
+              </div>
             </div>
             <div
               className={`w-full rounded-t-lg flex items-start justify-center pt-3 ${HEIGHTS[idx]}`}

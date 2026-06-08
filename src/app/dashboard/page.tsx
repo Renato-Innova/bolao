@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getRanking } from '@/services/ranking'
 import { FlagImg } from '@/components/ui/FlagImg'
+import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
 import type { JogoCopa, ClassificacaoGrupo } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -202,6 +203,7 @@ export default async function DashboardPage() {
                 return (
                   <div key={entry.palpite_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: isMe ? 'rgba(74,144,217,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isMe ? 'rgba(74,144,217,0.3)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 7 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, minWidth: 22, color: 'rgba(255,255,255,0.50)', textAlign: 'center' }}>{medal}</span>
+                    <PalpiteAvatar nome={entry.nome} avatarType={entry.avatar_type} avatarValue={entry.avatar_value} size={28} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>{entry.nome}</div>
                       <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)' }}>{entry.usuario_nome}</div>
