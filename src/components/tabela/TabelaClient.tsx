@@ -37,7 +37,7 @@ function isPlaceholder(name: string) {
 }
 
 const FASE_LABEL: Record<string, string> = {
-  GS: 'Fase de Grupos', R32: 'Seg. de Final', R16: 'Oitavas de Final',
+  GS: 'Fase de Grupos', R32: '16 Avos de Final', R16: 'Oitavas de Final',
   QF: 'Quartas de Final', SF: 'Semifinal', TPL: '3º Lugar', F: 'Final',
 }
 
@@ -330,7 +330,7 @@ function ClassificacaoTab({ classificacao }: { classificacao: ClassificacaoGrupo
 /* ─── CHAVE tab ───────────────────────────────────────────── */
 
 const CHAVE_COLS = [
-  { code: 'R32', label: 'Seg. de Final', dates: '29 Jun – 03 Jul' },
+  { code: 'R32', label: '16 Avos',       dates: '29 Jun – 03 Jul' },
   { code: 'R16', label: 'Oitavas',       dates: '04 Jul – 07 Jul' },
   { code: 'QF',  label: 'Quartas',       dates: '09 Jul – 11 Jul' },
   { code: 'SF',  label: 'Semifinal',     dates: '14 Jul – 15 Jul' },
