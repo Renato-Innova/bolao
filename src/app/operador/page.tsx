@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client' // still used for auth check
 
 interface PalpiteInativo {
   id: number
@@ -23,13 +23,13 @@ export default function OperadorPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const supabase = createClient()
-    const { data } = await supabase
-      .from('palpites')
-      .select('id, nome, status, criado_em, usuario:users(nome, email)')
-      .eq('status', 'inativo')
-      .order('criado_em', { ascending: false })
-    setPalpites((data ?? []) as unknown as PalpiteInativo[])
+    try {
+      const res = await fetch('/api/operador/palpites')
+      const data = await res.json()
+      setPalpites(Array.isArray(data) ? data : [])
+    } catch {
+      setPalpites([])
+    }
     setLoading(false)
   }, [])
 
