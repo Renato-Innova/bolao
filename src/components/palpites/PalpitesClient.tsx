@@ -826,6 +826,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
         return (
           <AvatarPicker
             nome={p.nome}
+            palpiteId={p.id}
             currentType={p.avatar_type}
             currentValue={p.avatar_value}
             saving={avatarSaving}

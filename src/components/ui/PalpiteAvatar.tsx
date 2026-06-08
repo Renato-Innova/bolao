@@ -53,6 +53,20 @@ interface PalpiteAvatarProps {
 export function PalpiteAvatar({ nome, avatarType, avatarValue, size = 40 }: PalpiteAvatarProps) {
   const radius = size * 0.22
 
+  /* ── Upload (URL stored in avatarValue) ── */
+  if (avatarType === 'upload' && avatarValue) {
+    return (
+      <div style={{
+        width: size, height: size, borderRadius: radius,
+        overflow: 'hidden', flexShrink: 0,
+        border: '1px solid rgba(74,144,217,0.25)',
+      }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={avatarValue} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      </div>
+    )
+  }
+
   /* ── Camisa ── */
   if (avatarType === 'camisa' && avatarValue) {
     const src = `/avatar/Camiseta_${avatarValue}.png`
