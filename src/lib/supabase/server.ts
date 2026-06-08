@@ -31,9 +31,12 @@ export async function createClient() {
 // Service-role client — bypasses ALL RLS policies. Server-side only.
 // Uses the plain supabase-js client (not cookie-based) so the service role key
 // is applied correctly and RLS is truly disabled.
+// SUPABASE_URL (no NEXT_PUBLIC) is a pure runtime var — not baked at build time.
+// Falls back to NEXT_PUBLIC_SUPABASE_URL for local dev.
 export function createAdminClient() {
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL!
   return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    url,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       auth: {
