@@ -497,6 +497,11 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
 
   async function editMatch(jogoId: string) {
     if (!selectedId) return
+
+    // Collapse the accordion for this day so only pending games remain visible
+    const dayDate = days.find(d => d.matches.some(m => String(m.id) === jogoId))?.date
+    if (dayDate) setAccOpen(prev => ({ ...prev, [dayDate]: false }))
+
     const res = await fetch(`/api/palpites/${selectedId}/downstream-impact?jogoId=${jogoId}`)
     if (!res.ok) {
       updateState(jogoId, { submitted: false })
