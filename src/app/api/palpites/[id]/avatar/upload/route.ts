@@ -1,10 +1,22 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 const MAX_BYTES = 300 * 1024 // 300 KB
 const BUCKET    = 'avatars'
 const ALLOWED   = ['image/jpeg', 'image/png', 'image/webp']
+
+async function ensureBucket(admin: ReturnType<typeof createAdminClient>) {
+  // Check if bucket exists; create if not
+  const { data: buckets } = await admin.storage.listBuckets()
+  const exists = (buckets ?? []).some((b: { id: string }) => b.id === BUCKET)
+  if (!exists) {
+    await admin.storage.createBucket(BUCKET, {
+      public: true,
+      fileSizeLimit: MAX_BYTES,
+      allowedMimeTypes: ALLOWED,
+    })
+  }
+}
 
 export async function POST(
   request: Request,
@@ -32,7 +44,7 @@ export async function POST(
   if (!file) return NextResponse.json({ error: 'Nenhum arquivo enviado.' }, { status: 400 })
 
   if (!ALLOWED.includes(file.type)) {
-    return NextResponse.json({ error: 'Tipo de arquivo não permitido. Use JPG, PNG ou WEBP.' }, { status: 400 })
+    return NextResponse.json({ error: 'Tipo não permitido. Use JPG, PNG ou WEBP.' }, { status: 400 })
   }
   if (file.size > MAX_BYTES) {
     return NextResponse.json({
@@ -40,27 +52,34 @@ export async function POST(
     }, { status: 400 })
   }
 
-  // Upload to Supabase Storage using admin client (bypasses RLS on storage)
-  const admin = createAdminClient()
-  const ext   = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
-  const path  = `palpite_${id}/${user.id}.${ext}`
+  const admin  = createAdminClient()
+  const folder = `palpite_${id}`
+
+  // Ensure bucket exists (creates it if missing)
+  await ensureBucket(admin)
+
+  // Delete ALL previous files for this palpite (one photo per palpite rule)
+  const { data: existing } = await admin.storage.from(BUCKET).list(folder)
+  if (existing && existing.length > 0) {
+    const paths = existing.map((f: { name: string }) => `${folder}/${f.name}`)
+    await admin.storage.from(BUCKET).remove(paths)
+  }
+
+  // Upload new file
+  const ext  = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
+  const path = `${folder}/avatar.${ext}`
   const bytes = await file.arrayBuffer()
 
   const { error: uploadError } = await admin.storage
     .from(BUCKET)
-    .upload(path, bytes, {
-      contentType: file.type,
-      upsert: true, // overwrite previous upload for this palpite
-    })
+    .upload(path, bytes, { contentType: file.type, upsert: true })
 
   if (uploadError) {
     return NextResponse.json({ error: uploadError.message }, { status: 500 })
   }
 
-  // Get public URL
+  // Public URL with cache-bust
   const { data: { publicUrl } } = admin.storage.from(BUCKET).getPublicUrl(path)
-
-  // Bust cache by appending timestamp
   const url = `${publicUrl}?t=${Date.now()}`
 
   return NextResponse.json({ url })
