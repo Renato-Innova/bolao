@@ -17,13 +17,8 @@ function getMatchTime(date: string, horario: string): Date {
 function isLocked(date: string, horario: string) {
   return new Date() >= getMatchTime(date, horario)
 }
-// canEdit is called with the minutosLock from system config (default 60)
 function canEditWithLock(date: string, horario: string, minutosLock: number) {
   return new Date() < new Date(getMatchTime(date, horario).getTime() - minutosLock * 60 * 1000)
-}
-// Legacy 60-min version kept for backward compatibility
-function canEdit(date: string, horario: string) {
-  return canEditWithLock(date, horario, 60)
 }
 
 interface DayGroup {
@@ -946,7 +941,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                               state={matchStates[String(jogo.id)] ?? DEFAULT_MATCH_STATE}
                               onScoreChange={(side, val) => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
                               onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))}
-                              pontos={getPontos(jogo.id)} />
+                              pontos={getPontos(jogo.id)} minutosLock={minutosLockJogo} />
                           ))}
                         </div>
                       </>
@@ -959,7 +954,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                             <MatchCard key={jogo.id} jogo={jogo} state={matchStates[String(jogo.id)]}
                               onScoreChange={(side, val) => updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
                               onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))}
-                              pontos={getPontos(jogo.id)} />
+                              pontos={getPontos(jogo.id)} minutosLock={minutosLockJogo} />
                           ))}
                         </div>
                       </Accordion>
@@ -973,7 +968,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                               <MatchCard key={jogo.id} jogo={jogo} state={matchStates[String(jogo.id)]}
                                 onScoreChange={(side, val) => updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
                                 onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))}
-                                pontos={getPontos(jogo.id)} />
+                                pontos={getPontos(jogo.id)} minutosLock={minutosLockJogo} />
                             ))}
                           </div>
                         </Accordion>
@@ -984,7 +979,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                               state={matchStates[String(jogo.id)] ?? DEFAULT_MATCH_STATE}
                               onScoreChange={(side, val) => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
                               onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))}
-                              pontos={getPontos(jogo.id)} />
+                              pontos={getPontos(jogo.id)} minutosLock={minutosLockJogo} />
                           ))}
                         </div>
                       </>
@@ -1030,6 +1025,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
               setChavePillIdx={setChavePillIdx}
               chaveOuterRef={chaveOuterRef}
               chaveTrackRef={chaveTrackRef}
+              minutosLock={minutosLockJogo}
             />
           )}
 
@@ -1283,13 +1279,14 @@ interface KoCardProps {
   onSubmit: () => void
   onEdit: () => void
   pontos?: number | null
+  minutosLock?: number
 }
 
-function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmit, onEdit, pontos }: KoCardProps) {
+function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmit, onEdit, pontos, minutosLock = 60 }: KoCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const locked   = isLocked(jogo.data, jogo.horario)
-  const editable = canEdit(jogo.data, jogo.horario)
+  const editable = canEditWithLock(jogo.data, jogo.horario, minutosLock)
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -1521,6 +1518,7 @@ interface MataMataTabProps {
   setChavePillIdx: React.Dispatch<React.SetStateAction<number>>
   chaveOuterRef: React.RefObject<HTMLDivElement | null>
   chaveTrackRef: React.RefObject<HTMLDivElement | null>
+  minutosLock?: number
 }
 
 function MataMataTab({
@@ -1529,6 +1527,7 @@ function MataMataTab({
   mataMataSubTab, setMataMataSubTab,
   chaveView, setChaveView,
   chavePillIdx, setChavePillIdx, chaveOuterRef, chaveTrackRef,
+  minutosLock = 60,
 }: MataMataTabProps) {
   // allJogos includes GS so that isPhaseLocked can check if GS is fully submitted
   const allJogos = [...jogosGS, ...jogosKO]
@@ -1635,7 +1634,8 @@ function MataMataTab({
                                 onPenaltiChange={(side, val) => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), side === 'A' ? { penaltiA: val } : { penaltiB: val })}
                                 onSubmit={() => submitMatch(String(jogo.id))}
                                 onEdit={() => editMatch(String(jogo.id))}
-                                pontos={selected.palpites_jogos?.find(pj => pj.jogo_id === jogo.id)?.pontos ?? null} />
+                                pontos={selected.palpites_jogos?.find(pj => pj.jogo_id === jogo.id)?.pontos ?? null}
+                                minutosLock={minutosLock} />
                             ))}
                           </div>
                         )
@@ -2372,6 +2372,7 @@ interface MatchCardProps {
   onScoreChange: (side: 'A' | 'B', val: number) => void
   onSubmit: () => void; onEdit: () => void
   pontos?: number | null  // points earned for this game (shown after official result is known)
+  minutosLock?: number
 }
 
 /* ─── TeamInfoPanel — qualifying info shown inside MatchCard ─── */
@@ -2439,13 +2440,13 @@ function TeamInfoPanel({ nome }: { nome: string }) {
   )
 }
 
-function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: MatchCardProps) {
+function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos, minutosLock = 60 }: MatchCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const [infoOpen, setInfoOpen] = useState(false)
 
   const locked   = isLocked(jogo.data, jogo.horario)
-  const editable = canEdit(jogo.data, jogo.horario)
+  const editable = canEditWithLock(jogo.data, jogo.horario, minutosLock)
   const confronto = getConfrontoHistorico(jogo.time_a, jogo.time_b)
 
   useEffect(() => {
