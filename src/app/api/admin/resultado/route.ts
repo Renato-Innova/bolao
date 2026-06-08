@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   if (!userData?.is_admin) return NextResponse.json({ error: 'Sem permissão.' }, { status: 403 })
 
   // All DB writes use admin client (service role) to bypass RLS
-  const admin = await createAdminClient()
+  const admin = createAdminClient()
 
   const body = await req.json() as {
     jogoId: number

@@ -475,6 +475,10 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
 
     updateState(jogoId, { saving: false, submitted: true, submittedAt })
 
+    // Keep the day accordion open after submission so the card stays visible
+    const dayDate = days.find(d => d.matches.some(m => String(m.id) === jogoId))?.date
+    if (dayDate) setAccOpen(prev => ({ ...prev, [dayDate]: true }))
+
     // Sync palpites state (points + submitted_at) so the card footer and the
     // TabelaDoPalpite re-render immediately without a page reload.
     syncPalpiteJogo(jogoId, {
@@ -2492,46 +2496,46 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos }: Mat
   }
 
   return (
-    <div style={{ background: '#0D1E3D', border: `1px solid ${borderColor}`, borderRadius: 10, padding: '12px 14px', position: 'relative', opacity: locked ? 0.4 : 1, pointerEvents: locked ? 'none' : 'auto' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+    <div style={{ background: '#0D1E3D', border: `1px solid ${borderColor}`, borderRadius: 10, padding: '1px 14px 12px', position: 'relative', opacity: locked ? 0.4 : 1, pointerEvents: locked ? 'none' : 'auto' }}>
+
+      {/* ── Row 1: date / time / venue ── */}
+      <div style={{ marginBottom: -5, marginTop: -4 }}>
+        <span style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.3 }}>
+          {mmDate}
+        </span>
+      </div>
+
+      {/* ── Row 2: Grupo badge (left) + action buttons (right) ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <div>
           {jogo.grupo && (
             <span style={{ fontSize: 9, fontWeight: 800, color: '#7BB8F0', textTransform: 'uppercase', letterSpacing: 0.8, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 4, padding: '1px 5px' }}>
               Grupo {jogo.grupo}
             </span>
           )}
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.65)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.3 }}>{mmDate}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-          {/* ℹ️ info toggle */}
+          {/* Info toggle */}
           <button
             onClick={e => { e.stopPropagation(); setInfoOpen(o => !o) }}
             title="Informações das seleções"
-            style={{ background: infoOpen ? 'rgba(74,144,217,0.2)' : 'rgba(74,144,217,0.08)', border: `1px solid ${infoOpen ? 'rgba(74,144,217,0.6)' : 'rgba(74,144,217,0.35)'}`, borderRadius: 6, color: infoOpen ? '#7BB8F0' : '#4A90D9', fontSize: 11, width: 22, height: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s', flexShrink: 0, fontFamily: 'Inter,sans-serif' }}>
-            ℹ
+            style={{ background: infoOpen ? 'rgba(74,144,217,0.2)' : 'rgba(74,144,217,0.08)', border: `1px solid ${infoOpen ? 'rgba(74,144,217,0.6)' : 'rgba(74,144,217,0.35)'}`, borderRadius: 4, color: infoOpen ? '#7BB8F0' : '#4A90D9', fontSize: 9, fontWeight: 800, height: 'auto', padding: '1px 5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s', flexShrink: 0, fontFamily: 'Inter,sans-serif', letterSpacing: 0.8, textTransform: 'uppercase' }}>
+            Info
           </button>
-          {state.submitted && <span style={{ color: '#4ade80', fontSize: 14, fontWeight: 700 }}>✓</span>}
           {state.submitted && (
-            <div ref={menuRef} style={{ position: 'relative' }}>
-              <button onClick={() => setMenuOpen(o => !o)}
-                style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'rgba(255,255,255,0.50)', fontSize: 13, width: 24, height: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⋮</button>
-              {menuOpen && (
-                <div style={{ position: 'absolute', top: 28, right: 0, background: '#1a2d50', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 8, padding: 4, minWidth: 155, zIndex: 10 }}>
-                  {editable ? (
-                    <div onClick={() => { onEdit(); setMenuOpen(false) }}
-                      style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.8)', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(74,144,217,0.15)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                      ✏️ Editar placar
-                    </div>
-                  ) : (
-                    <div style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.50)', borderRadius: 6, cursor: 'not-allowed', whiteSpace: 'nowrap' }}
-                      title="Prazo encerrado — jogo começa em menos de 1 hora">✏️ Editar placar</div>
-                  )}
-                </div>
-              )}
-            </div>
+            editable ? (
+              <button onClick={onEdit}
+                style={{ background: 'rgba(251,146,60,0.15)', border: '1px solid rgba(251,146,60,0.5)', borderRadius: 4, color: '#fb923c', fontSize: 9, fontWeight: 800, padding: '1px 5px', cursor: 'pointer', fontFamily: 'Inter,sans-serif', letterSpacing: 0.8, textTransform: 'uppercase', flexShrink: 0 }}>
+                Editar
+              </button>
+            ) : (
+              <button disabled title="Prazo encerrado — jogo começa em menos de 1 hora"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, color: 'rgba(255,255,255,0.2)', fontSize: 9, fontWeight: 800, padding: '1px 5px', cursor: 'not-allowed', fontFamily: 'Inter,sans-serif', letterSpacing: 0.8, textTransform: 'uppercase', flexShrink: 0 }}>
+                Editar
+              </button>
+            )
           )}
+          {state.submitted && <span style={{ color: '#4ade80', fontSize: 14, fontWeight: 700 }}>✓</span>}
         </div>
       </div>
 

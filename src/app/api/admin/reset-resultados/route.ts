@@ -68,7 +68,7 @@ export async function POST() {
   if (!userData?.is_admin) return NextResponse.json({ error: 'Sem permissão.' }, { status: 403 })
 
   // All DB writes use admin client (service role) to bypass RLS
-  const admin = await createAdminClient()
+  const admin = createAdminClient()
 
   // 1 — Delete all official match results
   const { error: e1 } = await admin.from('resultados').delete().neq('id', 0)

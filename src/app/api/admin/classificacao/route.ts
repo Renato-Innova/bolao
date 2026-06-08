@@ -25,7 +25,7 @@ export async function POST() {
   if (!userData?.is_admin) return NextResponse.json({ error: 'Sem permissão.' }, { status: 403 })
 
   // All DB reads/writes use admin client (service role) to bypass RLS
-  const admin = await createAdminClient()
+  const admin = createAdminClient()
 
   // ── 1. Fetch all group-stage games ────────────────────────────────────────
   const { data: gsJogos, error: jogosErr } = await admin
