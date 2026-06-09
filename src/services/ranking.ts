@@ -25,8 +25,9 @@ export async function getRanking(): Promise<RankingEntry[]> {
 
   console.log('[getRanking] found', palpites.length, 'active palpites')
 
-  // Step 2 — fetch points per palpite from palpites_jogos
   const palpiteIds = palpites.map((p: { id: number }) => p.id)
+
+  // Step 2 — fetch points per palpite from palpites_jogos
   const { data: jogos, error: errJ } = await supabase
     .from('palpites_jogos')
     .select('palpite_id, pontos')
@@ -47,6 +48,17 @@ export async function getRanking(): Promise<RankingEntry[]> {
     console.warn('[getRanking] users error (non-fatal):', errU.message)
   }
 
+  // Step 4 — fetch the most recent snapshot before today for daily variation
+  const todayStr = new Date().toISOString().split('T')[0]
+
+  const { data: historico } = await supabase
+    .from('ranking_historico')
+    .select('palpite_id, total_pontos')
+    .lt('data', todayStr)
+    .in('palpite_id', palpiteIds)
+    .order('data', { ascending: false })
+    .limit(palpiteIds.length)
+
   // Build lookup maps
   const pontosPorPalpite: Record<number, number> = {}
   for (const j of (jogos ?? [])) {
@@ -56,23 +68,53 @@ export async function getRanking(): Promise<RankingEntry[]> {
   for (const u of (users ?? [])) {
     nomeUsuario[u.id] = u.nome
   }
+  const pontosOntem: Record<number, number> = {}
+  for (const h of (historico ?? [])) {
+    pontosOntem[h.palpite_id] = h.total_pontos
+  }
 
-  const entries: RankingEntry[] = palpites.map((p: Record<string, unknown>) => ({
-    posicao:          0,
-    palpite_id:       p.id as number,
-    nome:             p.nome as string,
-    usuario_nome:     nomeUsuario[p.usuario_id as string] ?? '',
-    usuario_id:       p.usuario_id as string,
-    total_pontos:     pontosPorPalpite[p.id as number] ?? 0,
-    acertos_exatos:   0,
-    acertos_vencedor: 0,
-    variacao:         0,
-    avatar_type:      p.avatar_type as string | null,
-    avatar_value:     p.avatar_value as string | null,
-  }))
+  console.log('[getRanking] todayStr:', todayStr, '| historico rows:', historico?.length ?? 0, '| sample:', JSON.stringify(historico?.[0]))
+  console.log('[getRanking] pontosOntem sample:', JSON.stringify(Object.entries(pontosOntem).slice(0, 3)))
+  console.log('[getRanking] pontosHoje sample:', JSON.stringify(Object.entries(pontosPorPalpite).slice(0, 3)))
+
+  // Calculate yesterday's ranking positions from snapshot
+  // Sort by yesterday's points descending → position = index + 1
+  const posicaoOntem: Record<number, number> = {}
+  if (historico && historico.length > 0) {
+    const sorted = [...historico].sort((a, b) => b.total_pontos - a.total_pontos)
+    sorted.forEach((h, i) => { posicaoOntem[h.palpite_id] = i + 1 })
+  }
+
+  const entries: RankingEntry[] = palpites.map((p: Record<string, unknown>) => {
+    const id         = p.id as number
+    const pontosHoje = pontosPorPalpite[id] ?? 0
+    const variacao          = id in pontosOntem ? pontosHoje - pontosOntem[id] : 0
+    // variacao_posicao: positive means moved UP (lower number = better position)
+    const variacao_posicao  = 0 // filled in after sort below
+    return {
+      posicao:          0,
+      palpite_id:       id,
+      nome:             p.nome as string,
+      usuario_nome:     nomeUsuario[p.usuario_id as string] ?? '',
+      usuario_id:       p.usuario_id as string,
+      total_pontos:     pontosHoje,
+      acertos_exatos:   0,
+      acertos_vencedor: 0,
+      variacao,
+      variacao_posicao,
+      avatar_type:      p.avatar_type as string | null,
+      avatar_value:     p.avatar_value as string | null,
+    }
+  })
 
   entries.sort((a, b) => b.total_pontos - a.total_pontos)
-  entries.forEach((e, i) => { e.posicao = i + 1 })
+  entries.forEach((e, i) => {
+    e.posicao = i + 1
+    // positive = moved up in ranking (e.g. was 5th yesterday, now 3rd → +2)
+    if (e.palpite_id in posicaoOntem) {
+      e.variacao_posicao = posicaoOntem[e.palpite_id] - e.posicao
+    }
+  })
 
   return entries
 }

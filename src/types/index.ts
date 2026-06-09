@@ -123,7 +123,8 @@ export interface RankingEntry {
   total_pontos: number
   acertos_exatos: number
   acertos_vencedor: number
-  variacao: number
+  variacao: number           // point gain/loss vs yesterday
+  variacao_posicao: number   // position change vs yesterday (positive = moved up)
   avatar_type?: string | null
   avatar_value?: string | null
 }

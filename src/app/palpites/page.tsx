@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { PalpitesClient } from '@/components/palpites/PalpitesClient'
+import { getRanking } from '@/services/ranking'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +28,7 @@ export default async function PalpitesPage() {
     userData = { nome: fallbackNome }
   }
 
-  const [{ data: palpites }, { data: todosJogos }, { data: configs }, { data: sysConfig }] = await Promise.all([
+  const [{ data: palpites }, { data: todosJogos }, { data: configs }, { data: sysConfig }, ranking] = await Promise.all([
     supabase
       .from('palpites')
       .select('*, palpites_jogos(*, jogo:jogos_copa(*, resultado:resultados(*)))')
@@ -52,7 +53,15 @@ export default async function PalpitesPage() {
       .select('especiais_deadline, novo_palpite_deadline, minutos_lock_jogo')
       .eq('id', 1)
       .maybeSingle(),
+
+    getRanking(),
   ])
+
+  // Build variacao map for user's palpites only
+  const variacaoMap: Record<number, { variacao: number; variacao_posicao: number; posicao: number }> = {}
+  for (const r of ranking) {
+    variacaoMap[r.palpite_id] = { variacao: r.variacao, variacao_posicao: r.variacao_posicao, posicao: r.posicao }
+  }
 
   return (
     <PalpitesClient
@@ -64,6 +73,7 @@ export default async function PalpitesPage() {
       especiaisDeadline={sysConfig?.especiais_deadline ?? null}
       novoPalpiteDeadline={sysConfig?.novo_palpite_deadline ?? null}
       minutosLockJogo={sysConfig?.minutos_lock_jogo ?? 60}
+      variacaoMap={variacaoMap}
     />
   )
 }

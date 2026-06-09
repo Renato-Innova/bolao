@@ -105,14 +105,15 @@ interface Props {
   palpitesIniciais: Palpite[]
   todosJogos: JogoCopa[]
   scoringConfigs: { fase: string; tipo_acerto: string; pontos: number }[]
-  especiaisDeadline?: string | null   // ISO — prazo para editar palpites especiais
-  novoPalpiteDeadline?: string | null // ISO — prazo para criar novo palpite
-  minutosLockJogo?: number            // minutos antes do jogo para travar edição
+  especiaisDeadline?: string | null
+  novoPalpiteDeadline?: string | null
+  minutosLockJogo?: number
+  variacaoMap?: Record<number, { variacao: number; variacao_posicao: number; posicao: number }>
 }
 
 const VISIBLE = 3
 
-export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos, scoringConfigs, especiaisDeadline, novoPalpiteDeadline, minutosLockJogo = 60 }: Props) {
+export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos, scoringConfigs, especiaisDeadline, novoPalpiteDeadline, minutosLockJogo = 60, variacaoMap = {} }: Props) {
   const supabase = createClient()
 
   /* ─── deadline flags (recalculated on each render — lightweight) ─── */
@@ -633,7 +634,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
     const isInativo = p.status === 'inativo'
     const isMenuOpen = cardMenuOpen === p.id
     const isConfirming = confirmDelete === p.id
-    const pts = p.palpites_jogos?.reduce((s, pj) => s + (pj.pontos ?? 0), 0) ?? 0
+    const pts      = p.palpites_jogos?.reduce((s, pj) => s + (pj.pontos ?? 0), 0) ?? 0
+    const varInfo  = variacaoMap[p.id]
     const preenchi = p.palpites_jogos?.filter(pj => pj.submitted_at).length ?? 0
     const pct = totalJogos > 0 ? Math.round((preenchi / totalJogos) * 100) : 0
 
@@ -693,7 +695,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
             </span>
             <div ref={isMenuOpen ? cardMenuRef : null} style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
               <button onClick={() => { setCardMenuOpen(isMenuOpen ? null : p.id); setConfirmDelete(null); setRenameId(null) }}
-                style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: 'rgba(255,255,255,0.3)', fontSize: 14, width: 22, height: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, lineHeight: 1 }}>
+                style={{ background: 'none', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6, color: 'rgba(255,255,255,0.65)', fontSize: 14, width: 22, height: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, lineHeight: 1 }}>
                 ⋮
               </button>
               {isMenuOpen && !isConfirming && (
@@ -758,8 +760,31 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
             )}
           </div>
         )}
-        <div style={{ fontSize: 22, fontWeight: 800, color: isInativo ? 'rgba(255,255,255,0.2)' : '#4A90D9', lineHeight: 1 }}>
-          {isInativo ? '—' : pts} <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}>pts</span>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          {/* Pontos + variação de pontos abaixo */}
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: isInativo ? 'rgba(255,255,255,0.2)' : '#4A90D9', lineHeight: 1 }}>
+              {isInativo ? '—' : pts} <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}>pts</span>
+            </div>
+            {!isInativo && varInfo?.variacao !== 0 && varInfo && (
+              <div style={{ fontSize: 10, fontWeight: 700, marginTop: 3, color: varInfo.variacao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
+                {varInfo.variacao > 0 ? `▲ +${varInfo.variacao} pts` : `▼ ${varInfo.variacao} pts`}
+              </div>
+            )}
+          </div>
+          {/* Posição + variação de posição */}
+          {!isInativo && varInfo && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#4A90D9', lineHeight: 1 }}>
+                #{varInfo.posicao} <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}>pos</span>
+              </div>
+              {varInfo.variacao_posicao !== 0 && (
+                <div style={{ fontSize: 10, fontWeight: 700, color: varInfo.variacao_posicao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
+                  {varInfo.variacao_posicao > 0 ? `▲ +${varInfo.variacao_posicao} pos` : `▼ ${Math.abs(varInfo.variacao_posicao)} pos`}
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
           <div style={{ flex: 1, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2 }}>
@@ -2552,15 +2577,8 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos, minut
   return (
     <div style={{ background: '#0D1E3D', border: `1px solid ${borderColor}`, borderRadius: 10, padding: '1px 14px 12px', position: 'relative', opacity: locked ? 0.4 : 1, pointerEvents: locked ? 'none' : 'auto' }}>
 
-      {/* ── Row 1: date / time / venue ── */}
-      <div style={{ marginBottom: -5, marginTop: -4 }}>
-        <span style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.3 }}>
-          {mmDate}
-        </span>
-      </div>
-
-      {/* ── Row 2: Grupo badge (left) + action buttons (right) ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+      {/* ── Row 1: Grupo badge (left) + action buttons (right) ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, marginTop: 2 }}>
         <div>
           {jogo.grupo && (
             <span style={{ fontSize: 9, fontWeight: 800, color: '#7BB8F0', textTransform: 'uppercase', letterSpacing: 0.8, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 4, padding: '1px 5px' }}>
@@ -2627,6 +2645,13 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos, minut
           )}
         </div>
       )}
+
+      {/* ── date / time / venue ── */}
+      <div style={{ marginTop: 2, marginBottom: -6, textAlign: 'center' }}>
+        <span style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.3 }}>
+          {mmDate}
+        </span>
+      </div>
 
       {/* Official result + points — shown after submitting when the admin has entered the result */}
       {state.submitted && jogo.resultado && (() => {

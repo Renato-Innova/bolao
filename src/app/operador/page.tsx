@@ -20,6 +20,7 @@ export default function OperadorPage() {
   const [error, setError] = useState('')
   const [authorized, setAuthorized] = useState(false)
   const [confirm, setConfirm] = useState<{ id: number; nome: string; usuario: string } | null>(null)
+  const [search, setSearch]   = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -145,10 +146,40 @@ export default function OperadorPage() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 4 }}>
-            {palpites.length} palpite{palpites.length !== 1 ? 's' : ''} aguardando ativação
+          {/* Buscador */}
+          <div style={{ position: 'relative', marginBottom: 4 }}>
+            <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }}>🔍</span>
+            <input
+              type="text"
+              placeholder="Buscar por nome do palpite ou participante..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 8, padding: '8px 12px 8px 32px', fontSize: 12, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none' }}
+            />
+            {search && (
+              <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>✕</button>
+            )}
           </div>
-          {palpites.map(p => (
+          {(() => {
+            const q = search.trim().toLowerCase()
+            const filtered = q
+              ? palpites.filter(p =>
+                  p.nome.toLowerCase().includes(q) ||
+                  (p.usuario?.nome ?? '').toLowerCase().includes(q) ||
+                  (p.usuario?.email ?? '').toLowerCase().includes(q)
+                )
+              : palpites
+            return (
+              <>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 4 }}>
+                  {q ? `${filtered.length} resultado${filtered.length !== 1 ? 's' : ''} de ${palpites.length}` : `${palpites.length} palpite${palpites.length !== 1 ? 's' : ''} aguardando ativação`}
+                </div>
+                {filtered.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '24px 0', color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>
+                    Nenhum resultado para &ldquo;{search}&rdquo;
+                  </div>
+                )}
+          {filtered.map(p => (
             <div key={p.id} style={{
               background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.2)',
               borderRadius: 10, padding: '12px 16px',
@@ -180,6 +211,9 @@ export default function OperadorPage() {
               </button>
             </div>
           ))}
+              </>
+            )
+          })()}
         </div>
       )}
     </div>

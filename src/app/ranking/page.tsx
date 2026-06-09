@@ -2,40 +2,130 @@ import { createClient } from '@/lib/supabase/server'
 import { getRanking } from '@/services/ranking'
 import type { RankingEntry } from '@/types'
 import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
+import { RankingEvolutionChart, type ChartSeries } from '@/components/ranking/RankingEvolutionChart'
 
 export const dynamic = 'force-dynamic'
 
-function Podium({ top3 }: { top3: RankingEntry[] }) {
-  const order = [1, 0, 2]
+/* ─── Pódio Opção 4 — plataforma de altura ─────────────────────────────────── */
+function Podium({ top3, myIds }: { top3: RankingEntry[]; myIds: number[] }) {
+  // ordem visual: 2º, 1º, 3º
+  const order  = [1, 0, 2]
   const medals = ['🥇', '🥈', '🥉']
+  const platformH = [28, 42, 18] // 2º, 1º, 3º
+  const platformColors = [
+    'rgba(192,192,192,0.12)',
+    'rgba(255,215,0,0.12)',
+    'rgba(205,127,50,0.12)',
+  ]
+  const platformBorders = [
+    'rgba(192,192,192,0.20)',
+    'rgba(255,215,0,0.25)',
+    'rgba(205,127,50,0.20)',
+  ]
+  const topBarColors = [
+    'rgba(192,192,192,0.45)',
+    'linear-gradient(90deg,#b8860b,#FFD700,#b8860b)',
+    'rgba(205,127,50,0.45)',
+  ]
+  const cardBorders = [
+    'rgba(74,144,217,0.15)',
+    'rgba(255,215,0,0.30)',
+    'rgba(74,144,217,0.15)',
+  ]
 
   return (
-    <div className="podium-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.1fr 1fr', gap: 10, marginBottom: 20, alignItems: 'end' }}>
-      {order.map(idx => {
-        const entry = top3[idx]
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'flex-end', gap: 0, marginBottom: 20 }}>
+      {order.map((idx) => {
+        const entry  = top3[idx]
         if (!entry) return <div key={idx} />
         const isFirst = idx === 0
+        const isMe    = myIds.includes(entry.palpite_id)
+        const vi      = order.indexOf(idx) // visual index (0=left=2nd, 1=center=1st, 2=right=3rd)
+
         return (
-          <div key={entry.palpite_id}
-            className={`podium-card${isFirst ? ' podium-first' : ''}`}
-            style={{
+          <div key={entry.palpite_id} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+            {/* card */}
+            <div style={{
+              width: '100%',
               background: '#0D1E3D',
-              border: `1px solid ${isFirst ? 'rgba(255,215,0,0.35)' : 'rgba(74,144,217,0.15)'}`,
-              borderRadius: 10, padding: isFirst ? '22px 14px 16px' : '16px 14px',
-              textAlign: 'center', position: 'relative', overflow: 'visible',
+              border: `1px solid ${cardBorders[vi]}`,
+              borderRadius: '10px 10px 0 0',
+              padding: '12px 10px 10px',
+              textAlign: 'center',
+              position: 'relative',
+              overflow: 'visible',
             }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: isFirst ? 'linear-gradient(90deg,#b8860b,#FFD700,#b8860b)' : 'rgba(74,144,217,0.3)' }} />
-            {isFirst && <div className="podium-crown" style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', fontSize: 22 }}>👑</div>}
-            <div className="podium-medal" style={{ fontSize: 26, marginBottom: 6 }}>{medals[idx]}</div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
-              <PalpiteAvatar nome={entry.nome} avatarType={entry.avatar_type} avatarValue={entry.avatar_value} size={32} />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
-                <div className="podium-name" style={{ fontSize: 13, fontWeight: 700, color: 'white', lineHeight: 1 }}>{entry.nome}</div>
-                <div className="podium-user" style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', lineHeight: 1 }}>{entry.usuario_nome}</div>
+              {/* barra topo */}
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+                background: topBarColors[vi],
+              }} />
+              {/* coroa */}
+              {isFirst && (
+                <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', fontSize: 16, lineHeight: 1 }}>
+                  👑
+                </div>
+              )}
+              {/* medalha */}
+              <div style={{ fontSize: 16, marginBottom: 5 }}>{medals[idx]}</div>
+              {/* avatar */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 5 }}>
+                <PalpiteAvatar
+                  nome={entry.nome}
+                  avatarType={entry.avatar_type}
+                  avatarValue={entry.avatar_value}
+                  size={32}
+                />
               </div>
+              {/* nome */}
+              <div style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: 'white',
+                lineHeight: 1.2,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                maxWidth: '100%',
+              }}>
+                {entry.nome}
+                {isMe && (
+                  <span style={{ fontSize: 7, background: 'rgba(74,144,217,0.2)', color: '#7BB8F0', padding: '1px 4px', borderRadius: 5, marginLeft: 4 }}>
+                    você
+                  </span>
+                )}
+              </div>
+              {/* usuário */}
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.40)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {entry.usuario_nome}
+              </div>
+              {/* divisor */}
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '7px 0' }} />
+              {/* pontos */}
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#4A90D9', lineHeight: 1 }}>
+                {entry.total_pontos}
+              </div>
+              <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>pts</div>
+              {/* variação */}
+              {entry.variacao !== 0 && (
+                <div style={{ fontSize: 8, fontWeight: 700, marginTop: 3, color: entry.variacao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
+                  {entry.variacao > 0 ? `▲ +${entry.variacao}` : `▼ ${entry.variacao}`}
+                </div>
+              )}
             </div>
-            <div className="podium-pts" style={{ fontSize: 26, fontWeight: 800, color: '#4A90D9', lineHeight: 1 }}>{entry.total_pontos}</div>
-            <div className="podium-pts-l" style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', marginTop: 2 }}>pontos</div>
+
+            {/* plataforma */}
+            <div style={{
+              width: '100%',
+              height: platformH[vi],
+              background: platformColors[vi],
+              border: `1px solid ${platformBorders[vi]}`,
+              borderTop: 'none',
+              borderRadius: '0 0 6px 6px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.30)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {idx + 1}°
+              </span>
+            </div>
           </div>
         )
       })}
@@ -43,6 +133,7 @@ function Podium({ top3 }: { top3: RankingEntry[] }) {
   )
 }
 
+/* ─── Page ──────────────────────────────────────────────────────────────────── */
 export default async function RankingPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -50,12 +141,49 @@ export default async function RankingPage() {
 
   let myPalpiteIds: number[] = []
   if (user) {
-    const { data: myPalpites } = await supabase.from('palpites').select('id').eq('usuario_id', user.id)
+    const { data: myPalpites } = await supabase
+      .from('palpites').select('id').eq('usuario_id', user.id)
     myPalpiteIds = (myPalpites ?? []).map((p: { id: number }) => p.id)
+  }
+
+  /* ── histórico para o gráfico ────────────────────────────────────────────── */
+  const activeIds = ranking.map(r => r.palpite_id)
+  let chartSeries: ChartSeries[] = []
+  let chartDatas:  string[]      = []
+
+  if (activeIds.length > 0) {
+    const { data: historico } = await supabase
+      .from('ranking_historico')
+      .select('palpite_id, data, total_pontos')
+      .in('palpite_id', activeIds)
+      .order('data', { ascending: true })
+
+    if (historico && historico.length > 0) {
+      /* datas únicas */
+      chartDatas = [...new Set(historico.map((h: { data: string }) => h.data))].sort()
+
+      /* top 10 + palpites do usuário logado (sem duplicar) */
+      const top10Ids  = ranking.slice(0, 10).map(r => r.palpite_id)
+      const chartIds  = [...new Set([...top10Ids, ...myPalpiteIds])]
+      const chartRank = ranking.filter(r => chartIds.includes(r.palpite_id))
+
+      chartSeries = chartRank.map(r => ({
+        palpite_id:   r.palpite_id,
+        nome:         r.nome,
+        isMe:         myPalpiteIds.includes(r.palpite_id),
+        avatar_type:  r.avatar_type,
+        avatar_value: r.avatar_value,
+        historico:    historico
+          .filter((h: { palpite_id: number }) => h.palpite_id === r.palpite_id)
+          .map((h: { data: string; total_pontos: number }) => ({ data: h.data, total_pontos: h.total_pontos })),
+      }))
+    }
   }
 
   return (
     <div className="page-main" style={{ maxWidth: 1000, margin: '0 auto', padding: '20px 24px 40px' }}>
+
+      {/* cabeçalho */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
           <div style={{ fontSize: 18, fontWeight: 800, color: 'white' }}>Ranking geral</div>
@@ -75,56 +203,85 @@ export default async function RankingPage() {
         </div>
       ) : (
         <>
-          {ranking.length >= 3 && <Podium top3={ranking.slice(0, 3)} />}
+          {/* pódio */}
+          {ranking.length >= 3 && (
+            <Podium top3={ranking.slice(0, 3)} myIds={myPalpiteIds} />
+          )}
 
-          {/* Desktop table / Mobile card list */}
+          {/* gráfico de evolução */}
+          {chartSeries.length >= 2 && chartDatas.length >= 2 && (
+            <RankingEvolutionChart series={chartSeries} datas={chartDatas} />
+          )}
+
+          {/* tabela ranking */}
           <div className="rank-table-wrap" style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, overflow: 'hidden' }}>
-            {/* Desktop header */}
-            <div className="rank-header" style={{ display: 'grid', gridTemplateColumns: '50px 1fr 80px 90px 70px', padding: '8px 18px', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.50)', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.15)' }}>
+            {/* cabeçalho desktop */}
+            <div className="rank-header" style={{ display: 'grid', gridTemplateColumns: '50px 1fr 80px 100px', padding: '8px 18px', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.50)', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.15)' }}>
               <span style={{ textAlign: 'center' }}>#</span>
               <span>Palpite</span>
               <span className="rank-acertos" style={{ textAlign: 'center' }}>Acertos</span>
-              <span style={{ textAlign: 'center' }}>Pontos</span>
-              <span style={{ textAlign: 'center' }}>Variação</span>
+              <span style={{ textAlign: 'right' }}>Pontos</span>
             </div>
 
-            {/* Rows — desktop: table grid; mobile: flex cards via CSS */}
             <div className="rank-table-body" style={{ display: 'contents' }}>
               {ranking.map((entry, idx) => {
-                const isMe = myPalpiteIds.includes(entry.palpite_id)
-                const posColor = entry.posicao === 1 ? '#FFD700' : entry.posicao === 2 ? '#C0C0C0' : entry.posicao === 3 ? '#CD7F32' : isMe ? '#4A90D9' : 'rgba(255,255,255,0.25)'
+                const isMe    = myPalpiteIds.includes(entry.palpite_id)
+                const posColor = entry.posicao === 1 ? '#FFD700'
+                  : entry.posicao === 2 ? '#C0C0C0'
+                  : entry.posicao === 3 ? '#CD7F32'
+                  : isMe ? '#4A90D9'
+                  : 'rgba(255,255,255,0.25)'
+
                 return (
                   <div key={entry.palpite_id}
                     className={`rank-row${isMe ? ' rank-me' : ''}`}
                     style={{
-                      display: 'grid', gridTemplateColumns: '50px 1fr 80px 90px 70px',
+                      display: 'grid', gridTemplateColumns: '50px 1fr 80px 100px',
                       padding: '11px 18px', alignItems: 'center', fontSize: 13,
                       borderBottom: idx < ranking.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
                       background: isMe ? 'rgba(74,144,217,0.07)' : 'transparent',
                       borderLeft: isMe ? '2px solid #4A90D9' : '2px solid transparent',
                     }}>
-                    {/* pos */}
-                    <span className="rank-pos" style={{ fontSize: 14, fontWeight: 700, color: posColor, textAlign: 'center' }}>{entry.posicao}</span>
-                    {/* name + user */}
+
+                    {/* posição + variação */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                      <span className="rank-pos" style={{ fontSize: 14, fontWeight: 700, color: posColor, textAlign: 'center' }}>
+                        {entry.posicao}
+                      </span>
+                      {entry.variacao_posicao !== 0 && (
+                        <span style={{ fontSize: 8, fontWeight: 700, lineHeight: 1, color: entry.variacao_posicao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
+                          {entry.variacao_posicao > 0 ? `▲${entry.variacao_posicao}` : `▼${Math.abs(entry.variacao_posicao)}`}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* nome + usuário */}
                     <div className="rank-info" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <PalpiteAvatar nome={entry.nome} avatarType={entry.avatar_type} avatarValue={entry.avatar_value} size={28} />
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>
-                        {entry.nome}
-                        {isMe && <span style={{ fontSize: 8, background: 'rgba(74,144,217,0.2)', color: '#7BB8F0', padding: '1px 5px', borderRadius: 6, fontWeight: 600, marginLeft: 5 }}>você</span>}
-                      </div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)' }}>{entry.usuario_nome}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>
+                          {entry.nome}
+                          {isMe && <span style={{ fontSize: 8, background: 'rgba(74,144,217,0.2)', color: '#7BB8F0', padding: '1px 5px', borderRadius: 6, fontWeight: 600, marginLeft: 5 }}>você</span>}
+                        </div>
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)' }}>{entry.usuario_nome}</div>
                       </div>
                     </div>
-                    {/* acertos — hidden on mobile */}
+
+                    {/* acertos */}
                     <span className="rank-acertos" style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>
                       {entry.acertos_exatos + entry.acertos_vencedor}
                     </span>
-                    {/* pts */}
-                    <div className="rank-right" style={{ display: 'contents' }}>
-                      <span className="rank-pts" style={{ textAlign: 'center', fontSize: 15, fontWeight: 800, color: '#4A90D9' }}>{entry.total_pontos}</span>
-                      {/* variação */}
-                      <span className="rank-var eq" style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.50)' }}>—</span>
+
+                    {/* pontos + variação */}
+                    <div style={{ textAlign: 'right' }}>
+                      <div className="rank-pts" style={{ fontSize: 15, fontWeight: 800, color: '#4A90D9' }}>
+                        {entry.total_pontos} pts
+                      </div>
+                      {entry.variacao !== 0 && (
+                        <div style={{ fontSize: 10, fontWeight: 700, marginTop: 2, color: entry.variacao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
+                          {entry.variacao > 0 ? `▲ +${entry.variacao} pts` : `▼ ${entry.variacao} pts`}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
