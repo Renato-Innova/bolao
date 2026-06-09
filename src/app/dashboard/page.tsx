@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getRanking } from '@/services/ranking'
 import { FlagImg } from '@/components/ui/FlagImg'
+import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
 import type { JogoCopa, ClassificacaoGrupo } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -201,7 +202,16 @@ export default async function DashboardPage() {
                 const isMe   = currentUser && entry.usuario_id === currentUser.id
                 return (
                   <div key={entry.palpite_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: isMe ? 'rgba(74,144,217,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isMe ? 'rgba(74,144,217,0.3)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 7 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, minWidth: 22, color: 'rgba(255,255,255,0.50)', textAlign: 'center' }}>{medal}</span>
+                    {/* Posição + variação de posição */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 22, gap: 1 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.50)' }}>{medal}</span>
+                      {entry.variacao_posicao !== 0 && (
+                        <span style={{ fontSize: 8, fontWeight: 700, lineHeight: 1, color: entry.variacao_posicao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
+                          {entry.variacao_posicao > 0 ? `▲${entry.variacao_posicao}` : `▼${Math.abs(entry.variacao_posicao)}`}
+                        </span>
+                      )}
+                    </div>
+                    <PalpiteAvatar nome={entry.nome} avatarType={entry.avatar_type} avatarValue={entry.avatar_value} size={28} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>{entry.nome}</div>
                       <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)' }}>{entry.usuario_nome}</div>
@@ -209,7 +219,15 @@ export default async function DashboardPage() {
                     <div style={{ width: 56, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
                       <div style={{ height: 3, background: 'linear-gradient(90deg, #4A90D9, #7BB8F0)', borderRadius: 2, width: `${pct}%` }} />
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9', minWidth: 52, textAlign: 'right' }}>{entry.total_pontos} pts</span>
+                    {/* Pontos + variação de pontos */}
+                    <div style={{ textAlign: 'right', minWidth: 52 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9' }}>{entry.total_pontos} pts</div>
+                      {entry.variacao !== 0 && (
+                        <div style={{ fontSize: 9, fontWeight: 700, marginTop: 1, color: entry.variacao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
+                          {entry.variacao > 0 ? `▲ +${entry.variacao}` : `▼ ${entry.variacao}`}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )
               })}

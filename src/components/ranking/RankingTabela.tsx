@@ -1,4 +1,5 @@
 import type { RankingEntry } from '@/types'
+import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
 
 interface Props {
   entries: RankingEntry[]
@@ -42,8 +43,8 @@ export function RankingTabela({ entries, currentUserId }: Props) {
               border: isMe ? '1px solid rgba(74,144,217,0.3)' : undefined,
             }}
           >
-            {/* Position */}
-            <div className="col-span-1">
+            {/* Position + position change */}
+            <div className="col-span-1" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
               <span
                 className="text-sm font-bold"
                 style={{
@@ -56,10 +57,16 @@ export function RankingTabela({ entries, currentUserId }: Props) {
               >
                 {entry.posicao}
               </span>
+              {entry.variacao_posicao !== 0 && (
+                <span style={{ fontSize: 8, fontWeight: 700, color: entry.variacao_posicao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)', lineHeight: 1 }}>
+                  {entry.variacao_posicao > 0 ? `▲${entry.variacao_posicao}` : `▼${Math.abs(entry.variacao_posicao)}`}
+                </span>
+              )}
             </div>
 
             {/* Entry name */}
             <div className="col-span-5 flex items-center gap-2">
+              <PalpiteAvatar nome={entry.nome} avatarType={entry.avatar_type} avatarValue={entry.avatar_value} size={26} />
               <span className="text-sm font-medium text-white truncate">{entry.nome}</span>
               {isMe && (
                 <span
@@ -78,7 +85,7 @@ export function RankingTabela({ entries, currentUserId }: Props) {
               </span>
             </div>
 
-            {/* Points */}
+            {/* Points + point variation */}
             <div className="col-span-3 text-right">
               <span
                 className="text-sm font-bold"
@@ -86,6 +93,11 @@ export function RankingTabela({ entries, currentUserId }: Props) {
               >
                 {entry.total_pontos} pts
               </span>
+              {entry.variacao !== 0 && (
+                <div style={{ fontSize: 10, fontWeight: 700, marginTop: 2, color: entry.variacao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
+                  {entry.variacao > 0 ? `▲ +${entry.variacao} pts` : `▼ ${entry.variacao} pts`}
+                </div>
+              )}
             </div>
           </div>
         )

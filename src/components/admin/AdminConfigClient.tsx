@@ -36,6 +36,7 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
 
   // ── Palpites state ────────────────────────────────────────────────────────
   const [palpitesState, setPalpitesState] = useState(palpites)
+  const [searchPalpites, setSearchPalpites] = useState('')
 
   // ── Special results state ─────────────────────────────────────────────────
   const [especiaisState, setEspeciaisState] = useState<Partial<ResultadoEspecial>>(especiais ?? {})
@@ -494,10 +495,35 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
       {/* ── Palpites ── */}
       {aba === 'palpites' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {palpitesState.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>Nenhum palpite criado</div>
-          )}
-          {palpitesState.map(p => {
+          {/* Buscador */}
+          <div style={{ position: 'relative', marginBottom: 4 }}>
+            <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }}>🔍</span>
+            <input
+              type="text"
+              placeholder="Buscar por nome do palpite ou participante..."
+              value={searchPalpites}
+              onChange={e => setSearchPalpites(e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 8, padding: '8px 12px 8px 32px', fontSize: 12, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none' }}
+            />
+            {searchPalpites && (
+              <button onClick={() => setSearchPalpites('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>✕</button>
+            )}
+          </div>
+          {(() => {
+            const q = searchPalpites.trim().toLowerCase()
+            const filtered = q
+              ? palpitesState.filter(p =>
+                  p.nome.toLowerCase().includes(q) ||
+                  (p.usuario?.nome ?? '').toLowerCase().includes(q) ||
+                  (p.usuario?.email ?? '').toLowerCase().includes(q)
+                )
+              : palpitesState
+            if (filtered.length === 0) return (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>
+                {q ? `Nenhum resultado para "${searchPalpites}"` : 'Nenhum palpite criado'}
+              </div>
+            )
+            return filtered.map(p => {
             const jogosSubmetidos = p.palpites_jogos?.filter(pj => pj.submitted_at).length ?? 0
             const totalJogos      = 104 // always 104 games in the tournament
             const speciais        = [p.campeao, p.vice_campeao, p.artilheiro, p.melhor_jogador, p.melhor_goleiro]
@@ -569,7 +595,8 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
                 </div>
               </div>
             )
-          })}
+          })
+          })()}
         </div>
       )}
 
