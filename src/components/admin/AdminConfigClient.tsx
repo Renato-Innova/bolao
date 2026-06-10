@@ -799,9 +799,12 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais, acti
    ActivityLogTab — sub-component with its own search/filter state
    ───────────────────────────────────────────────────────────────────────────── */
 
+type LogSort = 'data_desc' | 'data_asc' | 'usuario' | 'palpite'
+
 function ActivityLogTab({ log }: { log: ActivityLog[] }) {
   const [search, setSearch]           = useState('')
   const [userFilter, setUserFilter]   = useState<string>('todos')
+  const [sort, setSort]               = useState<LogSort>('data_desc')
 
   // Build sorted list of unique users who appear in the log
   const usersInLog = Array.from(
@@ -824,6 +827,15 @@ function ActivityLogTab({ log }: { log: ActivityLog[] }) {
       (e.usuario?.nome ?? '').toLowerCase().includes(q) ||
       (e.usuario?.email ?? '').toLowerCase().includes(q)
     return matchUser && matchSearch
+  })
+
+  const sorted = [...filtered].sort((a, b) => {
+    switch (sort) {
+      case 'data_asc':  return new Date(a.criado_em).getTime() - new Date(b.criado_em).getTime()
+      case 'data_desc': return new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime()
+      case 'usuario':   return (a.usuario?.nome ?? a.usuario?.email ?? '').localeCompare(b.usuario?.nome ?? b.usuario?.email ?? '', 'pt-BR')
+      case 'palpite':   return (a.palpite?.nome ?? '').localeCompare(b.palpite?.nome ?? '', 'pt-BR')
+    }
   })
 
   function formatDT(iso: string) {
@@ -876,9 +888,28 @@ function ActivityLogTab({ log }: { log: ActivityLog[] }) {
         </div>
       </div>
 
-      {/* Summary */}
-      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
-        {filtered.length} registro{filtered.length !== 1 ? 's' : ''} de {log.length} total
+      {/* Sort pills + summary */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {([
+            { key: 'data_desc', label: 'Mais recente' },
+            { key: 'data_asc',  label: 'Mais antigo'  },
+            { key: 'usuario',   label: 'Usuário'       },
+            { key: 'palpite',   label: 'Palpite'       },
+          ] as { key: LogSort; label: string }[]).map(s => (
+            <button key={s.key} onClick={() => setSort(s.key)} style={{
+              padding: '4px 12px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+              cursor: 'pointer', border: 'none', fontFamily: 'Inter,sans-serif',
+              textTransform: 'uppercase', letterSpacing: 0.5,
+              background: sort === s.key ? 'rgba(74,144,217,0.2)' : 'rgba(255,255,255,0.05)',
+              color: sort === s.key ? '#7BB8F0' : 'rgba(255,255,255,0.35)',
+              outline: sort === s.key ? '1px solid rgba(74,144,217,0.35)' : '1px solid transparent',
+            }}>{s.label}</button>
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+          {filtered.length} registro{filtered.length !== 1 ? 's' : ''} de {log.length} total
+        </div>
       </div>
 
       {filtered.length === 0 && (
@@ -887,7 +918,7 @@ function ActivityLogTab({ log }: { log: ActivityLog[] }) {
         </div>
       )}
 
-      {filtered.map(e => (
+      {sorted.map(e => (
         <div key={e.id} style={{
           background: '#0D1E3D',
           border: `1px solid ${isEspeciais(e) ? 'rgba(251,191,36,0.18)' : 'rgba(74,144,217,0.15)'}`,
