@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { calcularPontos } from '@/utils/scoring'
 
 // POST /api/palpites/[id]/submit
@@ -43,9 +43,9 @@ export async function POST(
 
   const now = new Date().toISOString()
 
-  // Fetch game info (fase + horário para checar lock)
+  // Fetch game info (fase + horário para checar lock + nomes para log)
   const { data: jogo } = await supabase
-    .from('jogos_copa').select('fase, data, horario').eq('id', jogoId).single()
+    .from('jogos_copa').select('fase, data, horario, time_a, time_b').eq('id', jogoId).single()
   if (!jogo) return NextResponse.json({ error: 'Jogo não encontrado.' }, { status: 404 })
 
   // Check lock: impede edição X minutos antes do jogo
@@ -116,6 +116,22 @@ export async function POST(
   }, { onConflict: 'palpite_id,jogo_id' })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // ── Activity log (fire-and-forget via service role) ───────────────────────
+  try {
+    // Action: "Brasil - 2 x Argentina - 1" or with penalties "Brasil - 1 x Argentina - 1 (pen: 4-3)"
+    let action = `${jogo.time_a} - ${placarA} x ${jogo.time_b} - ${placarB}`
+    if (finalPenaltiA !== null && finalPenaltiB !== null) {
+      action += ` (pen: ${finalPenaltiA}-${finalPenaltiB})`
+    }
+    const adminLog = createAdminClient()
+    await adminLog.from('palpites_activity_log').insert({
+      usuario_id: user.id,
+      palpite_id: palpiteId,
+      jogo_id:    jogoId,
+      action,
+    })
+  } catch { /* log failure must never break the submission */ }
 
   return NextResponse.json({ ok: true, pontos, submittedAt: now })
 }

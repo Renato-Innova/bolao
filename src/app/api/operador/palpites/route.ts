@@ -19,7 +19,6 @@ export async function GET() {
   const { data, error } = await admin
     .from('palpites')
     .select('id, nome, status, criado_em, usuario:users(nome, email)')
-    .eq('status', 'inativo')
     .order('criado_em', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

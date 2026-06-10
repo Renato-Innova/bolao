@@ -63,5 +63,23 @@ export async function POST(
     return NextResponse.json({ error: `Erro ao salvar: ${updateError.message}` }, { status: 500 })
   }
 
+  // ── Activity log (fire-and-forget via service role) ───────────────────────
+  try {
+    const parts: string[] = []
+    if (campeao)         parts.push(`🏆 ${campeao}`)
+    if (vice_campeao)    parts.push(`🥈 ${vice_campeao}`)
+    if (artilheiro)      parts.push(`⚽ ${artilheiro}`)
+    if (melhor_jogador)  parts.push(`🌟 ${melhor_jogador}`)
+    if (melhor_goleiro)  parts.push(`🧤 ${melhor_goleiro}`)
+    if (parts.length > 0) {
+      await admin.from('palpites_activity_log').insert({
+        usuario_id: user.id,
+        palpite_id: palpiteId,
+        jogo_id:    null,
+        action:     `Especiais: ${parts.join(' | ')}`,
+      })
+    }
+  } catch { /* log failure must never break the submission */ }
+
   return NextResponse.json({ ok: true })
 }

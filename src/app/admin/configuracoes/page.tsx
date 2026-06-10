@@ -17,23 +17,37 @@ export default async function AdminConfigPage() {
     .select('*')
     .order('fase')
 
-  const { data: usuarios } = await supabase
+  // Admin client needed for auth.users, resultados_especiais, and activity_log
+  const admin = createAdminClient()
+
+  const { data: usuariosRaw } = await supabase
     .from('users')
     .select('*')
-    .order('criado_em', { ascending: false })
+    .order('nome', { ascending: true })
+
+  // Merge last_sign_in_at from auth.users (requires service role)
+  const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 })
+  const authMap = new Map(authUsers.map(u => [u.id, u.last_sign_in_at ?? null]))
+  const usuarios = (usuariosRaw ?? []).map(u => ({
+    ...u,
+    last_sign_in_at: authMap.get(u.id) ?? null,
+  }))
 
   const { data: palpites } = await supabase
     .from('palpites')
     .select('*, usuario:users(nome, email), palpites_jogos(submitted_at)')
-    .order('criado_em', { ascending: false })
-
-  // Use admin client to bypass RLS on resultados_especiais
-  const admin = createAdminClient()
+    .order('nome', { ascending: true })
   const { data: especiais } = await admin
     .from('resultados_especiais')
     .select('*')
     .eq('id', 1)
     .maybeSingle()
+
+  const { data: activityLog } = await admin
+    .from('palpites_activity_log')
+    .select('*, usuario:users(nome, email), palpite:palpites(nome), jogo:jogos_copa(numero_jogo, time_a, time_b)')
+    .order('criado_em', { ascending: false })
+    .limit(500)
 
   return (
     <AdminConfigClient
@@ -41,6 +55,7 @@ export default async function AdminConfigPage() {
       usuarios={usuarios ?? []}
       palpites={palpites ?? []}
       especiais={especiais ?? null}
+      activityLog={activityLog ?? []}
     />
   )
 }

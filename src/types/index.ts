@@ -6,6 +6,7 @@ export interface User {
   is_admin: boolean
   criado_em: string
   atualizado_em: string
+  last_sign_in_at?: string | null  // merged from auth.users in admin page
 }
 
 export interface JogoCopa {
@@ -127,6 +128,19 @@ export interface RankingEntry {
   variacao_posicao: number   // position change vs yesterday (positive = moved up)
   avatar_type?: string | null
   avatar_value?: string | null
+}
+
+export interface ActivityLog {
+  id: number
+  usuario_id: string | null
+  palpite_id: number | null
+  jogo_id: number | null
+  action: string
+  criado_em: string
+  // joined
+  usuario?: { nome: string; email: string } | null
+  palpite?: { nome: string } | null
+  jogo?: { numero_jogo: number; time_a: string; time_b: string } | null
 }
 
 export interface BracketSlot {
