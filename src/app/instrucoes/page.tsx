@@ -133,7 +133,7 @@ export default async function InstrucoesPage() {
             {cardTitle('💳', 'Pagamento e ativação')}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
-                { icon: '📱', title: 'PIX — R$ 30,00 por palpite', desc: <>Cada palpite cobre <strong style={{ color: 'white' }}>todos os 104 jogos da Copa</strong> — grupos e mata-mata completo. Chave PIX (CPF do Ricardo): <strong style={{ color: 'white' }}>247.076.998-12</strong></> },
+                { icon: '📱', title: 'PIX — R$ 30,00 por palpite', desc: <>Chave PIX (CPF do Ricardo): <strong style={{ color: 'white' }}>247.076.998-12</strong>. Cada palpite cobre <strong style={{ color: 'white' }}>todos os 104 jogos da Copa</strong> — grupos e mata-mata completo.</> },
                 { icon: '📲', title: 'Envie o comprovante no grupo do WhatsApp', desc: <>Após pagar, envie o comprovante <strong style={{ color: 'white' }}>no grupo do WhatsApp</strong> informando também o <strong style={{ color: 'white' }}>nome do seu palpite</strong>.</> },
                 { icon: '✅', title: 'Ativação manual', desc: 'Após confirmação do pagamento pelo organizador, seu palpite é ativado e passa a valer no ranking.' },
                 { icon: '⏰', title: 'Prazo de ativação', desc: <>Palpites não pagos <strong style={{ color: 'white' }}>não podem ser ativados após o início da Copa</strong>. Não deixe pra última hora.</> },
