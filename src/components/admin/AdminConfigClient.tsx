@@ -799,69 +799,132 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais, acti
    ActivityLogTab — sub-component with its own search/filter state
    ───────────────────────────────────────────────────────────────────────────── */
 
+type LogSort = 'data_desc' | 'data_asc' | 'usuario' | 'palpite'
+
 function ActivityLogTab({ log }: { log: ActivityLog[] }) {
-  const [search, setSearch] = useState('')
+  const [search, setSearch]           = useState('')
+  const [userFilter, setUserFilter]   = useState<string>('todos')
+  const [sort, setSort]               = useState<LogSort>('data_desc')
+
+  // Build sorted list of unique users who appear in the log
+  const usersInLog = Array.from(
+    new Map(
+      log
+        .filter(e => e.usuario_id)
+        .map(e => [
+          e.usuario_id!,
+          { id: e.usuario_id!, label: e.usuario?.nome ?? e.usuario?.email ?? e.usuario_id! },
+        ])
+    ).values()
+  ).sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
 
   const q = search.trim().toLowerCase()
-  const filtered = q
-    ? log.filter(e =>
-        (e.action ?? '').toLowerCase().includes(q) ||
-        (e.palpite?.nome ?? '').toLowerCase().includes(q) ||
-        (e.usuario?.nome ?? '').toLowerCase().includes(q) ||
-        (e.usuario?.email ?? '').toLowerCase().includes(q)
-      )
-    : log
+  const filtered = log.filter(e => {
+    const matchUser   = userFilter === 'todos' || e.usuario_id === userFilter
+    const matchSearch = !q ||
+      (e.action ?? '').toLowerCase().includes(q) ||
+      (e.palpite?.nome ?? '').toLowerCase().includes(q) ||
+      (e.usuario?.nome ?? '').toLowerCase().includes(q) ||
+      (e.usuario?.email ?? '').toLowerCase().includes(q)
+    return matchUser && matchSearch
+  })
+
+  const sorted = [...filtered].sort((a, b) => {
+    switch (sort) {
+      case 'data_asc':  return new Date(a.criado_em).getTime() - new Date(b.criado_em).getTime()
+      case 'data_desc': return new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime()
+      case 'usuario':   return (a.usuario?.nome ?? a.usuario?.email ?? '').localeCompare(b.usuario?.nome ?? b.usuario?.email ?? '', 'pt-BR')
+      case 'palpite':   return (a.palpite?.nome ?? '').localeCompare(b.palpite?.nome ?? '', 'pt-BR')
+    }
+  })
 
   function formatDT(iso: string) {
     const d = new Date(iso)
-    return d.toLocaleString('pt-BR', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-    })
+    const date = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    return `${date} - ${time}`
   }
 
-  // Is this an especiais log entry (no jogo_id)?
   const isEspeciais = (e: ActivityLog) => e.jogo_id === null
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {/* Search */}
-      <div style={{ position: 'relative', marginBottom: 4 }}>
-        <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }}>🔍</span>
-        <input
-          type="text"
-          placeholder="Buscar por palpite, usuário ou ação..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 8, padding: '8px 12px 8px 32px', fontSize: 12, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none' }}
-        />
-        {search && (
-          <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 14, padding: 0 }}>✕</button>
-        )}
+
+      {/* Filters row */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Search */}
+        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }}>🔍</span>
+          <input
+            type="text"
+            placeholder="Buscar por ação ou palpite..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 8, padding: '8px 28px 8px 32px', fontSize: 12, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none' }}
+          />
+          {search && (
+            <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 14, padding: 0 }}>✕</button>
+          )}
+        </div>
+
+        {/* User dropdown */}
+        <div style={{ position: 'relative' }}>
+          <select
+            value={userFilter}
+            onChange={e => setUserFilter(e.target.value)}
+            style={{
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(74,144,217,0.25)',
+              borderRadius: 8, padding: '8px 32px 8px 12px', fontSize: 12, color: userFilter === 'todos' ? 'rgba(255,255,255,0.5)' : 'white',
+              fontFamily: 'Inter,sans-serif', outline: 'none', cursor: 'pointer',
+              appearance: 'none', WebkitAppearance: 'none', minWidth: 160,
+            }}
+          >
+            <option value="todos" style={{ background: '#0D1E3D' }}>Todos os usuários</option>
+            {usersInLog.map(u => (
+              <option key={u.id} value={u.id} style={{ background: '#0D1E3D' }}>{u.label}</option>
+            ))}
+          </select>
+          <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>▾</span>
+        </div>
       </div>
 
-      {/* Summary */}
-      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>
-        {filtered.length} registro{filtered.length !== 1 ? 's' : ''} de {log.length} total
+      {/* Sort pills + summary */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {([
+            { key: 'data_desc', label: 'Mais recente' },
+            { key: 'data_asc',  label: 'Mais antigo'  },
+            { key: 'usuario',   label: 'Usuário'       },
+            { key: 'palpite',   label: 'Palpite'       },
+          ] as { key: LogSort; label: string }[]).map(s => (
+            <button key={s.key} onClick={() => setSort(s.key)} style={{
+              padding: '4px 12px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+              cursor: 'pointer', border: 'none', fontFamily: 'Inter,sans-serif',
+              textTransform: 'uppercase', letterSpacing: 0.5,
+              background: sort === s.key ? 'rgba(74,144,217,0.2)' : 'rgba(255,255,255,0.05)',
+              color: sort === s.key ? '#7BB8F0' : 'rgba(255,255,255,0.35)',
+              outline: sort === s.key ? '1px solid rgba(74,144,217,0.35)' : '1px solid transparent',
+            }}>{s.label}</button>
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+          {filtered.length} registro{filtered.length !== 1 ? 's' : ''} de {log.length} total
+        </div>
       </div>
 
       {filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>
-          {log.length === 0 ? 'Nenhuma atividade registrada ainda.' : 'Nenhum resultado para a busca.'}
+          {log.length === 0 ? 'Nenhuma atividade registrada ainda.' : 'Nenhum resultado.'}
         </div>
       )}
 
-      {filtered.map(e => (
+      {sorted.map(e => (
         <div key={e.id} style={{
           background: '#0D1E3D',
           border: `1px solid ${isEspeciais(e) ? 'rgba(251,191,36,0.18)' : 'rgba(74,144,217,0.15)'}`,
           borderRadius: 8, padding: '10px 14px',
-          display: 'grid',
-          gridTemplateColumns: '1fr auto',
-          gap: '2px 12px',
-          alignItems: 'start',
+          display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px 12px', alignItems: 'start',
         }}>
-          {/* Left: action + context */}
           <div>
             {/* Action */}
             <div style={{ fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 3 }}>
@@ -870,21 +933,21 @@ function ActivityLogTab({ log }: { log: ActivityLog[] }) {
                 : e.action
               }
             </div>
-            {/* Palpite + user */}
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {/* Palpite + user + jogo */}
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               {e.palpite?.nome && (
                 <span style={{ background: 'rgba(74,144,217,0.1)', border: '1px solid rgba(74,144,217,0.2)', borderRadius: 4, padding: '1px 6px', fontSize: 10, color: '#7BB8F0' }}>
                   {e.palpite.nome}
                 </span>
               )}
-              <span>{e.usuario?.nome ?? e.usuario?.email ?? e.usuario_id ?? '—'}</span>
+              <span>{e.usuario?.nome ?? e.usuario?.email ?? '—'}</span>
               {e.jogo?.numero_jogo && (
-                <span style={{ color: 'rgba(255,255,255,0.25)' }}>Jogo #{e.jogo.numero_jogo}</span>
+                <span style={{ color: 'rgba(255,255,255,0.22)' }}>Jogo #{e.jogo.numero_jogo}</span>
               )}
             </div>
           </div>
-          {/* Right: timestamp */}
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', textAlign: 'right', whiteSpace: 'nowrap', paddingTop: 1 }}>
+          {/* Timestamp */}
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textAlign: 'right', whiteSpace: 'nowrap', paddingTop: 2 }}>
             {formatDT(e.criado_em)}
           </div>
         </div>

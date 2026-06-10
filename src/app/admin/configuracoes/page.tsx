@@ -43,11 +43,20 @@ export default async function AdminConfigPage() {
     .eq('id', 1)
     .maybeSingle()
 
-  const { data: activityLog } = await admin
+  // Activity log: usuario_id FK points to auth.users (not public.users) so
+  // PostgREST can't resolve the join. We fetch without the user join and merge
+  // manually using the usuarios list already loaded above.
+  const { data: activityLogRaw } = await admin
     .from('palpites_activity_log')
-    .select('*, usuario:users(nome, email), palpite:palpites(nome), jogo:jogos_copa(numero_jogo, time_a, time_b)')
+    .select('*, palpite:palpites(nome), jogo:jogos_copa(numero_jogo, time_a, time_b)')
     .order('criado_em', { ascending: false })
     .limit(500)
+
+  const userMap = new Map((usuariosRaw ?? []).map(u => [u.id, { nome: u.nome, email: u.email }]))
+  const activityLog = (activityLogRaw ?? []).map(e => ({
+    ...e,
+    usuario: userMap.get(e.usuario_id ?? '') ?? null,
+  }))
 
   return (
     <AdminConfigClient
@@ -55,7 +64,7 @@ export default async function AdminConfigPage() {
       usuarios={usuarios ?? []}
       palpites={palpites ?? []}
       especiais={especiais ?? null}
-      activityLog={activityLog ?? []}
+      activityLog={activityLog}
     />
   )
 }
