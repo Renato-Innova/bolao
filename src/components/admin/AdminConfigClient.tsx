@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { FASES, ALL_TEAMS, ARTILHEIRO_OPTIONS, GOLEIRO_OPTIONS } from '@/utils/constants'
 import { SPECIAL_POINTS } from '@/utils/scoring'
-import type { ConfiguracaoPontuacao, Palpite, User, ResultadoEspecial } from '@/types'
+import type { ConfiguracaoPontuacao, Palpite, User, ResultadoEspecial, ActivityLog } from '@/types'
 
 // Human-readable labels for each scoring type
 const TIPO_LABEL: Record<string, string> = {
@@ -23,11 +23,12 @@ interface Props {
   usuarios:        User[]
   palpites:        (Palpite & { usuario?: { nome: string; email: string }; palpites_jogos?: { submitted_at: string | null }[] })[]
   especiais:       ResultadoEspecial | null
+  activityLog:     ActivityLog[]
 }
 
-type Aba = 'pontuacao' | 'especiais' | 'palpites' | 'usuarios' | 'operacoes'
+type Aba = 'pontuacao' | 'especiais' | 'palpites' | 'usuarios' | 'operacoes' | 'atividades'
 
-export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Props) {
+export function AdminConfigClient({ configs, usuarios, palpites, especiais, activityLog }: Props) {
   const supabase = createClient()
 
   // ── Scoring config state ──────────────────────────────────────────────────
@@ -37,6 +38,32 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
   // ── Palpites state ────────────────────────────────────────────────────────
   const [palpitesState, setPalpitesState] = useState(palpites)
   const [searchPalpites, setSearchPalpites] = useState('')
+  const [statusFilterAdmin, setStatusFilterAdmin] = useState<'todos' | 'ativo' | 'inativo'>('todos')
+
+  // ── Usuários filter + delete state ───────────────────────────────────────
+  const [usuarioPalpiteFilter, setUsuarioPalpiteFilter] = useState<'todos' | 'com' | 'sem'>('todos')
+  const [usuariosState, setUsuariosState] = useState(usuarios)
+  const [deletingUser, setDeletingUser] = useState<string | null>(null)
+  const [deleteUserConfirm, setDeleteUserConfirm] = useState<{ id: string; nome: string } | null>(null)
+  const [deleteUserMsg, setDeleteUserMsg] = useState('')
+
+  async function handleDeleteUser(id: string) {
+    setDeletingUser(id)
+    setDeleteUserMsg('')
+    try {
+      const res = await fetch(`/api/admin/usuarios/${id}`, { method: 'DELETE' })
+      const json = await res.json()
+      if (!res.ok) {
+        setDeleteUserMsg(json.error ?? 'Erro ao excluir.')
+      } else {
+        setUsuariosState(prev => prev.filter(u => u.id !== id))
+        setDeleteUserConfirm(null)
+      }
+    } catch {
+      setDeleteUserMsg('Erro de conexão.')
+    }
+    setDeletingUser(null)
+  }
 
   // ── Special results state ─────────────────────────────────────────────────
   const [especiaisState, setEspeciaisState] = useState<Partial<ResultadoEspecial>>(especiais ?? {})
@@ -117,6 +144,7 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
     { key: 'palpites',   label: `Palpites (${palpites.length})` },
     { key: 'usuarios',   label: `Usuários (${usuarios.length})` },
     { key: 'operacoes',  label: 'Operações' },
+    { key: 'atividades', label: `Atividades (${activityLog.length})` },
   ]
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -495,35 +523,67 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
       {/* ── Palpites ── */}
       {aba === 'palpites' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {/* Buscador */}
-          <div style={{ position: 'relative', marginBottom: 4 }}>
-            <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }}>🔍</span>
-            <input
-              type="text"
-              placeholder="Buscar por nome do palpite ou participante..."
-              value={searchPalpites}
-              onChange={e => setSearchPalpites(e.target.value)}
-              style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 8, padding: '8px 12px 8px 32px', fontSize: 12, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none' }}
-            />
-            {searchPalpites && (
-              <button onClick={() => setSearchPalpites('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>✕</button>
-            )}
+          {/* Buscador + filtro de status */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+              <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }}>🔍</span>
+              <input
+                type="text"
+                placeholder="Buscar por nome do palpite ou participante..."
+                value={searchPalpites}
+                onChange={e => setSearchPalpites(e.target.value)}
+                style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 8, padding: '8px 12px 8px 32px', fontSize: 12, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none' }}
+              />
+              {searchPalpites && (
+                <button onClick={() => setSearchPalpites('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>✕</button>
+              )}
+            </div>
+            {/* pills de status */}
+            <div style={{ display: 'flex', gap: 4 }}>
+              {(['todos', 'ativo', 'inativo'] as const).map(s => (
+                <button key={s} onClick={() => setStatusFilterAdmin(s)} style={{
+                  padding: '5px 12px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+                  cursor: 'pointer', border: 'none', fontFamily: 'Inter,sans-serif',
+                  textTransform: 'uppercase', letterSpacing: 0.5,
+                  background: statusFilterAdmin === s
+                    ? s === 'ativo' ? 'rgba(74,222,128,0.2)' : s === 'inativo' ? 'rgba(255,100,100,0.15)' : 'rgba(74,144,217,0.2)'
+                    : 'rgba(255,255,255,0.05)',
+                  color: statusFilterAdmin === s
+                    ? s === 'ativo' ? '#4ade80' : s === 'inativo' ? 'rgba(255,130,130,0.9)' : '#7BB8F0'
+                    : 'rgba(255,255,255,0.35)',
+                  borderWidth: 1, borderStyle: 'solid',
+                  borderColor: statusFilterAdmin === s
+                    ? s === 'ativo' ? 'rgba(74,222,128,0.35)' : s === 'inativo' ? 'rgba(255,100,100,0.25)' : 'rgba(74,144,217,0.35)'
+                    : 'transparent',
+                }}>{s === 'todos' ? 'Todos' : s === 'ativo' ? 'Ativos' : 'Inativos'}</button>
+              ))}
+            </div>
           </div>
           {(() => {
             const q = searchPalpites.trim().toLowerCase()
-            const filtered = q
-              ? palpitesState.filter(p =>
-                  p.nome.toLowerCase().includes(q) ||
-                  (p.usuario?.nome ?? '').toLowerCase().includes(q) ||
-                  (p.usuario?.email ?? '').toLowerCase().includes(q)
-                )
-              : palpitesState
+            const filtered = palpitesState.filter(p => {
+              const matchSearch = !q ||
+                p.nome.toLowerCase().includes(q) ||
+                (p.usuario?.nome ?? '').toLowerCase().includes(q) ||
+                (p.usuario?.email ?? '').toLowerCase().includes(q)
+              const matchStatus = statusFilterAdmin === 'todos' || p.status === statusFilterAdmin
+              return matchSearch && matchStatus
+            })
             if (filtered.length === 0) return (
               <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>
                 {q ? `Nenhum resultado para "${searchPalpites}"` : 'Nenhum palpite criado'}
               </div>
             )
-            return filtered.map(p => {
+            const totalStatus = statusFilterAdmin === 'todos' ? palpitesState.length : palpitesState.filter(p => p.status === statusFilterAdmin).length
+            return (<>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 4 }}>
+                {filtered.length} resultado{filtered.length !== 1 ? 's' : ''} de {totalStatus}
+                {' · '}
+                <span style={{ color: '#4ade80' }}>{palpitesState.filter(p => p.status === 'ativo').length} ativos</span>
+                {' · '}
+                <span style={{ color: 'rgba(255,130,130,0.8)' }}>{palpitesState.filter(p => p.status === 'inativo').length} inativos</span>
+              </div>
+              {filtered.map(p => {
             const jogosSubmetidos = p.palpites_jogos?.filter(pj => pj.submitted_at).length ?? 0
             const totalJogos      = 104 // always 104 games in the tournament
             const speciais        = [p.campeao, p.vice_campeao, p.artilheiro, p.melhor_jogador, p.melhor_goleiro]
@@ -595,32 +655,240 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais }: Pr
                 </div>
               </div>
             )
-          })
+          })}
+            </>)
           })()}
         </div>
+      )}
+
+      {/* ── Atividades ── */}
+      {aba === 'atividades' && (
+        <ActivityLogTab log={activityLog} />
       )}
 
       {/* ── Usuários ── */}
       {aba === 'usuarios' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {usuarios.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>Nenhum usuário cadastrado</div>
-          )}
-          {usuarios.map(u => (
-            <div key={u.id} style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 8, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 2 }}>{u.nome}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-                  {u.email}{u.telefone ? ` · ${u.telefone}` : ''}
+
+          {/* Delete confirmation dialog */}
+          {deleteUserConfirm && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+              <div style={{ background: '#0D1E3D', border: '1px solid rgba(255,100,100,0.35)', borderRadius: 12, padding: '28px 32px', maxWidth: 400, width: '100%' }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'white', marginBottom: 6 }}>Excluir usuário?</div>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', marginBottom: 4 }}>Você está prestes a excluir permanentemente:</div>
+                <div style={{ background: 'rgba(255,100,100,0.08)', border: '1px solid rgba(255,100,100,0.2)', borderRadius: 8, padding: '10px 14px', marginBottom: 8 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'white' }}>{deleteUserConfirm.nome}</div>
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(255,200,80,0.8)', marginBottom: 4 }}>⚠️ Esta ação remove a conta de autenticação e não pode ser desfeita.</div>
+                {deleteUserMsg && (
+                  <div style={{ fontSize: 12, color: 'rgba(255,130,130,0.9)', marginBottom: 8, padding: '6px 10px', background: 'rgba(255,100,100,0.1)', borderRadius: 6 }}>{deleteUserMsg}</div>
+                )}
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
+                  <button onClick={() => { setDeleteUserConfirm(null); setDeleteUserMsg('') }}
+                    style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)', border: 'none', padding: '9px 20px', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                    Cancelar
+                  </button>
+                  <button onClick={() => handleDeleteUser(deleteUserConfirm.id)} disabled={deletingUser === deleteUserConfirm.id}
+                    style={{ background: deletingUser === deleteUserConfirm.id ? 'rgba(255,100,100,0.2)' : 'rgba(220,50,50,0.8)', color: 'white', border: 'none', padding: '9px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: deletingUser === deleteUserConfirm.id ? 'not-allowed' : 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                    {deletingUser === deleteUserConfirm.id ? 'Excluindo...' : 'Confirmar exclusão'}
+                  </button>
                 </div>
               </div>
-              {u.is_admin && (
-                <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.3, background: 'rgba(74,222,128,0.15)', color: '#4ade80' }}>Admin</span>
-              )}
             </div>
-          ))}
+          )}
+
+          {/* Filter pills */}
+          <div style={{ display: 'flex', gap: 4, marginBottom: 4, flexWrap: 'wrap' }}>
+            {([
+              { key: 'todos', label: `Todos (${usuariosState.length})` },
+              { key: 'com',   label: `Com Palpite (${usuariosState.filter(u => palpites.some(p => p.usuario_id === u.id)).length})` },
+              { key: 'sem',   label: `Sem Palpite (${usuariosState.filter(u => !palpites.some(p => p.usuario_id === u.id)).length})` },
+            ] as const).map(f => (
+              <button key={f.key} onClick={() => setUsuarioPalpiteFilter(f.key)} style={{
+                padding: '5px 14px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+                cursor: 'pointer', border: 'none', fontFamily: 'Inter,sans-serif',
+                textTransform: 'uppercase', letterSpacing: 0.5,
+                background: usuarioPalpiteFilter === f.key ? 'rgba(74,144,217,0.2)' : 'rgba(255,255,255,0.05)',
+                color: usuarioPalpiteFilter === f.key ? '#7BB8F0' : 'rgba(255,255,255,0.35)',
+                outline: usuarioPalpiteFilter === f.key ? '1px solid rgba(74,144,217,0.35)' : '1px solid transparent',
+              }}>{f.label}</button>
+            ))}
+          </div>
+
+          {usuariosState.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>Nenhum usuário cadastrado</div>
+          )}
+          {usuariosState
+            .filter(u => {
+              const hasPalpite = palpites.some(p => p.usuario_id === u.id)
+              if (usuarioPalpiteFilter === 'com') return hasPalpite
+              if (usuarioPalpiteFilter === 'sem') return !hasPalpite
+              return true
+            })
+            .map(u => {
+              const digits = (u.telefone ?? '').replace(/\D/g, '')
+              const fone = digits.length === 11
+                ? `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`
+                : digits.length === 10
+                ? `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`
+                : (u.telefone ?? null)
+              const formatDate = (iso: string) => {
+                const d = new Date(iso)
+                const date = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                return `${date} - ${time}`
+              }
+              const userPalpites = palpites.filter(p => p.usuario_id === u.id)
+              const canDelete = !u.is_admin && userPalpites.length === 0
+              return (
+                <div key={u.id} style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 8, padding: '12px 16px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  {/* Main info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>{u.nome}</div>
+                      {u.is_admin && (
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.3, background: 'rgba(74,222,128,0.15)', color: '#4ade80' }}>Admin</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>
+                      {u.email}{fone ? ` · ${fone}` : ''}
+                    </div>
+                    {/* Datas — mesma linha, texto mais visível */}
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginBottom: userPalpites.length > 0 ? 6 : 0, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                      {u.criado_em && (
+                        <span>📅 Criado em {formatDate(u.criado_em)}</span>
+                      )}
+                      {u.last_sign_in_at ? (
+                        <span>🔑 Último acesso {formatDate(u.last_sign_in_at)}</span>
+                      ) : (
+                        <span style={{ color: 'rgba(255,255,255,0.25)' }}>🔑 Nunca acessou</span>
+                      )}
+                    </div>
+                    {userPalpites.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                        {userPalpites.map(p => (
+                          <span key={p.id} style={{
+                            fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20,
+                            background: p.status === 'ativo' ? 'rgba(74,222,128,0.12)' : 'rgba(255,100,100,0.10)',
+                            color: p.status === 'ativo' ? '#4ade80' : 'rgba(255,130,130,0.8)',
+                            border: `1px solid ${p.status === 'ativo' ? 'rgba(74,222,128,0.25)' : 'rgba(255,100,100,0.20)'}`,
+                          }}>{p.nome}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {/* Delete button — only for users with no palpites and non-admin */}
+                  {canDelete && (
+                    <button
+                      onClick={() => { setDeleteUserMsg(''); setDeleteUserConfirm({ id: u.id, nome: u.nome }) }}
+                      title="Excluir usuário"
+                      style={{ flexShrink: 0, background: 'rgba(255,100,100,0.08)', border: '1px solid rgba(255,100,100,0.2)', color: 'rgba(255,130,130,0.7)', borderRadius: 7, padding: '6px 10px', fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>
+                      🗑
+                    </button>
+                  )}
+                </div>
+              )
+            })}
         </div>
       )}
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ActivityLogTab — sub-component with its own search/filter state
+   ───────────────────────────────────────────────────────────────────────────── */
+
+function ActivityLogTab({ log }: { log: ActivityLog[] }) {
+  const [search, setSearch] = useState('')
+
+  const q = search.trim().toLowerCase()
+  const filtered = q
+    ? log.filter(e =>
+        (e.action ?? '').toLowerCase().includes(q) ||
+        (e.palpite?.nome ?? '').toLowerCase().includes(q) ||
+        (e.usuario?.nome ?? '').toLowerCase().includes(q) ||
+        (e.usuario?.email ?? '').toLowerCase().includes(q)
+      )
+    : log
+
+  function formatDT(iso: string) {
+    const d = new Date(iso)
+    return d.toLocaleString('pt-BR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+    })
+  }
+
+  // Is this an especiais log entry (no jogo_id)?
+  const isEspeciais = (e: ActivityLog) => e.jogo_id === null
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {/* Search */}
+      <div style={{ position: 'relative', marginBottom: 4 }}>
+        <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }}>🔍</span>
+        <input
+          type="text"
+          placeholder="Buscar por palpite, usuário ou ação..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 8, padding: '8px 12px 8px 32px', fontSize: 12, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none' }}
+        />
+        {search && (
+          <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 14, padding: 0 }}>✕</button>
+        )}
+      </div>
+
+      {/* Summary */}
+      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>
+        {filtered.length} registro{filtered.length !== 1 ? 's' : ''} de {log.length} total
+      </div>
+
+      {filtered.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>
+          {log.length === 0 ? 'Nenhuma atividade registrada ainda.' : 'Nenhum resultado para a busca.'}
+        </div>
+      )}
+
+      {filtered.map(e => (
+        <div key={e.id} style={{
+          background: '#0D1E3D',
+          border: `1px solid ${isEspeciais(e) ? 'rgba(251,191,36,0.18)' : 'rgba(74,144,217,0.15)'}`,
+          borderRadius: 8, padding: '10px 14px',
+          display: 'grid',
+          gridTemplateColumns: '1fr auto',
+          gap: '2px 12px',
+          alignItems: 'start',
+        }}>
+          {/* Left: action + context */}
+          <div>
+            {/* Action */}
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 3 }}>
+              {isEspeciais(e)
+                ? <span style={{ color: '#fbbf24' }}>{e.action}</span>
+                : e.action
+              }
+            </div>
+            {/* Palpite + user */}
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {e.palpite?.nome && (
+                <span style={{ background: 'rgba(74,144,217,0.1)', border: '1px solid rgba(74,144,217,0.2)', borderRadius: 4, padding: '1px 6px', fontSize: 10, color: '#7BB8F0' }}>
+                  {e.palpite.nome}
+                </span>
+              )}
+              <span>{e.usuario?.nome ?? e.usuario?.email ?? e.usuario_id ?? '—'}</span>
+              {e.jogo?.numero_jogo && (
+                <span style={{ color: 'rgba(255,255,255,0.25)' }}>Jogo #{e.jogo.numero_jogo}</span>
+              )}
+            </div>
+          </div>
+          {/* Right: timestamp */}
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', textAlign: 'right', whiteSpace: 'nowrap', paddingTop: 1 }}>
+            {formatDT(e.criado_em)}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
