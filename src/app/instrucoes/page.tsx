@@ -122,7 +122,7 @@ export default async function InstrucoesPage() {
               </div>
             ))}
           </div>
-          {tip(<><strong style={{ color: 'white' }}>Dica:</strong> escolha um nome criativo pro seu palpite — ele vai aparecer no ranking e todo mundo vai ver! Personalize também o <strong style={{ color: 'white' }}>avatar</strong> do seu palpite com uma foto ou imagem para se destacar ainda mais.</>)}
+          {tip(<><strong style={{ color: 'white' }}>Dica:</strong> capriche no nome e no <strong style={{ color: 'white' }}>avatar</strong> do seu palpite — os dois aparecem no ranking para todos os participantes verem!</>)}
         </div>
 
         {/* Right column: payment + prizes */}
