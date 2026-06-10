@@ -110,7 +110,8 @@ export default async function InstrucoesPage() {
               { n: 2, title: 'Crie um palpite e dê um nome', desc: 'Cada palpite precisa de um nome único — esse nome vai aparecer no ranking pra todo mundo ver. Você pode criar quantos palpites quiser.' },
               { n: 3, title: 'Envie o placar de cada jogo individualmente', desc: <>Chute o placar de cada partida clicando em "Enviar placar". Indique também o <strong style={{ color: 'white' }}>campeão, vice, artilheiro, melhor jogador e melhor goleiro</strong>.</> },
               { n: 4, title: 'Ative pagando R$ 30,00 via PIX', desc: <>Palpites não pagos não valem pra competição. <strong style={{ color: 'white' }}>Após o início da Copa não é mais possível ativar.</strong> Não perca o prazo!</> },
-              { n: 5, title: 'Continue no mata-mata', desc: <>Conforme cada fase avança, você edita seu palpite pra adicionar os próximos jogos. É possível editar até <strong style={{ color: 'white' }}>1 hora antes</strong> de cada partida.</> },
+              { n: 5, title: 'Um palpite, toda a Copa', desc: <>Cada palpite pago cobre <strong style={{ color: 'white' }}>todos os 104 jogos</strong> — 72 da fase de grupos e 32 do mata-mata completo. Sem taxas adicionais por fase.</> },
+              { n: 6, title: 'Continue no mata-mata', desc: <>Conforme cada fase avança, você edita seu palpite pra adicionar os próximos jogos. É possível editar até <strong style={{ color: 'white' }}>1 hora antes</strong> de cada partida.</> },
             ].map(s => (
               <div key={s.n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                 <div style={{ width: 24, height: 24, background: 'linear-gradient(135deg, #4A90D9, #1a5ca8)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: 'white', flexShrink: 0, marginTop: 1 }}>{s.n}</div>
