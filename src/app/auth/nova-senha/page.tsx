@@ -20,11 +20,20 @@ export default function NovaSenhaPage() {
     return () => { document.body.style.overflow = '' }
   }, [])
 
-  // Supabase sends the session via URL hash — wait for it to be picked up
+  // Supabase envia a sessão de duas formas:
+  // 1. Hash (#access_token=...&type=recovery) — dispara evento PASSWORD_RECOVERY
+  // 2. PKCE (?code=...) — sessão já foi trocada pelo callback; verificar getUser()
   useEffect(() => {
     const supabase = createClient()
+
+    // Verifica se já há sessão ativa de recovery (fluxo PKCE via callback)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setReady(true)
+    })
+
+    // Aguarda evento para o fluxo hash
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setReady(true)
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') setReady(true)
     })
     return () => subscription.unsubscribe()
   }, [])
