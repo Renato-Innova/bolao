@@ -6,7 +6,7 @@
       "schedule": "0 10 * * *"
     },
     {
-      "path": "/api/boletim/gerar?tipo=almoco",
+      "path": "/api/boletim/gerar?tipo=tarde",
       "schedule": "0 22 * * *"
     }
   ]

@@ -64,7 +64,7 @@ Seja conciso, divertido e use linguagem de torcedor brasileiro.
 Máximo 200 palavras no total.`
 }
 
-function promptAlmoco(hoje: string, resultadosParciais: string, jogosPendentes: string) {
+function promptTarde(hoje: string, resultadosParciais: string, jogosPendentes: string) {
   return `Você é o repórter oficial do Bolão Copa 2026, um bolão de apostas entre amigos brasileiros.
 
 Escreva o BOLETIM DA TARDE da Copa do Mundo 2026 de forma animada, bem-humorada e em português brasileiro.
@@ -140,9 +140,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const tipo = req.nextUrl.searchParams.get('tipo') as 'manha' | 'almoco' | null
-  if (tipo !== 'manha' && tipo !== 'almoco') {
-    return NextResponse.json({ error: 'tipo deve ser manha ou almoco' }, { status: 400 })
+  const tipo = req.nextUrl.searchParams.get('tipo') as 'manha' | 'tarde' | null
+  if (tipo !== 'manha' && tipo !== 'tarde') {
+    return NextResponse.json({ error: 'tipo deve ser manha ou tarde' }, { status: 400 })
   }
 
   const now   = brtNow()
@@ -172,7 +172,7 @@ export async function GET(req: NextRequest) {
   /* ── monta prompt ── */
   const prompt = tipo === 'manha'
     ? promptManha(ontem, hoje, formatarResultados(jogosOntem ?? []), formatarJogos(jogosHoje ?? []))
-    : promptAlmoco(hoje, formatarResultados(jogosHojeEncerrados), formatarJogos(jogosHojePendentes))
+    : promptTarde(hoje, formatarResultados(jogosHojeEncerrados), formatarJogos(jogosHojePendentes))
 
   /* ── chama Claude ── */
   const message = await anthropic.messages.create({
