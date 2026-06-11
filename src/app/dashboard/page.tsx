@@ -330,7 +330,7 @@ export default async function DashboardPage() {
               <div style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Resumo do dia · gerado por IA · 2× ao dia</div>
             </div>
             <span style={{ fontSize: 9, fontWeight: 700, color: '#4A90D9', background: 'rgba(74,144,217,0.10)', padding: '3px 9px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>
-              ☀️ 07h · 🌅 19h
+              ☀️ 07h · 🌤️ 13h
             </span>
           </div>
 
@@ -350,7 +350,7 @@ export default async function DashboardPage() {
                     {/* badge tipo + hora */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                       <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: isManha ? '#FFD700' : '#7BB8F0', background: isManha ? 'rgba(255,215,0,0.10)' : 'rgba(74,144,217,0.12)', padding: '2px 8px', borderRadius: 20 }}>
-                        {isManha ? '☀️ Manhã' : '🌅 Tarde'}
+                        {isManha ? '☀️ Manhã' : '🌤️ Almoço'}
                       </span>
                       <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>{hora}</span>
                     </div>

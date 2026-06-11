@@ -15,12 +15,13 @@ function brtNow() {
   return new Date(Date.now() - 3 * 60 * 60 * 1000)
 }
 function brtDate(d: Date) {
-  return d.toISOString().slice(0, 10)          // "YYYY-MM-DD"
+  return d.toISOString().slice(0, 10) // "YYYY-MM-DD"
 }
 
 /* ── prompts ───────────────────────────────────────────────────────────────── */
 function promptManha(ontem: string, hoje: string, resultados: string, jogosDia: string) {
   return `Você é o repórter oficial do Bolão Copa 2026, um bolão de apostas entre amigos brasileiros.
+
 Escreva o BOLETIM DA MANHÃ da Copa do Mundo 2026 de forma animada, bem-humorada e em português brasileiro.
 
 DATA DE HOJE: ${hoje}
@@ -31,48 +32,81 @@ ${resultados || 'Nenhum jogo foi realizado ontem.'}
 JOGOS DE HOJE (${hoje}):
 ${jogosDia || 'Nenhum jogo hoje.'}
 
+Priorize acontecimentos que possam influenciar os palpites dos participantes do bolão, como:
+- zebras
+- goleadas
+- lesões
+- expulsões
+- suspensões
+- mudanças importantes nas equipes
+- seleções em alta ou em baixa
+
 Estrutura obrigatória (use exatamente esses títulos em negrito):
+
 **☀️ Bom dia, torcedor!**
-(saudação animada, máx 2 linhas)
+(saudação animada, máximo 2 linhas)
 
 **📋 O que rolou ontem**
-(resumo dos resultados com destaques, surpresas e placares — 3 a 5 linhas)
+(resumo dos resultados com destaques, surpresas, placares, lesões, expulsões e fatos relevantes para os próximos jogos — 3 a 5 linhas)
 
 **⚽ Jogos de hoje**
-(prévia dos jogos do dia com horários e times — 3 a 5 linhas)
+(prévia dos jogos do dia com horários e principais destaques — 3 a 5 linhas)
 
 **🎯 Dica do bolão**
-(comentário rápido e divertido sobre como os jogos de hoje podem afetar o bolão — 2 a 3 linhas)
+(comentário rápido e divertido sobre como os jogos de hoje podem afetar os palpites — 2 a 3 linhas)
 
-Seja conciso, divertido e use linguagem de torcedor brasileiro. Máximo 200 palavras no total.`
+**🔮 Palpite do Oráculo**
+(escolha um dos jogos do dia e sugira um placar provável em até 2 linhas)
+
+Escreva como um comentarista esportivo conversando com amigos em um grupo de WhatsApp.
+Seja conciso, divertido e use linguagem de torcedor brasileiro.
+
+Máximo 200 palavras no total.`
 }
 
-function promptTarde(hoje: string, resultadosParciais: string, jogoNoite: string) {
+function promptAlmoco(hoje: string, resultadosParciais: string, jogosPendentes: string) {
   return `Você é o repórter oficial do Bolão Copa 2026, um bolão de apostas entre amigos brasileiros.
-Escreva o BOLETIM DA TARDE da Copa do Mundo 2026 de forma animada, bem-humorada e em português brasileiro.
+
+Escreva o BOLETIM DO ALMOÇO da Copa do Mundo 2026 de forma animada, bem-humorada e em português brasileiro.
 
 DATA DE HOJE: ${hoje}
 
 RESULTADOS DE HOJE ATÉ AGORA:
 ${resultadosParciais || 'Nenhum jogo encerrado ainda hoje.'}
 
-JOGOS DA NOITE / RESTANTES HOJE:
-${jogoNoite || 'Nenhum jogo restante hoje.'}
+JOGOS RESTANTES DE HOJE:
+${jogosPendentes || 'Nenhum jogo restante hoje.'}
+
+Priorize acontecimentos que possam influenciar os palpites dos participantes do bolão, como:
+- zebras
+- goleadas
+- lesões
+- expulsões
+- suspensões
+- mudanças importantes nas equipes
+- seleções em alta ou em baixa
 
 Estrutura obrigatória (use exatamente esses títulos em negrito):
-**🌅 Boa tarde, torcedor!**
-(saudação animada, máx 2 linhas)
+
+**🌤️ Boa tarde, torcedor!**
+(saudação animada, máximo 2 linhas)
 
 **📊 O que já rolou hoje**
-(resumo dos jogos do dia com destaques e placares — 3 a 5 linhas)
+(resumo dos jogos encerrados com destaques, placares e fatos relevantes para o bolão — 3 a 5 linhas)
 
-**🌙 O que vem pela frente**
-(prévia dos jogos da noite com horários — 2 a 4 linhas)
+**⚽ O que vem pela frente**
+(prévia dos jogos restantes com horários, favoritos e possíveis desfalques — 3 a 5 linhas)
 
 **🔥 Esquenta do bolão**
-(como os resultados de hoje movimentaram o bolão, quem pode subir/cair — 2 a 3 linhas)
+(como os resultados de hoje movimentaram o bolão e quais jogos ainda podem mudar tudo — 2 a 3 linhas)
 
-Seja conciso, divertido e use linguagem de torcedor brasileiro. Máximo 200 palavras no total.`
+**🔮 Palpite do Oráculo**
+(escolha um dos jogos restantes e sugira um placar provável em até 2 linhas)
+
+Escreva como um comentarista esportivo conversando com amigos em um grupo de WhatsApp.
+Seja conciso, divertido e use linguagem de torcedor brasileiro.
+
+Máximo 200 palavras no total.`
 }
 
 /* ── formatadores de dados ─────────────────────────────────────────────────── */
@@ -84,14 +118,14 @@ function formatarResultados(jogos: Record<string, unknown>[]) {
     const pen = r.placar_penalti_a != null
       ? ` (pên: ${r.placar_penalti_a}-${r.placar_penalti_b})`
       : ''
-    return `${j.time_a} ${r.placar_real_a}-${r.placar_real_b} ${j.time_b}${pen} | ${j.horario?.toString().slice(0,5)}h | ${j.estadio}, ${j.cidade}`
+    return `${j.time_a} ${r.placar_real_a}-${r.placar_real_b} ${j.time_b}${pen} | ${j.horario?.toString().slice(0, 5)}h | ${j.estadio}, ${j.cidade}`
   }).join('\n')
 }
 
 function formatarJogos(jogos: Record<string, unknown>[]) {
   if (!jogos.length) return ''
   return jogos.map((j: Record<string, unknown>) =>
-    `${j.time_a} x ${j.time_b} | ${j.horario?.toString().slice(0,5)}h (BRT) | ${j.estadio}, ${j.cidade}`
+    `${j.time_a} x ${j.time_b} | ${j.horario?.toString().slice(0, 5)}h (BRT) | ${j.estadio}, ${j.cidade}`
   ).join('\n')
 }
 
@@ -106,9 +140,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const tipo = req.nextUrl.searchParams.get('tipo') as 'manha' | 'tarde' | null
-  if (tipo !== 'manha' && tipo !== 'tarde') {
-    return NextResponse.json({ error: 'tipo deve ser manha ou tarde' }, { status: 400 })
+  const tipo = req.nextUrl.searchParams.get('tipo') as 'manha' | 'almoco' | null
+  if (tipo !== 'manha' && tipo !== 'almoco') {
+    return NextResponse.json({ error: 'tipo deve ser manha ou almoco' }, { status: 400 })
   }
 
   const now   = brtNow()
@@ -138,7 +172,7 @@ export async function GET(req: NextRequest) {
   /* ── monta prompt ── */
   const prompt = tipo === 'manha'
     ? promptManha(ontem, hoje, formatarResultados(jogosOntem ?? []), formatarJogos(jogosHoje ?? []))
-    : promptTarde(hoje, formatarResultados(jogosHojeEncerrados), formatarJogos(jogosHojePendentes))
+    : promptAlmoco(hoje, formatarResultados(jogosHojeEncerrados), formatarJogos(jogosHojePendentes))
 
   /* ── chama Claude ── */
   const message = await anthropic.messages.create({
@@ -153,7 +187,7 @@ export async function GET(req: NextRequest) {
   const tituloMatch = conteudo.match(/\*\*(.*?)\*\*/)
   const titulo = tituloMatch
     ? tituloMatch[1]
-    : tipo === 'manha' ? '☀️ Boletim da Manhã' : '🌅 Boletim da Tarde'
+    : tipo === 'manha' ? '☀️ Boletim da Manhã' : '🌤️ Boletim do Almoço'
 
   /* ── salva no Supabase ── */
   const { error } = await supabase
