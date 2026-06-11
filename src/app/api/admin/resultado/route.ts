@@ -112,5 +112,44 @@ export async function POST(req: NextRequest) {
     updated++
   }
 
+  // 4 — Salva snapshot diário no ranking_historico para todos os palpites ativos
+  // Usa a função RPC para obter a soma correta sem o cap de 1000 linhas do PostgREST
+  try {
+    const todayBRT = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10)
+
+    const { data: palpitesAtivos } = await admin
+      .from('palpites')
+      .select('id')
+      .eq('status', 'ativo')
+
+    const palpiteIds = (palpitesAtivos ?? []).map((p: { id: number }) => p.id)
+
+    if (palpiteIds.length > 0) {
+      const { data: pontosPorPalpite } = await admin
+        .rpc('get_pontos_por_palpite', { p_ids: palpiteIds }) as {
+          data: { palpite_id: number; total_pontos: number }[] | null
+        }
+
+      const pontosMap: Record<number, number> = {}
+      for (const r of pontosPorPalpite ?? []) {
+        pontosMap[r.palpite_id] = Number(r.total_pontos ?? 0)
+      }
+
+      const snapshots = palpiteIds.map((id: number) => ({
+        palpite_id:   id,
+        data:         todayBRT,
+        total_pontos: pontosMap[id] ?? 0,
+      }))
+
+      // upsert: atualiza o snapshot do dia se já existir
+      await admin
+        .from('ranking_historico')
+        .upsert(snapshots, { onConflict: 'palpite_id,data' })
+    }
+  } catch (snapErr) {
+    // Snapshot é não-crítico: não falha o request se der erro
+    console.warn('[resultado] snapshot ranking_historico error (non-fatal):', snapErr)
+  }
+
   return NextResponse.json({ ok: true, updatedCount: updated })
 }

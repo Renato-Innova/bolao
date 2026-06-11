@@ -147,6 +147,9 @@ export default async function RankingPage() {
   let chartSeries: ChartSeries[] = []
   let chartDatas:  string[]      = []
 
+  // Data de hoje em BRT (UTC-3) para injetar como ponto ao vivo
+  const todayBRT = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10)
+
   if (activeIds.length > 0) {
     const { data: historico } = await supabase
       .from('ranking_historico')
@@ -154,26 +157,40 @@ export default async function RankingPage() {
       .in('palpite_id', activeIds)
       .order('data', { ascending: true })
 
-    if (historico && historico.length > 0) {
-      /* datas únicas */
-      chartDatas = [...new Set(historico.map((h: { data: string }) => h.data))].sort()
+    // Monta mapa de pontos ao vivo por palpite_id (do ranking em tempo real)
+    const livePontos: Record<number, number> = {}
+    for (const r of ranking) livePontos[r.palpite_id] = r.total_pontos
 
-      /* top 10 + palpites do usuário logado (sem duplicar) */
-      const top10Ids  = ranking.slice(0, 10).map(r => r.palpite_id)
-      const chartIds  = [...new Set([...top10Ids, ...myPalpiteIds])]
-      const chartRank = ranking.filter(r => chartIds.includes(r.palpite_id))
+    // Combina histórico + ponto ao vivo de hoje
+    // Se já existe snapshot de hoje no historico, o ponto ao vivo o substitui
+    const historicoFiltrado = (historico ?? []).filter(
+      (h: { data: string }) => h.data !== todayBRT
+    )
+    const liveRows = activeIds.map(id => ({
+      palpite_id:   id,
+      data:         todayBRT,
+      total_pontos: livePontos[id] ?? 0,
+    }))
+    const historicoComHoje = [...historicoFiltrado, ...liveRows]
 
-      chartSeries = chartRank.map(r => ({
-        palpite_id:   r.palpite_id,
-        nome:         r.nome,
-        isMe:         myPalpiteIds.includes(r.palpite_id),
-        avatar_type:  r.avatar_type,
-        avatar_value: r.avatar_value,
-        historico:    historico
-          .filter((h: { palpite_id: number }) => h.palpite_id === r.palpite_id)
-          .map((h: { data: string; total_pontos: number }) => ({ data: h.data, total_pontos: h.total_pontos })),
-      }))
-    }
+    /* datas únicas (inclui hoje) */
+    chartDatas = [...new Set(historicoComHoje.map((h: { data: string }) => h.data))].sort()
+
+    /* top 10 + palpites do usuário logado (sem duplicar) */
+    const top10Ids  = ranking.slice(0, 10).map(r => r.palpite_id)
+    const chartIds  = [...new Set([...top10Ids, ...myPalpiteIds])]
+    const chartRank = ranking.filter(r => chartIds.includes(r.palpite_id))
+
+    chartSeries = chartRank.map(r => ({
+      palpite_id:   r.palpite_id,
+      nome:         r.nome,
+      isMe:         myPalpiteIds.includes(r.palpite_id),
+      avatar_type:  r.avatar_type,
+      avatar_value: r.avatar_value,
+      historico:    historicoComHoje
+        .filter((h: { palpite_id: number }) => h.palpite_id === r.palpite_id)
+        .map((h: { data: string; total_pontos: number }) => ({ data: h.data, total_pontos: h.total_pontos })),
+    }))
   }
 
   return (
