@@ -36,6 +36,7 @@ export default async function DashboardPage() {
     { data: ultimosResultados },
     ranking,
     { data: grupoJogos },
+    { data: boletins },
   ] = await Promise.all([
     supabase.from('palpites').select('*', { count: 'exact', head: true }).eq('status', 'ativo'),
     supabase.from('users').select('*', { count: 'exact', head: true }),
@@ -45,6 +46,8 @@ export default async function DashboardPage() {
     supabase.from('jogos_copa').select('*, resultado:resultados(*)').lt('data', new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().split('T')[0]).not('resultado', 'is', null).order('data', { ascending: false }).order('horario', { ascending: false }).limit(4),
     getRanking(),
     supabase.from('classificacao_grupos').select('*').order('grupo').order('pts', { ascending: false }).order('dg', { ascending: false }).order('m', { ascending: false }),
+    // Busca os dois boletins mais recentes (1 manha + 1 tarde)
+    supabase.from('boletim_copa').select('*').order('gerado_em', { ascending: false }).limit(2),
   ])
 
   const lider   = (ranking[0]?.total_pontos ?? 0) > 0 ? ranking[0] : null
@@ -318,18 +321,60 @@ export default async function DashboardPage() {
           ))}
         </div>
 
-        {/* R3C1+C2 — Boletim da Copa 2026 (placeholder — gerado pelo Claude Cowork) */}
+        {/* R3C1+C2 — Boletim da Copa 2026 */}
         <div className="dash-card-boletim" style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px', gridColumn: 'span 2' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+          {/* cabeçalho */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8 }}>📰 Boletim da Copa 2026</div>
-              <div style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Resumo do dia · gerado por IA</div>
+              <div style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Resumo do dia · gerado por IA · 2× ao dia</div>
             </div>
-            <span style={{ fontSize: 9, fontWeight: 700, color: '#4ade80', background: 'rgba(74,222,128,0.10)', padding: '3px 9px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>Em breve</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: '#4A90D9', background: 'rgba(74,144,217,0.10)', padding: '3px 9px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>
+              ☀️ 07h · 🌅 19h
+            </span>
           </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic', padding: '20px 0', textAlign: 'center' }}>
-            O boletim diário da Copa será gerado automaticamente e publicado aqui.
-          </div>
+
+          {!boletins || boletins.length === 0 ? (
+            /* estado vazio */
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic', padding: '16px 0', textAlign: 'center' }}>
+              O primeiro boletim será publicado hoje às 7h. ☀️
+            </div>
+          ) : (
+            /* exibe até 2 boletins lado a lado */
+            <div style={{ display: 'grid', gridTemplateColumns: boletins.length > 1 ? '1fr 1fr' : '1fr', gap: 12 }}>
+              {boletins.map((b: { id: number; tipo: string; titulo: string; conteudo: string; gerado_em: string }) => {
+                const hora = new Date(b.gerado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+                const isManha = b.tipo === 'manha'
+                return (
+                  <div key={b.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(74,144,217,0.10)', borderRadius: 8, padding: '12px 14px' }}>
+                    {/* badge tipo + hora */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: isManha ? '#FFD700' : '#7BB8F0', background: isManha ? 'rgba(255,215,0,0.10)' : 'rgba(74,144,217,0.12)', padding: '2px 8px', borderRadius: 20 }}>
+                        {isManha ? '☀️ Manhã' : '🌅 Tarde'}
+                      </span>
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>{hora}</span>
+                    </div>
+                    {/* conteúdo — renderiza markdown simples: **texto** → negrito */}
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', lineHeight: 1.65 }}>
+                      {b.conteudo.split('\n').map((line, i) => {
+                        // converte **texto** em <strong>
+                        const parts = line.split(/(\*\*.*?\*\*)/)
+                        return (
+                          <p key={i} style={{ margin: line.startsWith('**') ? '8px 0 2px' : '0 0 2px', color: line.startsWith('**') ? 'white' : undefined, fontWeight: line.startsWith('**') ? 700 : undefined, fontSize: line.startsWith('**') ? 10 : 11 }}>
+                            {parts.map((part, j) =>
+                              part.startsWith('**') && part.endsWith('**')
+                                ? <strong key={j} style={{ color: 'white', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.4 }}>{part.slice(2, -2)}</strong>
+                                : part
+                            )}
+                          </p>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* R2-3 C3 — Artilheiro da Copa */}

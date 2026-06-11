@@ -128,6 +128,7 @@ export interface RankingEntry {
   variacao_posicao: number   // position change vs yesterday (positive = moved up)
   avatar_type?: string | null
   avatar_value?: string | null
+  status?: string | null      // 'ativo' | 'inativo'
 }
 
 export interface ActivityLog {
