@@ -107,7 +107,8 @@ export async function getRanking(): Promise<RankingEntry[]> {
     }
   })
 
-  entries.sort((a, b) => b.total_pontos - a.total_pontos)
+  // Desempate por palpite_id (estável e determinístico quando pontos são iguais)
+  entries.sort((a, b) => b.total_pontos - a.total_pontos || a.palpite_id - b.palpite_id)
   entries.forEach((e, i) => {
     e.posicao = i + 1
     // positive = moved up in ranking (e.g. was 5th yesterday, now 3rd → +2)
