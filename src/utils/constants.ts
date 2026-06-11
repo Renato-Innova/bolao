@@ -204,6 +204,7 @@ export function getConfrontoHistorico(timeA: string, timeB: string): ConfrontoHi
 export const ARTILHEIRO_OPTIONS = [
   { value: 'Cristiano Ronaldo',    label: 'Cristiano Ronaldo (Portugal)'        },
   { value: 'Dembélé',              label: 'Dembélé (França)'                    },
+  { value: 'Endrick',              label: 'Endrick (Brasil)'                     },
   { value: 'Erling Haaland',       label: 'Erling Haaland (Noruega)'            },
   { value: 'Harry Kane',           label: 'Harry Kane (Inglaterra)'             },
   { value: 'Julian Alvarez',       label: 'Julian Alvarez (Argentina)'          },
@@ -211,6 +212,7 @@ export const ARTILHEIRO_OPTIONS = [
   { value: 'Lamine Yamal',         label: 'Lamine Yamal (Espanha)'              },
   { value: 'Lionel Messi',         label: 'Lionel Messi (Argentina)'            },
   { value: 'Memphis Depay',        label: 'Memphis Depay (Holanda)'             },
+  { value: 'Michael Olise',        label: 'Michael Olise (França)'              },
   { value: 'Jamal Musiala',        label: 'Jamal Musiala (Alemanha)'            },
   { value: 'Neymar Jr',            label: 'Neymar Jr (Brasil)'                  },
   { value: 'Nick Woltemade',       label: 'Nick Woltemade (Alemanha)'           },
