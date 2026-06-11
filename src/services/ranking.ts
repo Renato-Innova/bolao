@@ -27,15 +27,14 @@ export async function getRanking(): Promise<RankingEntry[]> {
 
   const palpiteIds = palpites.map((p: { id: number }) => p.id)
 
-  // Step 2 — fetch points per palpite from palpites_jogos
+  // Step 2 — aggregate points per palpite via RPC (avoids PostgREST max_rows=1000 cap)
+  // A query REST simples retorna no máximo 1000 linhas mesmo com .limit() maior;
+  // a função SQL agrega no banco e retorna 1 linha por palpite, sem toque no cap.
   const { data: jogos, error: errJ } = await supabase
-    .from('palpites_jogos')
-    .select('palpite_id, pontos')
-    .in('palpite_id', palpiteIds)
-    .limit(10000) // palpites_jogos pode ter até ~7500 linhas (72 palpites × 104 jogos); sem limit o PostgREST trunca em 1000
+    .rpc('get_pontos_por_palpite', { p_ids: palpiteIds })
 
   if (errJ) {
-    console.warn('[getRanking] palpites_jogos error (non-fatal):', errJ.message)
+    console.warn('[getRanking] get_pontos_por_palpite error (non-fatal):', errJ.message)
   }
 
   // Step 3 — fetch user names
@@ -61,9 +60,10 @@ export async function getRanking(): Promise<RankingEntry[]> {
     .limit(palpiteIds.length)
 
   // Build lookup maps
+  // RPC retorna 1 linha por palpite com total_pontos já somado
   const pontosPorPalpite: Record<number, number> = {}
   for (const j of (jogos ?? [])) {
-    pontosPorPalpite[j.palpite_id] = (pontosPorPalpite[j.palpite_id] ?? 0) + (j.pontos ?? 0)
+    pontosPorPalpite[j.palpite_id] = Number(j.total_pontos ?? 0)
   }
   const nomeUsuario: Record<string, string> = {}
   for (const u of (users ?? [])) {
