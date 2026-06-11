@@ -67,7 +67,7 @@ Máximo 200 palavras no total.`
 function promptAlmoco(hoje: string, resultadosParciais: string, jogosPendentes: string) {
   return `Você é o repórter oficial do Bolão Copa 2026, um bolão de apostas entre amigos brasileiros.
 
-Escreva o BOLETIM DO ALMOÇO da Copa do Mundo 2026 de forma animada, bem-humorada e em português brasileiro.
+Escreva o BOLETIM DA TARDE da Copa do Mundo 2026 de forma animada, bem-humorada e em português brasileiro.
 
 DATA DE HOJE: ${hoje}
 
@@ -88,7 +88,7 @@ Priorize acontecimentos que possam influenciar os palpites dos participantes do 
 
 Estrutura obrigatória (use exatamente esses títulos em negrito):
 
-**🌤️ Boa tarde, torcedor!**
+**🌅 Boa tarde, torcedor!**
 (saudação animada, máximo 2 linhas)
 
 **📊 O que já rolou hoje**
@@ -187,7 +187,7 @@ export async function GET(req: NextRequest) {
   const tituloMatch = conteudo.match(/\*\*(.*?)\*\*/)
   const titulo = tituloMatch
     ? tituloMatch[1]
-    : tipo === 'manha' ? '☀️ Boletim da Manhã' : '🌤️ Boletim do Almoço'
+    : tipo === 'manha' ? '☀️ Boletim da Manhã' : '🌅 Boletim da Tarde'
 
   /* ── salva no Supabase ── */
   const { error } = await supabase
