@@ -38,7 +38,7 @@ function groupByDay(matches: JogoCopa[]): DayGroup[] {
     map[m.data].push(m)
   }
   return Object.keys(map).sort().map((date, i) => {
-    const d = new Date(date + 'T12:00:00')
+    const d = new Date(date + 'T12:00:00-03:00')
     return {
       dayNum: i + 1,
       date,

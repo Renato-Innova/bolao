@@ -33,7 +33,7 @@ const FASE_LABEL: Record<string, string> = {
 }
 
 function fmtDay(date: string) {
-  const d = new Date(date + 'T12:00:00')
+  const d = new Date(date + 'T12:00:00-03:00')
   return `${d.getDate()} ${MESES[d.getMonth()]} · ${WEEKDAYS[d.getDay()]}`
 }
 

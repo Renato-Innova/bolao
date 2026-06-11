@@ -37,14 +37,14 @@ export default async function DashboardPage() {
     supabase.from('users').select('*', { count: 'exact', head: true }),
     supabase.from('jogos_copa').select('*', { count: 'exact', head: true }),
     supabase.from('resultados').select('*', { count: 'exact', head: true }),
-    supabase.from('jogos_copa').select('*, resultado:resultados(*)').gte('data', new Date().toISOString().split('T')[0]).order('data').order('horario').limit(8),
-    supabase.from('jogos_copa').select('*, resultado:resultados(*)').lt('data', new Date().toISOString().split('T')[0]).not('resultado', 'is', null).order('data', { ascending: false }).order('horario', { ascending: false }).limit(4),
+    supabase.from('jogos_copa').select('*, resultado:resultados(*)').gte('data', new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().split('T')[0]).order('data').order('horario').limit(8),
+    supabase.from('jogos_copa').select('*, resultado:resultados(*)').lt('data', new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().split('T')[0]).not('resultado', 'is', null).order('data', { ascending: false }).order('horario', { ascending: false }).limit(4),
     getRanking(),
     supabase.from('classificacao_grupos').select('*').order('grupo').order('pts', { ascending: false }).order('dg', { ascending: false }).order('m', { ascending: false }),
   ])
 
   const lider   = (ranking[0]?.total_pontos ?? 0) > 0 ? ranking[0] : null
-  const hoje    = new Date().toISOString().split('T')[0]
+  const hoje    = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().split('T')[0]
   const myEntry = currentUser ? ranking.find(r => r.usuario_id === currentUser.id) : null
 
   /* Fase atual — from most recent played game, else next upcoming */
