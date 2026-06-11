@@ -361,6 +361,11 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
 
     const nomeTrimmed = novoNome.trim()
 
+    if (nomeTrimmed.length > 20) {
+      setCriarError('O nome deve ter no máximo 20 caracteres.')
+      setCriando(false); return
+    }
+
     // Checa duplicidade normalizando acentos, ç, maiúsculas/minúsculas
     const duplicado = await checarDuplicidadeNome(nomeTrimmed)
     if (duplicado) {
@@ -397,6 +402,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
     if (!renameId) return
     const nomeTrimmed = renameNome.trim()
     if (!nomeTrimmed) { setRenameError('O nome não pode ser vazio.'); return }
+    if (nomeTrimmed.length > 20) { setRenameError('O nome deve ter no máximo 20 caracteres.'); return }
     setRenameSaving(true); setRenameError('')
 
     // Se o nome normalizado não mudou, fecha sem chamar o DB
@@ -740,7 +746,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                 value={renameNome}
                 onChange={e => { setRenameNome(e.target.value); setRenameError('') }}
                 onKeyDown={e => { if (e.key === 'Enter') renamePalpite(); if (e.key === 'Escape') setRenameId(null) }}
-                maxLength={40}
+                maxLength={20}
                 placeholder="Novo nome..."
                 style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(74,144,217,0.5)', borderRadius: 6, padding: '6px 10px', fontSize: 12, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none' }}
               />
@@ -885,7 +891,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
           <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 10, padding: '14px 16px', marginBottom: 8, display: 'flex', gap: 10, alignItems: 'flex-end' }}>
             <div style={{ flex: 1 }}>
               <label style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5, fontWeight: 600 }}>Nome do palpite</label>
-              <input type="text" value={novoNome} onChange={e => setNovoNome(e.target.value)} placeholder="Ex: Família Pereira..." maxLength={40}
+              <input type="text" value={novoNome} onChange={e => setNovoNome(e.target.value)} placeholder="Ex: Família Pereira..." maxLength={20}
                 style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 7, padding: '9px 12px', fontSize: 14, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none' }} />
             </div>
             <button onClick={criarPalpite} disabled={criando || !novoNome.trim()}

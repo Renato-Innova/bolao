@@ -82,7 +82,7 @@ function Podium({ top3, myIds }: { top3: RankingEntry[]; myIds: number[] }) {
               {/* nome + usuário — uma linha */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, flexWrap: 'nowrap', maxWidth: '100%' }}>
                 <span style={{ fontSize: 10, fontWeight: 700, color: 'white', whiteSpace: 'nowrap' }}>
-                  {trunc(entry.nome, 15)}
+                  {trunc(entry.nome, 20)}
                 </span>
                 {isMe && (
                   <span style={{ fontSize: 7, background: 'rgba(74,144,217,0.2)', color: '#7BB8F0', padding: '1px 4px', borderRadius: 5, flexShrink: 0 }}>
@@ -91,7 +91,7 @@ function Podium({ top3, myIds }: { top3: RankingEntry[]; myIds: number[] }) {
                 )}
               </div>
               <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.40)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
-                {trunc(entry.usuario_nome, 20)}
+                {trunc(entry.usuario_nome, 30)}
               </div>
               {/* divisor */}
               <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '7px 0' }} />
