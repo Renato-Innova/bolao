@@ -32,6 +32,7 @@ export async function getRanking(): Promise<RankingEntry[]> {
     .from('palpites_jogos')
     .select('palpite_id, pontos')
     .in('palpite_id', palpiteIds)
+    .limit(10000) // palpites_jogos pode ter até ~7500 linhas (72 palpites × 104 jogos); sem limit o PostgREST trunca em 1000
 
   if (errJ) {
     console.warn('[getRanking] palpites_jogos error (non-fatal):', errJ.message)
