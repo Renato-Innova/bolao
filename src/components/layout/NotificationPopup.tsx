@@ -137,8 +137,14 @@ export function NotificationPopup() {
     verificar()
   }, [])
 
-  function dispensar() {
+  // Dispensa permanentemente hoje (salva no localStorage)
+  function dispensarHoje() {
     localStorage.setItem(DISMISS_KEY(), '1')
+    setVisivel(false)
+  }
+
+  // Fecha o popup agora mas volta a mostrar na próxima visita
+  function fechar() {
     setVisivel(false)
   }
 
@@ -152,7 +158,7 @@ export function NotificationPopup() {
     <>
       {/* Overlay */}
       <div
-        onClick={dispensar}
+        onClick={fechar}
         style={{
           position: 'fixed', inset: 0,
           background: 'rgba(0,0,0,0.55)',
@@ -185,7 +191,7 @@ export function NotificationPopup() {
             </div>
           </div>
           <button
-            onClick={dispensar}
+            onClick={fechar}
             style={{
               marginLeft: 'auto', background: 'none', border: 'none',
               color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 18, lineHeight: 1,
@@ -241,7 +247,7 @@ export function NotificationPopup() {
         {/* Botões */}
         <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
           <button
-            onClick={dispensar}
+            onClick={dispensarHoje}
             style={{
               flex: 1, padding: '9px 0',
               background: 'rgba(74,144,217,0.15)',
@@ -253,7 +259,7 @@ export function NotificationPopup() {
             Não mostrar mais hoje
           </button>
           <button
-            onClick={dispensar}
+            onClick={fechar}
             style={{
               flex: 1, padding: '9px 0',
               background: '#4A90D9',
