@@ -6,6 +6,8 @@ import { RankingEvolutionChart, type ChartSeries } from '@/components/ranking/Ra
 
 export const dynamic = 'force-dynamic'
 
+const trunc = (s: string, max: number) => s.length > max ? s.slice(0, max) + '…' : s
+
 /* ─── Pódio Opção 4 — plataforma de altura ─────────────────────────────────── */
 function Podium({ top3, myIds }: { top3: RankingEntry[]; myIds: number[] }) {
   // ordem visual: 2º, 1º, 3º
@@ -77,25 +79,19 @@ function Podium({ top3, myIds }: { top3: RankingEntry[]; myIds: number[] }) {
                   size={32}
                 />
               </div>
-              {/* nome */}
-              <div style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: 'white',
-                lineHeight: 1.2,
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                maxWidth: '100%',
-              }}>
-                {entry.nome}
+              {/* nome + usuário — uma linha */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, flexWrap: 'nowrap', maxWidth: '100%' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'white', whiteSpace: 'nowrap' }}>
+                  {trunc(entry.nome, 15)}
+                </span>
                 {isMe && (
-                  <span style={{ fontSize: 7, background: 'rgba(74,144,217,0.2)', color: '#7BB8F0', padding: '1px 4px', borderRadius: 5, marginLeft: 4 }}>
+                  <span style={{ fontSize: 7, background: 'rgba(74,144,217,0.2)', color: '#7BB8F0', padding: '1px 4px', borderRadius: 5, flexShrink: 0 }}>
                     você
                   </span>
                 )}
               </div>
-              {/* usuário */}
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.40)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {entry.usuario_nome}
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.40)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                {trunc(entry.usuario_nome, 20)}
               </div>
               {/* divisor */}
               <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '7px 0' }} />
@@ -258,12 +254,14 @@ export default async function RankingPage() {
                     {/* nome + usuário */}
                     <div className="rank-info" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <PalpiteAvatar nome={entry.nome} avatarType={entry.avatar_type} avatarValue={entry.avatar_value} size={28} />
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>
-                          {entry.nome}
-                          {isMe && <span style={{ fontSize: 8, background: 'rgba(74,144,217,0.2)', color: '#7BB8F0', padding: '1px 5px', borderRadius: 6, fontWeight: 600, marginLeft: 5 }}>você</span>}
-                        </div>
-                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)' }}>{entry.usuario_nome}</div>
+                      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'white', whiteSpace: 'nowrap' }}>
+                          {trunc(entry.nome, 15)}
+                        </span>
+                        {isMe && <span style={{ fontSize: 8, background: 'rgba(74,144,217,0.2)', color: '#7BB8F0', padding: '1px 5px', borderRadius: 6, fontWeight: 600, flexShrink: 0 }}>você</span>}
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap' }}>
+                          · {trunc(entry.usuario_nome, 20)}
+                        </span>
                       </div>
                     </div>
 

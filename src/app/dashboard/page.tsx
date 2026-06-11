@@ -7,6 +7,8 @@ import type { JogoCopa, ClassificacaoGrupo } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
+const trunc = (s: string, max: number) => s.length > max ? s.slice(0, max) + '…' : s
+
 const FASE_LABEL: Record<string, string> = {
   GS:  'Fase de Grupos',
   R32: 'Rodada de 32',
@@ -212,9 +214,9 @@ export default async function DashboardPage() {
                       )}
                     </div>
                     <PalpiteAvatar nome={entry.nome} avatarType={entry.avatar_type} avatarValue={entry.avatar_value} size={28} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>{entry.nome}</div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)' }}>{entry.usuario_nome}</div>
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'nowrap' }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{trunc(entry.nome, 15)}</span>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap' }}>· {trunc(entry.usuario_nome, 20)}</span>
                     </div>
                     <div style={{ width: 56, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
                       <div style={{ height: 3, background: 'linear-gradient(90deg, #4A90D9, #7BB8F0)', borderRadius: 2, width: `${pct}%` }} />
