@@ -40,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ServiceWorkerRegistrar />
         <Header />
         <HeroStripWrapper><HeroStrip /></HeroStripWrapper>
-        <main style={{ flex: 1, position: 'relative', zIndex: 1 }}>{children}</main>
+        <main style={{ flex: 1, position: 'relative', zIndex: 1, width: '100%', overflowX: 'hidden' }}>{children}</main>
         <Footer />
         <BottomNav />
         <NotificationPopup />

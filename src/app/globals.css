@@ -22,6 +22,9 @@
 
 html, body {
   height: 100%;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   background: var(--bg);
   font-family: 'Inter', sans-serif;
   color: #fff;
@@ -100,7 +103,12 @@ input[type='number'] { -moz-appearance: textfield; }
   .bn-on .bn-label { color: var(--accent); }
 
   /* ── page containers ── */
-  .page-main { padding: 14px 16px 100px !important; }
+  .page-main {
+    padding: 14px 16px 100px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
 
   /* ── auth pages ── */
   .auth-page {
