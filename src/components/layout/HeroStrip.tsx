@@ -42,24 +42,26 @@ export async function HeroStrip() {
     <div style={{
       background: 'linear-gradient(90deg, #04143a 0%, #091d50 50%, #0a1f4e 100%)',
       borderBottom: '1px solid rgba(74,144,217,0.18)',
-      padding: '9px 24px',
+      padding: '9px 16px',
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       position: 'relative', zIndex: 1,
+      width: '100%', overflow: 'hidden',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden' }}>
         <HeroCountdown firstGameISO={firstGameISO} />
         <span style={{
           background: 'rgba(74,144,217,0.18)', border: '1px solid rgba(74,144,217,0.35)',
           color: '#7BB8F0', fontSize: 10, fontWeight: 700,
           padding: '3px 10px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5,
+          whiteSpace: 'nowrap', flexShrink: 0,
         }}>
           {faseLabel}
         </span>
-        <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>
+        <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {realizados} de {total} jogos realizados
         </span>
       </div>
-      <span style={{ color: 'rgba(255,255,255,0.50)', fontSize: 10 }}>11 jun – 19 jul 2026</span>
+      <span className="hero-date" style={{ color: 'rgba(255,255,255,0.50)', fontSize: 10, whiteSpace: 'nowrap', flexShrink: 0, marginLeft: 8 }}>11 jun – 19 jul 2026</span>
     </div>
   )
 }

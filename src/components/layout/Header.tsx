@@ -10,7 +10,7 @@ const NAV = [
   { href: '/dashboard',  label: 'Dashboard' },
   { href: '/tabela',     label: 'Tabela da Copa' },
   { href: '/palpites',   label: 'Meus Palpites' },
-  { href: '/ranking',    label: 'Ranking' },
+  { href: '/ranking',    label: 'Ranking do Bolão' },
   { href: '/instrucoes', label: 'Instruções' },
 ]
 
@@ -27,6 +27,7 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [userMenu, setUserMenu] = useState(false)
   const userMenuRef             = useRef<HTMLDivElement>(null)
+  const menuRef                 = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -44,11 +45,14 @@ export function Header() {
     return () => subscription.unsubscribe()
   }, [])
 
-  /* close user dropdown when clicking outside */
+  /* close user dropdown and mobile menu when clicking outside */
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setUserMenu(false)
+      }
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClick)
@@ -71,7 +75,7 @@ export function Header() {
     : user?.email?.[0]?.toUpperCase() ?? '?'
 
   return (
-    <header style={{
+    <header ref={menuRef} style={{
       position: 'sticky', top: 0, zIndex: 100,
       background: 'rgba(2,15,42,0.96)',
       borderBottom: '1px solid rgba(74,144,217,0.15)',

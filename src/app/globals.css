@@ -81,6 +81,7 @@ input[type='number'] { -moz-appearance: textfield; }
 
   /* ── header ── */
   header { height: 52px !important; padding: 0 16px !important; }
+  .hero-date { display: none !important; }
   .hidden-mobile { display: none !important; }
   .show-mobile   { display: flex !important; }
 
