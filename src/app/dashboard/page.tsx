@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getRanking } from '@/services/ranking'
 import { FlagImg } from '@/components/ui/FlagImg'
 import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
+import { PalpiteCarousel } from '@/components/dashboard/PalpiteCarousel'
+import type { PalpiteSlide } from '@/components/dashboard/PalpiteCarousel'
 import type { JogoCopa, ClassificacaoGrupo } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -48,6 +50,20 @@ export default async function DashboardPage() {
   const lider   = (ranking[0]?.total_pontos ?? 0) > 0 ? ranking[0] : null
   const hoje    = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().split('T')[0]
   const myEntry = currentUser ? ranking.find(r => r.usuario_id === currentUser.id) : null
+
+  /* slides do carrossel — todos os palpites do usuário logado */
+  const mySlides: PalpiteSlide[] = currentUser
+    ? ranking
+        .filter(r => r.usuario_id === currentUser.id)
+        .map(r => ({
+          palpite_id:   r.palpite_id,
+          nome:         r.nome,
+          total_pontos: r.total_pontos,
+          posicao:      r.posicao,
+          total:        ranking.length,
+          status:       r.status ?? 'ativo',
+        }))
+    : []
 
   /* Fase atual — from most recent played game, else next upcoming */
   const faseAtualRaw = (ultimosResultados?.[0] as JogoCopa | undefined)?.fase
@@ -101,28 +117,14 @@ export default async function DashboardPage() {
   return (
     <div className="page-main" style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 24px 40px' }}>
 
-      {/* ── 4 metric cards ───────────────────────────────────────────────── */}
-      <div className="dash-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
+      {/* ── Main grid 3×2: col 3 spans both rows ────────────────────────── */}
+      <div className="dash-main-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'auto auto', gap: 12, marginBottom: 12 }}>
 
-        {/* Card 1 — Palpites + Participantes */}
-        <div style={card}>
-          <div style={bar} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div style={label12}>Palpites</div>
-              <div style={value24}>{totalAtivos ?? 0}</div>
-              <div style={sub10}>ativos no bolão</div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={label12}>Participantes</div>
-              <div style={value24}>{totalUsuarios ?? 0}</div>
-              <div style={sub10}>cadastrados</div>
-            </div>
-          </div>
-        </div>
+        {/* R1C1 — Carrossel de palpites do usuário */}
+        <div className="dash-card-carrossel"><PalpiteCarousel slides={mySlides} /></div>
 
-        {/* Card 2 — Jogos + Máx. pontos */}
-        <div style={card}>
+        {/* R1C2 — Jogos + Máx. pontos */}
+        <div className="dash-card-jogos" style={card}>
           <div style={bar} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
@@ -141,46 +143,14 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Card 3 — Sua Posição + Líder */}
-        <div style={card}>
-          <div style={bar} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        {/* R1-2 C3 — Ranking do Bolão (span 2 rows) */}
+        <div className="dash-card-ranking" style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px', gridRow: 'span 2' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
             <div>
-              <div style={label12}>Sua posição</div>
-              {currentUser ? (
-                <>
-                  <div style={value24}>{myEntry && lider ? `#${myEntry.posicao}` : '—'}</div>
-                  <div style={sub10}>{myEntry && lider ? `${myEntry.total_pontos} pts` : 'sem palpite ativo'}</div>
-                </>
-              ) : (
-                <>
-                  <div style={value24}>—</div>
-                  <Link href="/auth/login" style={{ fontSize: 10, color: '#4A90D9', textDecoration: 'none', fontWeight: 600 }}>Entrar para ver</Link>
-                </>
-              )}
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8 }}>Ranking do bolão</div>
+              <div style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>5 primeiros + você</div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={label12}>Líder do bolão</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'white', lineHeight: 1.2, marginBottom: 2 }}>
-                {lider?.nome ?? '—'}
-              </div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>
-                {lider ? `${lider.total_pontos} pts` : 'Sem palpites ativos'}
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* ── Second row: ranking + groups + matches ───────────────────────── */}
-      <div className="dash-two" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 12 }}>
-
-        {/* Ranking */}
-        <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
-            Ranking do bolão
-            {currentUser && <Link href="/ranking" style={{ fontSize: 10, color: '#4A90D9', fontWeight: 500, textDecoration: 'none', textTransform: 'none', letterSpacing: 0 }}>ranking completo →</Link>}
+            {currentUser && <Link href="/ranking" style={{ fontSize: 10, color: '#4A90D9', fontWeight: 500, textDecoration: 'none', letterSpacing: 0 }}>ranking completo →</Link>}
           </div>
           {!currentUser ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '24px 12px' }}>
@@ -192,19 +162,21 @@ export default async function DashboardPage() {
                 Entrar
               </Link>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              {ranking.length === 0 && (
-                <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 12, padding: '12px 0' }}>Nenhum palpite ativo ainda</p>
-              )}
-              {ranking.slice(0, 5).map((entry, idx) => {
-                const maxPts = ranking[0]?.total_pontos || 1
-                const pct    = Math.round((entry.total_pontos / maxPts) * 100)
-                const medal  = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : String(entry.posicao)
-                const isMe   = currentUser && entry.usuario_id === currentUser.id
+          ) : (() => {
+              const maxPts = ranking[0]?.total_pontos || 1
+              const top5   = ranking.slice(0, 5)
+              const top5Ids = new Set(top5.map(e => e.palpite_id))
+              // palpites do usuário que ficaram fora do top 5
+              const myExtra = currentUser
+                ? ranking.filter(e => e.usuario_id === currentUser.id && !top5Ids.has(e.palpite_id))
+                : []
+
+              function RankRow({ entry, idx, showPos }: { entry: typeof ranking[0]; idx: number; showPos?: boolean }) {
+                const pct   = Math.round((entry.total_pontos / maxPts) * 100)
+                const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : String(entry.posicao)
+                const isMe  = currentUser && entry.usuario_id === currentUser.id
                 return (
-                  <div key={entry.palpite_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: isMe ? 'rgba(74,144,217,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isMe ? 'rgba(74,144,217,0.3)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 7 }}>
-                    {/* Posição + variação de posição */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: isMe ? 'rgba(74,144,217,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isMe ? 'rgba(74,144,217,0.3)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 7 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 22, gap: 1 }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.50)' }}>{medal}</span>
                       {entry.variacao_posicao !== 0 && (
@@ -221,7 +193,6 @@ export default async function DashboardPage() {
                     <div style={{ width: 56, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
                       <div style={{ height: 3, background: 'linear-gradient(90deg, #4A90D9, #7BB8F0)', borderRadius: 2, width: `${pct}%` }} />
                     </div>
-                    {/* Pontos + variação de pontos */}
                     <div style={{ textAlign: 'right', minWidth: 52 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9' }}>{entry.total_pontos} pts</div>
                       {entry.variacao !== 0 && (
@@ -232,13 +203,82 @@ export default async function DashboardPage() {
                     </div>
                   </div>
                 )
-              })}
-            </div>
-          )}
+              }
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {ranking.length === 0 && (
+                    <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 12, padding: '12px 0' }}>Nenhum palpite ativo ainda</p>
+                  )}
+                  {top5.map((entry, idx) => (
+                    <RankRow key={entry.palpite_id} entry={entry} idx={idx} />
+                  ))}
+                  {myExtra.length > 0 && (
+                    <>
+                      {/* separador "· · ·" indicando que há posições entre o top 5 e o usuário */}
+                      <div style={{ textAlign: 'center', fontSize: 10, color: 'rgba(255,255,255,0.25)', letterSpacing: 4, padding: '2px 0' }}>· · ·</div>
+                      {myExtra.map((entry) => (
+                        <RankRow key={entry.palpite_id} entry={entry} idx={entry.posicao - 1} />
+                      ))}
+                    </>
+                  )}
+                </div>
+              )
+            })()}
         </div>
 
-        {/* Groups — shows the 2 groups related to next games */}
-        <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
+        {/* R2C1 — Próximas Partidas */}
+        <div className="dash-card-proximas" style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 14 }}>Próximas Partidas</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {(proximosJogos ?? []).slice(0, 5).map((j: JogoCopa) => {
+              const isToday   = j.data === hoje
+              const hasPlacar = !!j.resultado
+              return (
+                <div key={j.id} style={{
+                  display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center',
+                  padding: '8px 10px',
+                  background: isToday ? 'rgba(74,144,217,0.06)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${isToday ? 'rgba(74,144,217,0.35)' : 'rgba(255,255,255,0.06)'}`,
+                  borderRadius: 7,
+                }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600 }}>
+                      {j.codigo_pais_a && <FlagImg codigo={j.codigo_pais_a} size={16} />}
+                      {j.time_a}
+                    </div>
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.50)', marginTop: 2 }}>{formatDate(j.data)}</div>
+                  </div>
+                  <div style={{ textAlign: 'center', padding: '0 10px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9' }}>
+                      {hasPlacar ? `${j.resultado!.placar_real_a} – ${j.resultado!.placar_real_b}` : '– –'}
+                    </div>
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.3,
+                      background: hasPlacar ? 'rgba(74,144,217,0.15)' : isToday ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.07)',
+                      color: hasPlacar ? '#7BB8F0' : isToday ? '#4ade80' : 'rgba(255,255,255,0.5)',
+                    }}>
+                      {hasPlacar ? 'Encerrado' : isToday ? `Hoje ${formatTime(j.horario)}h` : 'Em breve'}
+                    </span>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, justifyContent: 'flex-end' }}>
+                      {j.time_b}
+                      {j.codigo_pais_b && <FlagImg codigo={j.codigo_pais_b} size={16} />}
+                    </div>
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.50)', marginTop: 2 }}>{j.cidade}</div>
+                  </div>
+                </div>
+              )
+            })}
+            {!(proximosJogos?.length) && (
+              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 12, padding: '20px 0' }}>Nenhuma partida em breve</p>
+            )}
+          </div>
+        </div>
+
+        {/* R2C2 — Tabela Oficial */}
+        <div className="dash-card-tabela" style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
             Tabela oficial
             <Link href="/tabela" style={{ fontSize: 10, color: '#4A90D9', fontWeight: 500, textDecoration: 'none', textTransform: 'none', letterSpacing: 0 }}>ver todos →</Link>
@@ -278,86 +318,34 @@ export default async function DashboardPage() {
           ))}
         </div>
 
-        {/* Próximas Partidas */}
-        <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 14 }}>Próximas Partidas</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {(proximosJogos ?? []).slice(0, 5).map((j: JogoCopa) => {
-              const isToday   = j.data === hoje
-              const hasPlacar = !!j.resultado
-              return (
-                <div key={j.id} style={{
-                  display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center',
-                  padding: '8px 10px',
-                  background: isToday ? 'rgba(74,144,217,0.06)' : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${isToday ? 'rgba(74,144,217,0.35)' : 'rgba(255,255,255,0.06)'}`,
-                  borderRadius: 7,
-                }}>
-                  {/* Time A */}
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600 }}>
-                      {j.codigo_pais_a && <FlagImg codigo={j.codigo_pais_a} size={16} />}
-                      {j.time_a}
-                    </div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.50)', marginTop: 2 }}>{formatDate(j.data)}</div>
-                  </div>
-                  {/* Centro */}
-                  <div style={{ textAlign: 'center', padding: '0 10px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9' }}>
-                      {hasPlacar ? `${j.resultado!.placar_real_a} – ${j.resultado!.placar_real_b}` : '– –'}
-                    </div>
-                    <span style={{
-                      fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.3,
-                      background: hasPlacar ? 'rgba(74,144,217,0.15)' : isToday ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.07)',
-                      color: hasPlacar ? '#7BB8F0' : isToday ? '#4ade80' : 'rgba(255,255,255,0.5)',
-                    }}>
-                      {hasPlacar ? 'Encerrado' : isToday ? `Hoje ${formatTime(j.horario)}h` : 'Em breve'}
-                    </span>
-                  </div>
-                  {/* Time B */}
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, justifyContent: 'flex-end' }}>
-                      {j.time_b}
-                      {j.codigo_pais_b && <FlagImg codigo={j.codigo_pais_b} size={16} />}
-                    </div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.50)', marginTop: 2 }}>{j.cidade}</div>
-                  </div>
-                </div>
-              )
-            })}
-            {!(proximosJogos?.length) && (
-              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 12, padding: '20px 0' }}>Nenhuma partida em breve</p>
-            )}
-          </div>
-        </div>
-
-      </div>
-
-      {/* ── Third row: Informações ────────────────────────────────────────── */}
-      <div style={{ ...card }}>
-        <div style={bar} />
-        <div style={label12}>Informações</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
-          {[
-            <span><strong style={{ color: 'white' }}>Ativação:</strong> R$ 30,00 via PIX · CPF <strong style={{ color: 'white' }}>247.076.998-12</strong> (Ricardo L C Pereira)</span>,
-            <span><strong style={{ color: 'white' }}>Como ativar:</strong> envie o comprovante no grupo do WhatsApp com o nome do seu palpite</span>,
-            <span><strong style={{ color: 'white' }}>Prazo de ativação:</strong> palpites não podem ser ativados após o início da Copa — <strong style={{ color: 'white' }}>11 de junho</strong></span>,
-            <span><strong style={{ color: 'white' }}>Prazo por jogo:</strong> cada placar deve ser enviado até <strong style={{ color: 'white' }}>1 hora antes</strong> da partida</span>,
-            <span><strong style={{ color: 'white' }}>Palpites especiais:</strong> devem ser preenchidos até <strong style={{ color: 'white' }}>1h antes da primeira partida (11 jun · 16h00)</strong> — sem edição após esse prazo</span>,
-            <span><strong style={{ color: 'white' }}>Placar exato</strong> vale até <strong style={{ color: 'white' }}>20 pts</strong> na fase de grupos (mais nas fases seguintes)</span>,
-            <span><strong style={{ color: 'white' }}>Campeão correto</strong> vale <strong style={{ color: 'white' }}>100 pts</strong> · Vice vale <strong style={{ color: 'white' }}>70 pts</strong></span>,
-            <span><strong style={{ color: 'white' }}>Bônus de grupos:</strong> 20 pts por seleção classificada que você previu corretamente (máx. <strong style={{ color: 'white' }}>640 pts</strong>)</span>,
-          ].map((item, i) => (
-            <div key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-              <span style={{ color: '#4A90D9', flexShrink: 0 }}>•</span>
-              {item}
+        {/* R3C1+C2 — Boletim da Copa 2026 (placeholder — gerado pelo Claude Cowork) */}
+        <div className="dash-card-boletim" style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px', gridColumn: 'span 2' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8 }}>📰 Boletim da Copa 2026</div>
+              <div style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Resumo do dia · gerado por IA</div>
             </div>
-          ))}
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-            <span style={{ color: '#4A90D9', flexShrink: 0 }}>•</span>
-            <Link href="/instrucoes" style={{ color: '#7BB8F0', textDecoration: 'none' }}>Ver regulamento completo →</Link>
+            <span style={{ fontSize: 9, fontWeight: 700, color: '#4ade80', background: 'rgba(74,222,128,0.10)', padding: '3px 9px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>Em breve</span>
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic', padding: '20px 0', textAlign: 'center' }}>
+            O boletim diário da Copa será gerado automaticamente e publicado aqui.
           </div>
         </div>
+
+        {/* R2-3 C3 — Artilheiro da Copa */}
+        <div className="dash-card-artilheiro" style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8 }}>⚽ Artilheiro da Copa</div>
+              <div style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Ranking de gols · tempo real</div>
+            </div>
+            <span style={{ fontSize: 9, fontWeight: 700, color: '#4ade80', background: 'rgba(74,222,128,0.10)', padding: '3px 9px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>Em breve</span>
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic', padding: '20px 0', textAlign: 'center' }}>
+            Ranking de artilheiros atualizado em tempo real.
+          </div>
+        </div>
+
       </div>
     </div>
   )

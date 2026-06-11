@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
 :root {
   --bg:    #020F2A;
   --card:  #0D1E3D;
@@ -122,6 +127,24 @@ input[type='number'] { -moz-appearance: textfield; }
   /* ── dashboard ── */
   .dash-metrics { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
   .dash-two     { grid-template-columns: 1fr !important; }
+
+  /* dashboard main grid — mobile: coluna única, ordem customizada */
+  .dash-main-grid {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto !important;
+  }
+  /* anula spans de desktop */
+  .dash-main-grid > * {
+    grid-row: auto !important;
+    grid-column: auto !important;
+  }
+  .dash-card-carrossel { order: 1; }
+  .dash-card-jogos     { order: 2; }
+  .dash-card-proximas  { order: 3; }
+  .dash-card-tabela    { order: 4; }
+  .dash-card-ranking   { order: 5; }
+  .dash-card-boletim   { order: 6; }
+  .dash-card-artilheiro{ order: 7; }
 
   /* dashboard tabela preview: drop GP column */
   .dash-table-cols { grid-template-columns: 14px 1fr 20px 20px 20px 26px !important; }

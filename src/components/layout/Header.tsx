@@ -8,8 +8,7 @@ import type { User } from '@supabase/supabase-js'
 
 const NAV = [
   { href: '/dashboard',  label: 'Dashboard' },
-  { href: '/copa',       label: '🏆 Copa 2026' },
-  { href: '/tabela',     label: 'Tabela' },
+  { href: '/tabela',     label: 'Tabela da Copa' },
   { href: '/palpites',   label: 'Meus Palpites' },
   { href: '/ranking',    label: 'Ranking' },
   { href: '/instrucoes', label: 'Instruções' },
