@@ -4,11 +4,11 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const ITEMS = [
-  { href: '/dashboard',  icon: '🏠', label: 'Início' },
-  { href: '/tabela',     icon: '📊', label: 'Tabela' },
-  { href: '/palpites',   icon: '✏️',  label: 'Meus Palpites' },
-  { href: '/ranking',    icon: '🏆', label: 'Ranking' },
-  { href: '/instrucoes', icon: '📋', label: 'Regras' },
+  { href: '/dashboard', icon: '🏠', label: 'Início' },
+  { href: '/copa',      icon: '🏆', label: 'Copa' },
+  { href: '/palpites',  icon: '✏️',  label: 'Palpites' },
+  { href: '/ranking',   icon: '🥇', label: 'Ranking' },
+  { href: '/tabela',    icon: '📊', label: 'Tabela' },
 ]
 
 export function BottomNav() {
