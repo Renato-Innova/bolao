@@ -36,54 +36,54 @@ function NovaSenhaForm() {
     const code = searchParams.get('code')
     const errorParam = searchParams.get('error')
 
-    // Coleta info de debug
-    setDebug({
-      url_search: window.location.search || '(vazio)',
-      code: code ?? '(null)',
-      error_param: errorParam ?? '(null)',
-    })
+    // ── Fluxo implicit: token chega no hash (#access_token=...) ──────────────
+    // Usado quando resetPasswordForEmail é chamado com flowType: 'implicit'
+    // Funciona independente do browser que abre o email (sem code verifier)
+    const hash = window.location.hash
+    if (hash) {
+      const params = new URLSearchParams(hash.slice(1))
+      const access_token  = params.get('access_token')
+      const refresh_token = params.get('refresh_token') ?? ''
+      const type          = params.get('type')
 
-    // Erro explícito na URL (ex: vindo do callback com link inválido)
+      setDebug({ flow: 'implicit (hash)', type: type ?? '?', has_token: access_token ? 'sim' : 'não' })
+
+      if (access_token && type === 'recovery') {
+        supabase.auth.setSession({ access_token, refresh_token }).then(({ error: err }) => {
+          if (err) setError(`Erro ao estabelecer sessão: ${err.message}`)
+          else setReady(true)
+        })
+        return
+      }
+    }
+
+    // ── Fluxo PKCE: token chega como ?code= (mesmo browser) ──────────────────
+    setDebug({ flow: 'pkce (code)', code: code ?? '(null)', error_param: errorParam ?? '(null)' })
+
     if (errorParam) {
       setError('Link inválido ou expirado. Solicite um novo link.')
       return
     }
 
     if (code) {
-      // Troca o code pelo session token — o browser tem o code_verifier nos cookies
       supabase.auth.exchangeCodeForSession(code).then(({ data, error: err }) => {
-        setDebug(prev => ({
-          ...prev,
-          exchange_user: data.session?.user.email ?? '(null)',
-          exchange_error: err?.message ?? '(none)',
-        }))
-        if (err) {
-          setError(`Erro Supabase: ${err.message} (status ${err.status ?? '?'})`)
-        } else {
-          setReady(true)
-        }
+        setDebug(prev => ({ ...prev, user: data.session?.user.email ?? 'null', err: err?.message ?? 'none' }))
+        if (err) setError(`Erro: ${err.message}`)
+        else setReady(true)
       })
       return
     }
 
-    // Sem code na URL — aguarda evento PASSWORD_RECOVERY (fluxo hash legado)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setDebug(prev => ({ ...prev, auth_event: event, session_user: session?.user.email ?? '' }))
-      if (event === 'PASSWORD_RECOVERY') {
-        setReady(true)
-        subscription.unsubscribe()
-      }
+    // ── Fallback: aguarda evento PASSWORD_RECOVERY ────────────────────────────
+    setDebug({ flow: 'aguardando evento...' })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') { setReady(true); subscription.unsubscribe() }
     })
-
     const timer = setTimeout(() => {
       subscription.unsubscribe()
       setError('Link inválido ou expirado. Solicite um novo link de redefinição.')
     }, 8000)
-
-    return () => {
-      subscription.unsubscribe()
-      clearTimeout(timer)
-    }
+    return () => { subscription.unsubscribe(); clearTimeout(timer) }
   }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {

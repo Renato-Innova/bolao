@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserClient } from '@supabase/ssr'
 
 export default function EsqueciSenhaPage() {
   const [email, setEmail] = useState('')
@@ -18,7 +18,13 @@ export default function EsqueciSenhaPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true); setError('')
-    const supabase = createClient()
+    // Usa implicit flow para o reset: evita o problema do PKCE code verifier
+    // não estar disponível quando o email abre em browser diferente (Gmail app, etc.)
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { flowType: 'implicit' } }
+    )
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/nova-senha`,
     })
