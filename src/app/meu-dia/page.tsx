@@ -97,8 +97,8 @@ export default async function MeuDiaPage() {
         <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, color: 'white', letterSpacing: 1, lineHeight: 1 }}>
           🎯 Meu Dia no Bolão
         </div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', marginTop: 4 }}>
-          Seu desempenho de hoje · {fmt(hoje)}
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.60)', marginTop: 4 }}>
+          Uma análise de ontem e possibilidades para hoje.
         </div>
       </div>
 
