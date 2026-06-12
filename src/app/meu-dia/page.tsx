@@ -131,18 +131,28 @@ export default async function MeuDiaPage() {
                             {ptsTotais > 0 ? `+${ptsTotais} pts` : '0 pts'}
                           </span>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                           {linhas.map(({ jogo, pj }) => {
                             const apostou = pj?.placar_palpite_a != null ? `${pj.placar_palpite_a}×${pj.placar_palpite_b}` : '—'
                             const real    = `${jogo.resultado!.placar_real_a}×${jogo.resultado!.placar_real_b}`
                             const pts     = pj?.pontos ?? 0
+                            const acertou = pts > 0
                             return (
-                              <div key={jogo.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-                                <span style={{ color: pts > 0 ? '#4ade80' : 'rgba(255,100,100,0.7)', fontSize: 13, minWidth: 14 }}>{pts > 0 ? '✓' : '✗'}</span>
-                                <span style={{ color: 'rgba(255,255,255,0.65)', flex: 1 }}>{jogo.time_a} × {jogo.time_b}</span>
-                                <span style={{ color: 'rgba(255,255,255,0.35)' }}>apostei {apostou}</span>
-                                <span style={{ color: 'rgba(255,255,255,0.55)' }}>· real {real}</span>
-                                <span style={{ color: pts > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)', fontWeight: 700, minWidth: 40, textAlign: 'right' }}>{pts > 0 ? `+${pts}` : '0'}</span>
+                              <div key={jogo.id} style={{ display: 'flex', alignItems: 'stretch', borderRadius: 6, overflow: 'hidden', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(74,144,217,0.08)', borderLeft: `3px solid ${acertou ? '#4ade80' : 'rgba(255,100,100,0.55)'}` }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, flexShrink: 0, fontSize: 13, color: acertou ? '#4ade80' : 'rgba(255,100,100,0.75)' }}>
+                                  {acertou ? '✓' : '✗'}
+                                </div>
+                                <div style={{ flex: 1, padding: '5px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.70)' }}>{jogo.time_a} × {jogo.time_b}</span>
+                                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 11, color: 'rgba(255,255,255,0.40)' }}>
+                                    <span>apostei <b style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}>{apostou}</b></span>
+                                    <span style={{ color: 'rgba(255,255,255,0.20)' }}>|</span>
+                                    <span>real <b style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}>{real}</b></span>
+                                  </div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 42, flexShrink: 0, fontSize: 12, fontWeight: 700, borderLeft: '1px solid rgba(74,144,217,0.08)', color: acertou ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>
+                                  {acertou ? `+${pts}` : '0'}
+                                </div>
                               </div>
                             )
                           })}
@@ -162,23 +172,34 @@ export default async function MeuDiaPage() {
                   {(meusPalpites as { id: number; nome: string }[]).map(p => (
                     <div key={p.id} style={{ ...card, border: '1px solid rgba(74,144,217,0.10)' }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 8 }}>{p.nome}</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         {jogosHoje.map(j => {
                           const pj      = (pjHoje as PJ[]).find(x => x.palpite_id === p.id && x.jogo_id === j.id)
                           const apostou = pj?.placar_palpite_a != null ? `${pj.placar_palpite_a}×${pj.placar_palpite_b}` : '—'
                           const enc     = !!j.resultado
+                          const pts     = pj?.pontos ?? 0
+                          const acertou = enc && pts > 0
                           return (
-                            <div key={j.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-                              <span style={{ color: 'rgba(255,255,255,0.35)', minWidth: 36 }}>{j.horario?.slice(0,5)}h</span>
-                              <span style={{ color: 'rgba(255,255,255,0.65)', flex: 1 }}>{j.time_a} × {j.time_b}</span>
-                              {enc ? (
-                                <>
-                                  <span style={{ color: 'rgba(255,255,255,0.35)' }}>apostei {apostou}</span>
-                                  <span style={{ color: 'rgba(255,255,255,0.55)' }}>· real {j.resultado!.placar_real_a}×{j.resultado!.placar_real_b}</span>
-                                  <span style={{ color: (pj?.pontos ?? 0) > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)', fontWeight: 700, minWidth: 40, textAlign: 'right' }}>{(pj?.pontos ?? 0) > 0 ? `+${pj!.pontos}` : '0'}</span>
-                                </>
-                              ) : (
-                                <span style={{ color: '#4A90D9', fontWeight: 600 }}>apostei {apostou}</span>
+                            <div key={j.id} style={{ display: 'flex', alignItems: 'stretch', borderRadius: 6, overflow: 'hidden', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(74,144,217,0.08)', borderLeft: enc ? `3px solid ${acertou ? '#4ade80' : 'rgba(255,100,100,0.55)'}` : '3px solid rgba(74,144,217,0.30)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, flexShrink: 0, fontSize: enc ? 13 : 11, color: enc ? (acertou ? '#4ade80' : 'rgba(255,100,100,0.75)') : 'rgba(255,255,255,0.30)' }}>
+                                {enc ? (acertou ? '✓' : '✗') : j.horario?.slice(0,5)}
+                              </div>
+                              <div style={{ flex: 1, padding: '5px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.70)' }}>{j.time_a} × {j.time_b}</span>
+                                {enc ? (
+                                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 11, color: 'rgba(255,255,255,0.40)' }}>
+                                    <span>apostei <b style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}>{apostou}</b></span>
+                                    <span style={{ color: 'rgba(255,255,255,0.20)' }}>|</span>
+                                    <span>real <b style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}>{j.resultado!.placar_real_a}×{j.resultado!.placar_real_b}</b></span>
+                                  </div>
+                                ) : (
+                                  <span style={{ fontSize: 11, color: '#4A90D9', fontWeight: 600 }}>apostei {apostou}</span>
+                                )}
+                              </div>
+                              {enc && (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 42, flexShrink: 0, fontSize: 12, fontWeight: 700, borderLeft: '1px solid rgba(74,144,217,0.08)', color: acertou ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>
+                                  {acertou ? `+${pts}` : '0'}
+                                </div>
                               )}
                             </div>
                           )
