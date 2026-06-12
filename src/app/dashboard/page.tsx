@@ -134,7 +134,7 @@ export default async function DashboardPage() {
               <div style={label12}>Jogos realizados</div>
               <div style={value24}>
                 {jogosRealizados ?? 0}
-                <span style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}>/{totalJogos ?? 104}</span>
+                <span style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}> / {totalJogos ?? 104}</span>
               </div>
               <div style={sub10}>{faseAtual}</div>
             </div>
@@ -317,9 +317,16 @@ export default async function DashboardPage() {
 
         {/* R2C2 — Tabela Oficial */}
         <div className="dash-card-tabela" style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
-            Tabela oficial
-            <Link href="/tabela" style={{ fontSize: 10, color: '#4A90D9', fontWeight: 500, textDecoration: 'none', textTransform: 'none', letterSpacing: 0 }}>ver todos →</Link>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8 }}>Tabela oficial</div>
+              {nextGSGroups.length > 0 && (
+                <div style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
+                  Grupos com jogos hoje · {nextGSGroups.map(g => `Grupo ${g}`).join(' · ')}
+                </div>
+              )}
+            </div>
+            <Link href="/tabela" style={{ fontSize: 10, color: '#4A90D9', fontWeight: 500, textDecoration: 'none', letterSpacing: 0 }}>ver todos →</Link>
           </div>
 
           {displayGroups.length === 0 ? (
