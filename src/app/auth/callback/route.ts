@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -7,7 +8,7 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get('next') ?? '/dashboard'
 
   if (code) {
-    const pending: Array<{ name: string; value: string; options: Record<string, unknown> }> = []
+    const pending: Array<{ name: string; value: string; options: Partial<ResponseCookie> }> = []
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
       {
         cookies: {
           getAll: () => request.cookies.getAll(),
-          setAll: (list) => pending.push(...list),
+          setAll: (list) => { list.forEach(({ name, value, options }) => pending.push({ name, value, options })) },
         },
       }
     )
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
     const dest = error ? '/auth/login' : next
     const response = NextResponse.redirect(`${origin}${dest}`)
     for (const { name, value, options } of pending) {
-      response.cookies.set(name, value, options as Parameters<typeof response.cookies.set>[2])
+      response.cookies.set({ name, value, ...options })
     }
     return response
   }
