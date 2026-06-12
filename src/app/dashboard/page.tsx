@@ -238,9 +238,9 @@ export default async function DashboardPage() {
                         </div>
                       )}
                     </div>
-                    {/* barra de desempenho — borda inferior do card */}
-                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: 'rgba(255,255,255,0.06)' }}>
-                      <div style={{ height: 3, background: 'linear-gradient(90deg, #4A90D9, #7BB8F0)', width: `${pct}%` }} />
+                    {/* barra de desempenho — borda inferior do card, sem track */}
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2 }}>
+                      <div style={{ height: 2, background: 'linear-gradient(90deg, rgba(74,144,217,0.55), rgba(123,184,240,0.25))', width: `${pct}%` }} />
                     </div>
                   </div>
                 )
