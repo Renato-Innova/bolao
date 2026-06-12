@@ -5,7 +5,7 @@ export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const { pathname } = request.nextUrl
-  const isAuthRoute   = pathname.startsWith('/auth')
+  const isAuthRoute   = pathname.startsWith('/auth') || pathname === '/forgot-password' || pathname === '/reset-password'
   const isPublicFile  = pathname.startsWith('/_next') || pathname.startsWith('/favicon')
   // Pages accessible without login — ranking and palpites remain protected
   const isPublicRoute = pathname === '/' || pathname === '/dashboard' || pathname === '/tabela' || pathname === '/instrucoes'
