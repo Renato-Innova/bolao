@@ -27,9 +27,7 @@ export default async function DashboardPage() {
 
   const { data: { user: currentUser } } = await supabase.auth.getUser()
 
-  const brtNow  = new Date(Date.now() - 3 * 60 * 60 * 1000)
-  const hoje    = brtNow.toISOString().split('T')[0]
-  const ontem   = new Date(brtNow.getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const hoje = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().split('T')[0]
 
   const [
     { count: totalAtivos },
@@ -41,9 +39,6 @@ export default async function DashboardPage() {
     ranking,
     { data: grupoJogos },
     { data: boletins },
-    { data: meusPalpites },
-    { data: jogosOntemData },
-    { data: jogosHojeData },
   ] = await Promise.all([
     supabase.from('palpites').select('*', { count: 'exact', head: true }).eq('status', 'ativo'),
     supabase.from('users').select('*', { count: 'exact', head: true }),
@@ -54,61 +49,10 @@ export default async function DashboardPage() {
     getRanking(),
     supabase.from('classificacao_grupos').select('*').order('grupo').order('pts', { ascending: false }).order('dg', { ascending: false }).order('m', { ascending: false }),
     supabase.from('boletim_copa').select('*').order('gerado_em', { ascending: false }).limit(2),
-    // palpites ativos do usuário logado
-    currentUser
-      ? supabase.from('palpites').select('id, nome').eq('usuario_id', currentUser.id).eq('status', 'ativo')
-      : Promise.resolve({ data: [] }),
-    // jogos de ontem com resultado
-    supabase.from('jogos_copa').select('id, time_a, time_b, resultado:resultados(placar_real_a, placar_real_b)').eq('data', ontem).order('horario'),
-    // jogos de hoje
-    supabase.from('jogos_copa').select('id, time_a, time_b, horario, resultado:resultados(placar_real_a, placar_real_b)').eq('data', hoje).order('horario'),
   ])
 
   const lider   = (ranking[0]?.total_pontos ?? 0) > 0 ? ranking[0] : null
   const myEntry = currentUser ? ranking.find(r => r.usuario_id === currentUser.id) : null
-
-  // palpites_jogos do usuário para ontem e hoje
-  const palpiteIds = (meusPalpites ?? []).map((p: { id: number }) => p.id)
-  const jogoIdsOntem = (jogosOntemData ?? []).map((j: { id: number }) => j.id)
-  const jogoIdsHoje  = (jogosHojeData  ?? []).map((j: { id: number }) => j.id)
-
-  const { data: pjOntem } = palpiteIds.length && jogoIdsOntem.length
-    ? await supabase.from('palpites_jogos')
-        .select('palpite_id, jogo_id, placar_palpite_a, placar_palpite_b, pontos')
-        .in('palpite_id', palpiteIds).in('jogo_id', jogoIdsOntem)
-    : { data: [] }
-
-  const { data: pjHoje } = palpiteIds.length && jogoIdsHoje.length
-    ? await supabase.from('palpites_jogos')
-        .select('palpite_id, jogo_id, placar_palpite_a, placar_palpite_b, pontos')
-        .in('palpite_id', palpiteIds).in('jogo_id', jogoIdsHoje)
-    : { data: [] }
-
-  // pontos totais ganhos ontem por palpite
-  type PJ = { palpite_id: number; jogo_id: number; placar_palpite_a: number | null; placar_palpite_b: number | null; pontos: number }
-  const pontosOntemPorPalpite: Record<number, number> = {}
-  for (const pj of (pjOntem ?? []) as PJ[]) {
-    pontosOntemPorPalpite[pj.palpite_id] = (pontosOntemPorPalpite[pj.palpite_id] ?? 0) + pj.pontos
-  }
-
-  // rivais: palpite imediatamente acima e abaixo de cada palpite ativo do usuário
-  const rivalIds: number[] = []
-  for (const pid of palpiteIds) {
-    const pos = ranking.find(r => r.palpite_id === pid)?.posicao
-    if (pos != null) {
-      const acima  = ranking.find(r => r.posicao === pos - 1)
-      const abaixo = ranking.find(r => r.posicao === pos + 1)
-      if (acima)  rivalIds.push(acima.palpite_id)
-      if (abaixo) rivalIds.push(abaixo.palpite_id)
-    }
-  }
-  const uniqueRivalIds = [...new Set(rivalIds.filter(id => !palpiteIds.includes(id)))]
-
-  const { data: pjRivaisHoje } = uniqueRivalIds.length && jogoIdsHoje.length
-    ? await supabase.from('palpites_jogos')
-        .select('palpite_id, jogo_id, placar_palpite_a, placar_palpite_b')
-        .in('palpite_id', uniqueRivalIds).in('jogo_id', jogoIdsHoje)
-    : { data: [] }
 
   /* slides do carrossel — todos os palpites do usuário logado */
   const mySlides: PalpiteSlide[] = currentUser
@@ -429,196 +373,13 @@ export default async function DashboardPage() {
                 })}
               </div>
 
-              {/* bloco personalizado — só para usuários logados com palpites ativos */}
-              {currentUser && (meusPalpites ?? []).length > 0 && (() => {
-                type Jogo = { id: number; time_a: string; time_b: string; horario?: string; resultado: { placar_real_a: number; placar_real_b: number } | null }
-                const jogosOntem = (jogosOntemData ?? []) as unknown as Jogo[]
-                const jogosHoje  = (jogosHojeData  ?? []) as unknown as Jogo[]
-                const temOntem   = jogosOntem.some(j => j.resultado)
-                const temHoje    = jogosHoje.length > 0
+              {/* link para página Meu Dia */}
+              {currentUser && (
+                <Link href="/meu-dia" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 14px', background: 'rgba(74,144,217,0.08)', border: '1px solid rgba(74,144,217,0.20)', borderRadius: 8, textDecoration: 'none', color: '#7BB8F0', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+                  🎯 Ver meu dia no bolão →
+                </Link>
+              )}
 
-                if (!temOntem && !temHoje) return null
-
-                return (
-                  <div style={{ background: 'rgba(74,144,217,0.05)', border: '1px solid rgba(74,144,217,0.20)', borderRadius: 8, padding: '12px 14px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#7BB8F0', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
-                      🎯 Seu dia no bolão
-                    </div>
-
-                    {/* ontem — resultados vs palpites */}
-                    {temOntem && (
-                      <div style={{ marginBottom: temHoje ? 12 : 0 }}>
-                        <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Ontem · {ontem.split('-').reverse().slice(0,2).join('/')}</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {(meusPalpites as { id: number; nome: string }[]).map(p => {
-                            const ptsTotais = pontosOntemPorPalpite[p.id] ?? 0
-                            const linhas = jogosOntem
-                              .filter(j => j.resultado)
-                              .map(j => {
-                                const pj = (pjOntem as PJ[]).find(x => x.palpite_id === p.id && x.jogo_id === j.id)
-                                return { jogo: j, pj }
-                              })
-                            return (
-                              <div key={p.id} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '8px 10px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                                  <span style={{ fontSize: 11, fontWeight: 700, color: 'white' }}>{p.nome}</span>
-                                  <span style={{ fontSize: 12, fontWeight: 700, color: ptsTotais > 0 ? '#4ade80' : 'rgba(255,255,255,0.35)' }}>
-                                    {ptsTotais > 0 ? `+${ptsTotais} pts` : '0 pts'}
-                                  </span>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                                  {linhas.map(({ jogo, pj }) => {
-                                    const apostou = pj && pj.placar_palpite_a != null
-                                      ? `${pj.placar_palpite_a}×${pj.placar_palpite_b}`
-                                      : '—'
-                                    const real = `${jogo.resultado!.placar_real_a}×${jogo.resultado!.placar_real_b}`
-                                    const pts  = pj?.pontos ?? 0
-                                    const acertou = pts > 0
-                                    return (
-                                      <div key={jogo.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10 }}>
-                                        <span style={{ color: acertou ? '#4ade80' : 'rgba(255,100,100,0.7)', fontSize: 10 }}>{acertou ? '✓' : '✗'}</span>
-                                        <span style={{ color: 'rgba(255,255,255,0.55)', flex: 1 }}>{jogo.time_a} × {jogo.time_b}</span>
-                                        <span style={{ color: 'rgba(255,255,255,0.35)' }}>apostei {apostou}</span>
-                                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>· real {real}</span>
-                                        {pts > 0 && <span style={{ color: '#4ade80', fontWeight: 700 }}>+{pts}</span>}
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* hoje — prévia das apostas */}
-                    {temHoje && (
-                      <div>
-                        <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Hoje · {hoje.split('-').reverse().slice(0,2).join('/')}</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {(meusPalpites as { id: number; nome: string }[]).map(p => (
-                            <div key={p.id} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '8px 10px' }}>
-                              <div style={{ fontSize: 11, fontWeight: 700, color: 'white', marginBottom: 5 }}>{p.nome}</div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                                {jogosHoje.map(j => {
-                                  const pj = (pjHoje as PJ[]).find(x => x.palpite_id === p.id && x.jogo_id === j.id)
-                                  const apostou = pj && pj.placar_palpite_a != null
-                                    ? `${pj.placar_palpite_a}×${pj.placar_palpite_b}`
-                                    : '—'
-                                  const encerrado = !!j.resultado
-                                  return (
-                                    <div key={j.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10 }}>
-                                      <span style={{ color: 'rgba(255,255,255,0.35)', minWidth: 32 }}>{j.horario?.slice(0,5)}h</span>
-                                      <span style={{ color: 'rgba(255,255,255,0.55)', flex: 1 }}>{j.time_a} × {j.time_b}</span>
-                                      {encerrado ? (
-                                        <>
-                                          <span style={{ color: 'rgba(255,255,255,0.35)' }}>apostei {apostou}</span>
-                                          <span style={{ color: 'rgba(255,255,255,0.55)' }}>· real {j.resultado!.placar_real_a}×{j.resultado!.placar_real_b}</span>
-                                          {(pj?.pontos ?? 0) > 0 && <span style={{ color: '#4ade80', fontWeight: 700 }}>+{pj!.pontos}</span>}
-                                        </>
-                                      ) : (
-                                        <span style={{ color: '#4A90D9', fontWeight: 600 }}>apostei {apostou}</span>
-                                      )}
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })()}
-
-              {/* bloco de rivais — quem está à frente e atrás no ranking */}
-              {currentUser && palpiteIds.length > 0 && jogoIdsHoje.length > 0 && (() => {
-                type Jogo = { id: number; time_a: string; time_b: string; horario?: string; resultado: { placar_real_a: number; placar_real_b: number } | null }
-                const jogosHoje = (jogosHojeData ?? []) as unknown as Jogo[]
-
-                const blocos = (meusPalpites as { id: number; nome: string }[]).map(p => {
-                  const myRank = ranking.find(r => r.palpite_id === p.id)
-                  if (!myRank) return null
-                  const pos    = myRank.posicao
-                  const rival_acima  = pos > 1 ? ranking.find(r => r.posicao === pos - 1) ?? null : null
-                  const rival_abaixo = ranking.find(r => r.posicao === pos + 1) ?? null
-                  return { p, myRank, rival_acima, rival_abaixo }
-                }).filter(Boolean)
-
-                if (!blocos.length) return null
-
-                function RivalRow({ rival, direcao, meusPts }: {
-                  rival: typeof ranking[0]
-                  direcao: 'acima' | 'abaixo'
-                  meusPts: number
-                }) {
-                  const diff = Math.abs(rival.total_pontos - meusPts)
-                  const acima = direcao === 'acima'
-                  const apostasHoje = jogosHoje.map(j => {
-                    const pj = (pjRivaisHoje as { palpite_id: number; jogo_id: number; placar_palpite_a: number | null; placar_palpite_b: number | null }[])
-                      .find(x => x.palpite_id === rival.palpite_id && x.jogo_id === j.id)
-                    return { jogo: j, pj }
-                  })
-                  return (
-                    <div style={{ background: acima ? 'rgba(255,100,100,0.04)' : 'rgba(74,222,128,0.04)', border: `1px solid ${acima ? 'rgba(255,100,100,0.15)' : 'rgba(74,222,128,0.15)'}`, borderRadius: 6, padding: '8px 10px', marginBottom: 6 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: 10, color: acima ? 'rgba(255,100,100,0.8)' : '#4ade80' }}>{acima ? '▲' : '▼'}</span>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: 'white' }}>{rival.nome}</span>
-                          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>#{rival.posicao}</span>
-                        </div>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: acima ? 'rgba(255,100,100,0.8)' : '#4ade80' }}>
-                          {acima ? `+${diff} à frente` : `-${diff} atrás`}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                        {apostasHoje.map(({ jogo, pj }) => {
-                          const apostou = pj && pj.placar_palpite_a != null
-                            ? `${pj.placar_palpite_a}×${pj.placar_palpite_b}`
-                            : '—'
-                          return (
-                            <div key={jogo.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10 }}>
-                              <span style={{ color: 'rgba(255,255,255,0.35)', minWidth: 32 }}>{jogo.horario?.slice(0,5)}h</span>
-                              <span style={{ color: 'rgba(255,255,255,0.55)', flex: 1 }}>{jogo.time_a} × {jogo.time_b}</span>
-                              <span style={{ color: pj ? '#4A90D9' : 'rgba(255,255,255,0.25)', fontWeight: pj ? 600 : 400 }}>{apostou}</span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                }
-
-                return (
-                  <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '12px 14px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
-                      🔭 Olhando para cima e para baixo
-                    </div>
-                    {blocos.map(bloco => {
-                      const { p, myRank, rival_acima, rival_abaixo } = bloco!
-                      return (
-                        <div key={p.id} style={{ marginBottom: blocos.length > 1 ? 14 : 0 }}>
-                          {blocos.length > 1 && (
-                            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-                              {p.nome} · #{myRank.posicao} · {myRank.total_pontos} pts
-                            </div>
-                          )}
-                          {rival_acima
-                            ? <RivalRow rival={rival_acima} direcao="acima" meusPts={myRank.total_pontos} />
-                            : <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic', marginBottom: 6 }}>🏆 Você está na liderança!</div>
-                          }
-                          {rival_abaixo
-                            ? <RivalRow rival={rival_abaixo} direcao="abaixo" meusPts={myRank.total_pontos} />
-                            : <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic' }}>Ninguém atrás ainda.</div>
-                          }
-                        </div>
-                      )
-                    })}
-                  </div>
-                )
-              })()}
             </div>
           )}
         </div>

@@ -14,6 +14,10 @@ const NAV = [
   { href: '/instrucoes', label: 'Instruções' },
 ]
 
+const NAV_AUTH = [
+  { href: '/meu-dia', label: '🎯 Meu Dia' },
+]
+
 function initials(name: string) {
   return name.split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase()
 }
@@ -121,6 +125,18 @@ export function Header() {
             {label}
           </Link>
         ))}
+        {user && NAV_AUTH.map(({ href, label }) => (
+          <Link key={href} href={href} style={{
+            color: isActive(href) ? '#7BB8F0' : 'rgba(123,184,240,0.60)',
+            fontSize: 10, fontWeight: 600,
+            textTransform: 'uppercase', letterSpacing: 0.6,
+            padding: '6px 12px', borderRadius: 6,
+            textDecoration: 'none',
+            background: isActive(href) ? 'rgba(74,144,217,0.12)' : 'transparent',
+          }}>
+            {label}
+          </Link>
+        ))}
         {isAdmin && (
           <Link href="/admin/resultados" style={{
             color: pathname.startsWith('/admin') && !pathname.startsWith('/admin/balanco') ? '#4ade80' : 'rgba(74,222,128,0.7)',
@@ -212,6 +228,12 @@ export function Header() {
           {NAV.map(({ href, label }) => (
             <Link key={href} href={href} onClick={() => setMenuOpen(false)} style={{
               color: isActive(href) ? '#4A90D9' : 'rgba(255,255,255,0.7)',
+              fontSize: 13, fontWeight: 600, textDecoration: 'none', padding: '6px 0',
+            }}>{label}</Link>
+          ))}
+          {user && NAV_AUTH.map(({ href, label }) => (
+            <Link key={href} href={href} onClick={() => setMenuOpen(false)} style={{
+              color: isActive(href) ? '#7BB8F0' : 'rgba(123,184,240,0.75)',
               fontSize: 13, fontWeight: 600, textDecoration: 'none', padding: '6px 0',
             }}>{label}</Link>
           ))}
