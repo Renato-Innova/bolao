@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
-export default function NovaSenhaPage() {
+function NovaSenhaForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -20,23 +21,27 @@ export default function NovaSenhaPage() {
     return () => { document.body.style.overflow = '' }
   }, [])
 
-  // Supabase envia a sessão de duas formas:
-  // 1. Hash (#access_token=...&type=recovery) — dispara evento PASSWORD_RECOVERY
-  // 2. PKCE (?code=...) — sessão já foi trocada pelo callback; verificar getUser()
+  // Troca o code pelo session client-side (PKCE recovery flow).
+  // Fazemos isso aqui e não no server callback para que a sessão de recovery
+  // fique armazenada no browser — necessário para updateUser funcionar sem 422.
   useEffect(() => {
     const supabase = createClient()
+    const code = searchParams.get('code')
 
-    // Verifica se já há sessão ativa de recovery (fluxo PKCE via callback)
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setReady(true)
-    })
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (!error) setReady(true)
+        else setError('Link inválido ou expirado. Solicite um novo link de redefinição.')
+      })
+      return
+    }
 
-    // Aguarda evento para o fluxo hash
+    // Fallback: sessão hash (#access_token) — fluxo legado
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') setReady(true)
     })
     return () => subscription.unsubscribe()
-  }, [])
+  }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -54,6 +59,7 @@ export default function NovaSenhaPage() {
 
   return (
     <div className="auth-page" style={{
+
       position: 'relative', zIndex: 1, height: '100vh', overflow: 'hidden',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: '0 16px',
@@ -116,5 +122,13 @@ export default function NovaSenhaPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function NovaSenhaPage() {
+  return (
+    <Suspense>
+      <NovaSenhaForm />
+    </Suspense>
   )
 }
