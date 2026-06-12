@@ -70,6 +70,16 @@ input[type='number'] { -moz-appearance: textfield; }
 .chave-col { width: 200px; }
 .chave-arrow { display: flex; }
 
+/* ── dashboard grid: min-width:0 evita overflow dos filhos (padrão CSS grid é auto) ── */
+.dash-main-grid {
+  width: 100%;
+  overflow: hidden;
+}
+.dash-main-grid > * {
+  min-width: 0;
+  overflow: hidden;
+}
+
 /* ══════════════════════════════════════
    MOBILE  ≤ 768px
 ══════════════════════════════════════ */
@@ -146,6 +156,8 @@ input[type='number'] { -moz-appearance: textfield; }
   .dash-main-grid > * {
     grid-row: auto !important;
     grid-column: auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
   }
   .dash-card-carrossel { order: 1; }
   .dash-card-jogos     { order: 2; }

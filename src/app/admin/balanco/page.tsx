@@ -189,20 +189,6 @@ export default async function BalancoPage() {
           )}
         </div>
 
-        {/* Regras resumidas */}
-        <div style={{
-          display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' as const,
-        }}>
-          {REGRAS_PREMIO.map(r => (
-            <div key={r.posicao} style={{
-              background: 'rgba(74,144,217,0.08)', border: '1px solid rgba(74,144,217,0.15)',
-              borderRadius: 8, padding: '6px 14px', fontSize: 11, color: 'rgba(255,255,255,0.65)',
-            }}>
-              {r.emoji} {r.label}: <strong style={{ color: 'white' }}>{pct(r.pct)}</strong>
-            </div>
-          ))}
-        </div>
-
         {/* Linhas por posição */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {REGRAS_PREMIO.map(regra => {
@@ -227,10 +213,24 @@ export default async function BalancoPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   {entry ? (
                     <>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {/* Nome ofuscado — revelado somente após o final do bolão */}
+                      <div style={{
+                        fontSize: 14, fontWeight: 700, color: 'transparent',
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                        textShadow: '0 0 10px rgba(255,255,255,0.85)',
+                        userSelect: 'none',
+                        filter: 'blur(6px)',
+                        maxWidth: 180,
+                      }}>
                         {entry.nome}
                       </div>
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
+                      <div style={{
+                        fontSize: 11, color: 'transparent',
+                        marginTop: 2,
+                        textShadow: '0 0 8px rgba(255,255,255,0.5)',
+                        filter: 'blur(4px)',
+                        userSelect: 'none',
+                      }}>
                         {entry.usuario_nome} · {entry.total_pontos} pts
                       </div>
                     </>
@@ -269,8 +269,9 @@ export default async function BalancoPage() {
           background: 'rgba(74,144,217,0.06)', borderRadius: 8,
           fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.6,
         }}>
-          ⚠️ Os prêmios acima refletem a <strong style={{ color: 'rgba(255,255,255,0.55)' }}>classificação atual</strong> e serão confirmados apenas ao final da competição (19 jul 2026).
-          O custo de IA é uma estimativa — o valor real pode variar conforme o uso efetivo da API.
+          🔒 Os nomes dos líderes estão <strong style={{ color: 'rgba(255,255,255,0.55)' }}>ocultos até o final do bolão</strong> (19 jul 2026) para manter o suspense.
+          Os valores refletem a classificação atual e serão confirmados apenas na apuração final.
+          O custo de IA é estimado — pode variar conforme uso efetivo da API.
         </div>
       </div>
 
