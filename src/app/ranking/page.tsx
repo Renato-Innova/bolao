@@ -1,3 +1,4 @@
+// v2
 import { createClient } from '@/lib/supabase/server'
 import { getRanking } from '@/services/ranking'
 import type { RankingEntry } from '@/types'
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic'
 
 const trunc = (s: string, max: number) => s.length > max ? s.slice(0, max) + '…' : s
 
-/* ─── Pódio Opção 4 — plataforma de altura ─────────────────────────────────── */
+/* ─── Pódio Opçao 4 — plataforma de altura ─────────────────────────────────── */
 function Podium({ top3, myIds }: { top3: RankingEntry[]; myIds: number[] }) {
   // ordem visual: 2º, 1º, 3º
   const order  = [1, 0, 2]

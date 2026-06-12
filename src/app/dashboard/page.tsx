@@ -1,3 +1,4 @@
+// v2
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getRanking } from '@/services/ranking'
@@ -6,6 +7,8 @@ import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
 import { PalpiteCarousel } from '@/components/dashboard/PalpiteCarousel'
 import type { PalpiteSlide } from '@/components/dashboard/PalpiteCarousel'
 import type { JogoCopa, ClassificacaoGrupo } from '@/types'
+
+// Inicio do código
 
 export const dynamic = 'force-dynamic'
 
