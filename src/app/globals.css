@@ -146,7 +146,7 @@ input[type='number'] { -moz-appearance: textfield; }
     border-radius: 10px !important;
   }
   .auth-two-col { grid-template-columns: 1fr !important; }
-  .meu-dia-row { flex-direction: column !important; }
+  .meu-dia-row { display: grid !important; grid-template-columns: 1fr !important; }
 
   /* ── dashboard ── */
   .dash-metrics { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
