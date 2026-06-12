@@ -244,7 +244,7 @@ export default async function RankingPage() {
               <span style={{ textAlign: 'right' }}>Pontos</span>
             </div>
 
-            <div className="rank-table-body" style={{ display: 'contents' }}>
+            <div className="rank-table-body">
               {ranking.map((entry, idx) => {
                 const isMe    = myPalpiteIds.includes(entry.palpite_id)
                 const posColor = entry.posicao === 1 ? '#FFD700'
