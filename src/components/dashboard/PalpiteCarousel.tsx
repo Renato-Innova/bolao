@@ -168,6 +168,7 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'relative',
     overflow: 'hidden',
     height: '100%',
+    minHeight: 130,
   },
   bar: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 2,
