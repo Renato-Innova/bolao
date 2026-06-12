@@ -49,9 +49,18 @@ export default async function DashboardPage() {
     supabase.from('jogos_copa').select('*, resultado:resultados(*)').lt('data', hoje).not('resultado', 'is', null).order('data', { ascending: false }).order('horario', { ascending: false }).limit(4),
     getRanking(),
     supabase.from('classificacao_grupos').select('*').order('grupo').order('pts', { ascending: false }).order('dg', { ascending: false }).order('m', { ascending: false }),
-    supabase.from('boletim_copa').select('*').order('gerado_em', { ascending: false }).limit(2),
+    supabase.from('boletim_copa').select('*').order('gerado_em', { ascending: false }).limit(10),
     supabase.from('artilheiros_copa').select('*').order('gols', { ascending: false }).order('assistencias', { ascending: false }).limit(10),
   ])
+
+  // Deduplica boletins: mantém apenas o mais recente de cada tipo (manha/tarde)
+  type Boletim = { id: number; tipo: string; titulo: string; conteudo: string; gerado_em: string }
+  const boletinsUnicos: Boletim[] = Object.values(
+    ((boletins ?? []) as Boletim[]).reduce((acc, b) => {
+      if (!acc[b.tipo]) acc[b.tipo] = b
+      return acc
+    }, {} as Record<string, Boletim>)
+  )
 
   const lider   = (ranking[0]?.total_pontos ?? 0) > 0 ? ranking[0] : null
   const myEntry = currentUser ? ranking.find(r => r.usuario_id === currentUser.id) : null
@@ -379,7 +388,7 @@ export default async function DashboardPage() {
             </span>
           </div>
 
-          {!boletins || boletins.length === 0 ? (
+          {boletinsUnicos.length === 0 ? (
             /* estado vazio */
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic', padding: '16px 0', textAlign: 'center' }}>
               O primeiro boletim será publicado hoje às 7h. ☀️
@@ -387,8 +396,8 @@ export default async function DashboardPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {/* boletins IA lado a lado */}
-              <div style={{ display: 'grid', gridTemplateColumns: boletins.length > 1 ? '1fr 1fr' : '1fr', gap: 12 }}>
-                {boletins.map((b: { id: number; tipo: string; titulo: string; conteudo: string; gerado_em: string }) => {
+              <div style={{ display: 'grid', gridTemplateColumns: boletinsUnicos.length > 1 ? '1fr 1fr' : '1fr', gap: 12 }}>
+                {boletinsUnicos.map((b) => {
                   const hora = new Date(b.gerado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
                   const isManha = b.tipo === 'manha'
                   return (
@@ -443,7 +452,7 @@ export default async function DashboardPage() {
               const hora = ultima.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
               return (
                 <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
-                  atualizado {hora}
+                  {hora}
                 </span>
               )
             })()}
@@ -454,23 +463,64 @@ export default async function DashboardPage() {
               Aguardando primeiro jogo…
             </p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {(artilheiros as { id: number; jogador: string; seleção: string; escudo_url: string | null; gols: number; assistencias: number; jogos: number }[]).map((a, i) => (
-                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 6px', background: i === 0 ? 'rgba(255,215,0,0.06)' : 'rgba(255,255,255,0.03)', border: `1px solid ${i === 0 ? 'rgba(255,215,0,0.18)' : 'rgba(255,255,255,0.05)'}`, borderRadius: 6 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: i === 0 ? '#FFD700' : 'rgba(255,255,255,0.30)', minWidth: 16, textAlign: 'center' }}>
-                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`}
+            <>
+              {/* cabeçalho de colunas */}
+              <div style={{ display: 'grid', gridTemplateColumns: '18px 16px 1fr 24px 24px 22px', gap: 4, padding: '0 4px 5px', fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.30)', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: 4 }}>
+                <span />
+                <span />
+                <span>Jogador</span>
+                <span style={{ textAlign: 'center' }}>G</span>
+                <span style={{ textAlign: 'center' }}>A</span>
+                <span style={{ textAlign: 'center' }}>J</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {(artilheiros as { id: number; jogador: string; seleção: string; escudo_url: string | null; gols: number; assistencias: number | null; penaltis: number | null; jogos: number }[]).map((a, i) => {
+                  const isFirst  = i === 0
+                  const medal    = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null
+                  const goalColor = isFirst ? '#FFD700' : '#4A90D9'
+                  const pens     = a.penaltis ?? 0
+                  return (
+                    <div key={a.id} style={{ display: 'grid', gridTemplateColumns: '18px 16px 1fr 24px 24px 22px', gap: 4, alignItems: 'center', padding: '5px 4px', background: isFirst ? 'rgba(255,215,0,0.05)' : 'rgba(255,255,255,0.03)', border: `1px solid ${isFirst ? 'rgba(255,215,0,0.14)' : 'rgba(255,255,255,0.04)'}`, borderRadius: 6 }}>
+                      {/* posição */}
+                      <span style={{ fontSize: medal ? 11 : 9, fontWeight: 700, color: medal ? undefined : 'rgba(255,255,255,0.25)', textAlign: 'center', lineHeight: 1 }}>
+                        {medal ?? `${i + 1}`}
+                      </span>
+                      {/* escudo */}
+                      {a.escudo_url
+                        // eslint-disable-next-line @next/next/no-img-element
+                        ? <img src={a.escudo_url} alt={a.seleção} width={14} height={14} style={{ objectFit: 'contain', display: 'block' }} />
+                        : <span />
+                      }
+                      {/* nome + seleção */}
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {a.jogador}
+                        </div>
+                        <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {a.seleção}{pens > 0 ? ` · ${pens} pên` : ''}
+                        </div>
+                      </div>
+                      {/* gols */}
+                      <span style={{ fontSize: 13, fontWeight: 700, color: goalColor, textAlign: 'center' }}>{a.gols}</span>
+                      {/* assistências */}
+                      <span style={{ fontSize: 11, fontWeight: 500, color: (a.assistencias ?? 0) > 0 ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.20)', textAlign: 'center' }}>
+                        {a.assistencias ?? 0}
+                      </span>
+                      {/* jogos */}
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.30)', textAlign: 'center' }}>{a.jogos}</span>
+                    </div>
+                  )
+                })}
+              </div>
+              {/* legenda */}
+              <div style={{ display: 'flex', gap: 10, marginTop: 8, justifyContent: 'flex-end' }}>
+                {[['G','Gols'],['A','Assistências'],['J','Jogos']].map(([k,v]) => (
+                  <span key={k} style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)' }}>
+                    <strong style={{ color: 'rgba(255,255,255,0.45)' }}>{k}</strong> {v}
                   </span>
-                  {a.escudo_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={a.escudo_url} alt={a.seleção} width={16} height={16} style={{ objectFit: 'contain', flexShrink: 0 }} />
-                  )}
-                  <span style={{ flex: 1, fontSize: 11, fontWeight: 600, color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.jogador}</span>
-                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.40)', whiteSpace: 'nowrap' }}>{a.seleção}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: i === 0 ? '#FFD700' : '#4A90D9', minWidth: 20, textAlign: 'right' }}>{a.gols}</span>
-                  <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.30)' }}>⚽</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
 
