@@ -216,7 +216,7 @@ export default async function DashboardPage() {
                 const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : String(entry.posicao)
                 const isMe  = currentUser && entry.usuario_id === currentUser.id
                 return (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: isMe ? 'rgba(74,144,217,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isMe ? 'rgba(74,144,217,0.3)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 7 }}>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px 12px', background: isMe ? 'rgba(74,144,217,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isMe ? 'rgba(74,144,217,0.3)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 7, overflow: 'hidden' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 22, gap: 1 }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.50)' }}>{medal}</span>
                       {entry.variacao_posicao !== 0 && (
@@ -230,9 +230,6 @@ export default async function DashboardPage() {
                       <div style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{trunc(entry.nome, 20)}</div>
                       <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', whiteSpace: 'nowrap' }}>{trunc(entry.usuario_nome, 30)}</div>
                     </div>
-                    <div style={{ width: 56, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
-                      <div style={{ height: 3, background: 'linear-gradient(90deg, #4A90D9, #7BB8F0)', borderRadius: 2, width: `${pct}%` }} />
-                    </div>
                     <div style={{ textAlign: 'right', minWidth: 52 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9' }}>{entry.total_pontos} pts</div>
                       {entry.variacao !== 0 && (
@@ -240,6 +237,10 @@ export default async function DashboardPage() {
                           {entry.variacao > 0 ? `▲ +${entry.variacao}` : `▼ ${entry.variacao}`}
                         </div>
                       )}
+                    </div>
+                    {/* barra de desempenho — borda inferior do card */}
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: 'rgba(255,255,255,0.06)' }}>
+                      <div style={{ height: 3, background: 'linear-gradient(90deg, #4A90D9, #7BB8F0)', width: `${pct}%` }} />
                     </div>
                   </div>
                 )
