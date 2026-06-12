@@ -103,19 +103,17 @@ export default async function MeuDiaPage() {
       </div>
 
       {/* ── Seu dia ── */}
-      <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.20)', borderRadius: 10, padding: '16px 18px', marginBottom: 16 }}>
+      {!temOntem && !temHoje ? (
+        <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.20)', borderRadius: 10, padding: '16px 18px', marginBottom: 16, fontSize: 12, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic', textAlign: 'center' }}>
+          Nenhum jogo encontrado para ontem ou hoje.
+        </div>
+      ) : (
+        <div className="meu-dia-row" style={{ marginBottom: 16 }}>
 
-        {!temOntem && !temHoje ? (
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
-            Nenhum jogo encontrado para ontem ou hoje.
-          </div>
-        ) : (
-          <div className="meu-dia-row">
-
-            {/* ontem */}
-            {temOntem && (
-              <div>
-                <div style={subLabel}>Ontem · {fmt(ontem)}</div>
+          {/* ontem */}
+          {temOntem && (
+            <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.20)', borderRadius: 10, padding: '16px 18px' }}>
+              <div style={subLabel}>Ontem · {fmt(ontem)}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {(meusPalpites as { id: number; nome: string }[]).map(p => {
                     const ptsTotais = pontosOntemPorPalpite[p.id] ?? 0
@@ -161,13 +159,13 @@ export default async function MeuDiaPage() {
                     )
                   })}
                 </div>
-              </div>
-            )}
+            </div>
+          )}
 
-            {/* hoje */}
-            {temHoje && (
-              <div>
-                <div style={subLabel}>Hoje · {fmt(hoje)}</div>
+          {/* hoje */}
+          {temHoje && (
+            <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.20)', borderRadius: 10, padding: '16px 18px' }}>
+              <div style={subLabel}>Hoje · {fmt(hoje)}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {(meusPalpites as { id: number; nome: string }[]).map(p => (
                     <div key={p.id} style={{ ...card, border: '1px solid rgba(74,144,217,0.10)' }}>
@@ -208,11 +206,10 @@ export default async function MeuDiaPage() {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Olhando para cima e para baixo ── */}
       {palpiteIds.length > 0 && jogoIdsHoje.length > 0 && (() => {
