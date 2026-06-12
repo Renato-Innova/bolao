@@ -270,7 +270,7 @@ export function RankingEvolutionChart({ series, datas }: Props) {
       {/* cabeçalho */}
       <div style={{ marginBottom: 10 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          Evolução Diária da Pontuação
+          Evolução diária da pontuação para os líderes + você
         </div>
       </div>
 
