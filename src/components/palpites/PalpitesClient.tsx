@@ -219,11 +219,29 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
       setMelhorJogador(palpite.melhor_jogador ?? '')
       setMelhorGoleiro(palpite.melhor_goleiro ?? '')
       const dayGroups = groupByDay(jogosGS)
-      let targetDay = 1
+
+      // Find the two candidate days:
+      // A) first day with any unsubmitted match (critical — user needs to act)
+      // B) first day with any official result  (interesting — user wants to see result/points)
+      // Open the accordion for whichever comes first chronologically.
+      let firstPendingIdx = dayGroups.length
+      let firstResultIdx  = dayGroups.length
       for (let i = 0; i < dayGroups.length; i++) {
-        if (dayGroups[i].matches.some(m => !states[String(m.id)]?.submitted)) { targetDay = i + 1; break }
+        const g = dayGroups[i]
+        if (firstPendingIdx === dayGroups.length && g.matches.some(m => !states[String(m.id)]?.submitted))
+          firstPendingIdx = i
+        if (firstResultIdx === dayGroups.length && g.matches.some(m => !!m.resultado))
+          firstResultIdx = i
       }
-      setVisibleDays(targetDay)
+      const targetIdx  = Math.min(firstPendingIdx, firstResultIdx)
+      const targetGroup = targetIdx < dayGroups.length ? dayGroups[targetIdx] : dayGroups[0]
+
+      setVisibleDays(targetIdx + 1)
+
+      // Open accordion for that day only if it has submitted games
+      // (accordion only renders when hasSome; days with no submissions show cards flat)
+      const hasSome = targetGroup.matches.some(m => !!states[String(m.id)]?.submitted)
+      setAccOpen(hasSome ? { [targetGroup.date]: true } : {})
     } else {
       setMatchStates({})
       setCampeao('')
@@ -232,8 +250,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
       setMelhorJogador('')
       setMelhorGoleiro('')
       setVisibleDays(1)
+      setAccOpen({})
     }
-    setAccOpen({})
   }, [selectedId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync carousel position when selection changes
