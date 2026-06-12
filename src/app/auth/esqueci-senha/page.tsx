@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { createBrowserClient } from '@supabase/ssr'
+import { createClient } from '@/lib/supabase/client'
 
 export default function EsqueciSenhaPage() {
-  const [email, setEmail] = useState('')
+  const [email, setEmail]     = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError]     = useState('')
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
@@ -18,15 +18,9 @@ export default function EsqueciSenhaPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true); setError('')
-    // Usa implicit flow para o reset: evita o problema do PKCE code verifier
-    // não estar disponível quando o email abre em browser diferente (Gmail app, etc.)
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { auth: { flowType: 'implicit' } }
-    )
+    const supabase = createClient()
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/nova-senha`,
+      redirectTo: `${window.location.origin}/auth/callback`,
     })
     if (error) {
       setError('Não foi possível enviar o email. Verifique o endereço e tente novamente.')
@@ -42,10 +36,8 @@ export default function EsqueciSenhaPage() {
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: '0 16px',
     }}>
-      {/* glow */}
       <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-60%)', width: 600, height: 400, background: 'radial-gradient(ellipse,rgba(74,144,217,0.12) 0%,transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
 
-      {/* logo */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 32, position: 'relative', zIndex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, lineHeight: 1 }}>
           <span className="auth-logo-26" style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 52, color: 'white', letterSpacing: -3, lineHeight: 1 }}>2</span>
@@ -57,7 +49,6 @@ export default function EsqueciSenhaPage() {
         <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5 }}>Bolão Oficial dos Amigos</div>
       </div>
 
-      {/* card */}
       <div className="auth-card" style={{ width: '100%', maxWidth: 400, background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.18)', borderRadius: 12, overflow: 'hidden', position: 'relative', zIndex: 1 }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,#4A90D9,#7BB8F0,#4A90D9)' }} />
         <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(74,144,217,0.18)' }}>
