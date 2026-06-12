@@ -4,43 +4,97 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { updatePassword } from './actions'
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Fluxo de recuperação de senha — server-first:
+   1. esqueci-senha → redirectTo: /auth/callback?type=recovery
+   2. callback → exchangeCodeForSession SERVER-SIDE → seta cookies → redireciona
+   3. nova-senha → Server Action updatePassword() usa os cookies do servidor
+      (evita 422 que ocorre quando o client-side não tem a sessão de recovery)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+function DebugInfo() {
+  const [info, setInfo] = useState<Record<string, string>>({})
+  useEffect(() => {
+    const supabase = createClient()
+    const params = new URLSearchParams(window.location.search)
+    const hash   = window.location.hash
+    supabase.auth.getSession().then(({ data, error }) => {
+      setInfo({
+        url_search: window.location.search || '(vazio)',
+        url_hash:   hash ? hash.slice(0, 40) + '...' : '(vazio)',
+        code:       params.get('code')       ?? '(null)',
+        token_hash: params.get('token_hash') ?? '(null)',
+        error_param:params.get('error')      ?? '(null)',
+        session:    data.session ? 'SIM — ' + data.session.user.email : 'NÃO',
+        sess_error: error?.message ?? '(none)',
+      })
+    })
+  }, [])
+  return (
+    <div style={{ fontSize: 11, fontFamily: 'monospace', color: 'rgba(255,255,255,0.5)', lineHeight: 2 }}>
+      <div style={{ marginBottom: 8, color: 'rgba(255,200,0,0.8)', fontWeight: 700 }}>⚠ Debug (temporário)</div>
+      {Object.entries(info).map(([k, v]) => (
+        <div key={k}><span style={{ color: 'rgba(255,255,255,0.35)' }}>{k}:</span> {v}</div>
+      ))}
+      {Object.keys(info).length === 0 && <div>Carregando...</div>}
+    </div>
+  )
+}
 
 function NovaSenhaForm() {
-  const router = useRouter()
+  const router       = useRouter()
   const searchParams = useSearchParams()
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
+
+  const [password, setPassword]         = useState('')
+  const [confirm, setConfirm]           = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [ready, setReady] = useState(false)
+  const [showConfirm, setShowConfirm]   = useState(false)
+  const [loading, setLoading]           = useState(false)
+  const [error, setError]               = useState('')
+  const [ready, setReady]               = useState(false)
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = '' }
   }, [])
 
-  // Troca o code pelo session client-side (PKCE recovery flow).
-  // Fazemos isso aqui e não no server callback para que a sessão de recovery
-  // fique armazenada no browser — necessário para updateUser funcionar sem 422.
   useEffect(() => {
-    const supabase = createClient()
-    const code = searchParams.get('code')
-
-    if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-        if (!error) setReady(true)
-        else setError('Link inválido ou expirado. Solicite um novo link de redefinição.')
-      })
+    // Erro passado pelo callback quando a troca de código falhou
+    const urlError = searchParams.get('error')
+    if (urlError) {
+      setError('Link inválido ou expirado. Solicite um novo link de redefinição de senha.')
       return
     }
 
-    // Fallback: sessão hash (#access_token) — fluxo legado
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') setReady(true)
+    // Verifica se há sessão ativa (estabelecida pelo callback server-side)
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session) {
+        setReady(true)
+        return
+      }
+
+      // Fallback: aguarda evento de auth (ex: link acessado diretamente com hash)
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+          setReady(true)
+          subscription.unsubscribe()
+        }
+      })
+
+      // Após 8s sem sessão, mostra erro orientando a solicitar novo link
+      const timer = setTimeout(() => {
+        subscription.unsubscribe()
+        setError('Link inválido ou expirado. Solicite um novo link de redefinição de senha.')
+      }, 8000)
+
+      return () => {
+        subscription.unsubscribe()
+        clearTimeout(timer)
+      }
     })
-    return () => subscription.unsubscribe()
   }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -48,18 +102,33 @@ function NovaSenhaForm() {
     if (password.length < 6) { setError('A senha deve ter pelo menos 6 caracteres.'); return }
     if (password !== confirm) { setError('As senhas não coincidem.'); return }
     setLoading(true); setError('')
-    const supabase = createClient()
-    const { error } = await supabase.auth.updateUser({ password })
-    if (error) {
-      setError('Não foi possível atualizar a senha. Tente novamente.')
-      setLoading(false); return
+
+    // Server Action: usa o client do servidor que tem a sessão de recovery nos cookies
+    const { error: err } = await updatePassword(password)
+
+    if (err) {
+      // Fallback: tenta via client-side (caso a sessão esteja no browser storage)
+      const supabase = createClient()
+      const { error: clientErr } = await supabase.auth.updateUser({ password })
+      if (clientErr) {
+        setError('Não foi possível atualizar a senha. Solicite um novo link de redefinição.')
+        setLoading(false)
+        return
+      }
     }
+
     router.push('/dashboard')
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(74,144,217,0.18)', borderRadius: 8,
+    padding: '11px 40px 11px 14px', fontSize: 14, color: 'white',
+    fontFamily: 'Inter,sans-serif', outline: 'none',
   }
 
   return (
     <div className="auth-page" style={{
-
       position: 'relative', zIndex: 1, height: '100vh', overflow: 'hidden',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: '0 16px',
@@ -86,39 +155,52 @@ function NovaSenhaForm() {
           <span style={{ fontSize: 13, fontWeight: 600, color: 'white', textTransform: 'uppercase', letterSpacing: 0.5 }}>Nova senha</span>
         </div>
         <div style={{ padding: 20 }}>
-          {!ready ? (
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>Verificando link… aguarde.</p>
-          ) : (
+
+          {/* ── Erro — sempre visível ── */}
+          {error && (
+            <div style={{ padding: '12px 14px', background: 'rgba(255,100,100,0.1)', border: '1px solid rgba(255,100,100,0.3)', borderRadius: 8, fontSize: 13, color: 'rgba(255,130,130,0.9)', lineHeight: 1.6 }}>
+              {error}
+              <div style={{ marginTop: 10 }}>
+                <a href="/auth/esqueci-senha" style={{ color: '#7BB8F0', fontWeight: 600, textDecoration: 'underline' }}>
+                  Solicitar novo link de redefinição
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* ── Verificando (debug temporário) ── */}
+          {!ready && !error && (
+            <DebugInfo />
+          )}
+
+          {/* ── Formulário ── */}
+          {ready && !error && (
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: 12 }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5 }}>Nova senha</label>
                 <div style={{ position: 'relative' }}>
-                  <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" autoComplete="new-password"
-                    className="auth-input" style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(74,144,217,0.18)', borderRadius: 8, padding: '11px 40px 11px 14px', fontSize: 14, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none' }} />
+                  <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" autoComplete="new-password" className="auth-input" style={inputStyle} />
                   <button type="button" onClick={() => setShowPassword(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.65)', padding: 0, display: 'flex', alignItems: 'center' }}>
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
-              <div style={{ marginBottom: 12 }}>
+              <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5 }}>Confirmar senha</label>
                 <div style={{ position: 'relative' }}>
-                  <input type={showConfirm ? 'text' : 'password'} value={confirm} onChange={e => setConfirm(e.target.value)} required placeholder="••••••••" autoComplete="new-password"
-                    className="auth-input" style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(74,144,217,0.18)', borderRadius: 8, padding: '11px 40px 11px 14px', fontSize: 14, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none' }} />
+                  <input type={showConfirm ? 'text' : 'password'} value={confirm} onChange={e => setConfirm(e.target.value)} required placeholder="••••••••" autoComplete="new-password" className="auth-input" style={inputStyle} />
                   <button type="button" onClick={() => setShowConfirm(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.65)', padding: 0, display: 'flex', alignItems: 'center' }}>
                     {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
 
-              {error && <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(255,100,100,0.1)', border: '1px solid rgba(255,100,100,0.3)', borderRadius: 8, fontSize: 13, color: 'rgba(255,130,130,0.9)' }}>{error}</div>}
-
-              <button type="submit" disabled={loading}
-                className="auth-btn" style={{ width: '100%', marginTop: 8, background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', border: 'none', borderRadius: 8, padding: 13, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+              <button type="submit" disabled={loading} className="auth-btn" style={{ width: '100%', background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', border: 'none', borderRadius: 8, padding: 13, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'Inter,sans-serif', opacity: loading ? 0.7 : 1 }}>
                 {loading ? 'Salvando...' : 'Salvar nova senha'}
               </button>
             </form>
           )}
+
         </div>
       </div>
     </div>
