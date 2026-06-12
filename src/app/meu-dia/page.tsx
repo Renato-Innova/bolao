@@ -104,7 +104,6 @@ export default async function MeuDiaPage() {
 
       {/* ── Seu dia ── */}
       <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.20)', borderRadius: 10, padding: '16px 18px', marginBottom: 16 }}>
-        <div style={{ ...sectionTitle, color: '#7BB8F0' }}>🎯 Seu dia no bolão</div>
 
         {!temOntem && !temHoje ? (
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>

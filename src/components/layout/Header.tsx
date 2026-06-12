@@ -15,7 +15,7 @@ const NAV = [
 ]
 
 const NAV_AUTH = [
-  { href: '/meu-dia', label: '🎯 Meu Dia' },
+  { href: '/meu-dia', label: 'Meu Dia' },
 ]
 
 function initials(name: string) {
@@ -113,7 +113,14 @@ export function Header() {
 
       {/* Desktop Nav — centered */}
       <nav style={{ display: 'flex', gap: 2, flex: 1, justifyContent: 'center' }} className="hidden-mobile">
-        {NAV.map(({ href, label }) => (
+        {/* Dashboard — 1º */}
+        <Link href="/dashboard" style={{ color: isActive('/dashboard') ? 'white' : 'rgba(255,255,255,0.45)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, padding: '6px 12px', borderRadius: 6, textDecoration: 'none', background: isActive('/dashboard') ? 'rgba(255,255,255,0.08)' : 'transparent' }}>Dashboard</Link>
+        {/* Meu Dia — 2º, só logados */}
+        {user && (
+          <Link href="/meu-dia" style={{ color: isActive('/meu-dia') ? '#7BB8F0' : 'rgba(123,184,240,0.60)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, padding: '6px 12px', borderRadius: 6, textDecoration: 'none', background: isActive('/meu-dia') ? 'rgba(74,144,217,0.12)' : 'transparent' }}>Meu Dia</Link>
+        )}
+        {/* restante do NAV exceto Dashboard */}
+        {NAV.slice(1).map(({ href, label }) => (
           <Link key={href} href={href} style={{
             color: isActive(href) ? 'white' : 'rgba(255,255,255,0.45)',
             fontSize: 10, fontWeight: 600,
@@ -121,18 +128,6 @@ export function Header() {
             padding: '6px 12px', borderRadius: 6,
             textDecoration: 'none',
             background: isActive(href) ? 'rgba(255,255,255,0.08)' : 'transparent',
-          }}>
-            {label}
-          </Link>
-        ))}
-        {user && NAV_AUTH.map(({ href, label }) => (
-          <Link key={href} href={href} style={{
-            color: isActive(href) ? '#7BB8F0' : 'rgba(123,184,240,0.60)',
-            fontSize: 10, fontWeight: 600,
-            textTransform: 'uppercase', letterSpacing: 0.6,
-            padding: '6px 12px', borderRadius: 6,
-            textDecoration: 'none',
-            background: isActive(href) ? 'rgba(74,144,217,0.12)' : 'transparent',
           }}>
             {label}
           </Link>
@@ -225,15 +220,11 @@ export function Header() {
           background: '#0D1E3D', borderBottom: '1px solid rgba(74,144,217,0.15)',
           padding: '12px 24px', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 200,
         }}>
-          {NAV.map(({ href, label }) => (
+          <Link href="/dashboard" onClick={() => setMenuOpen(false)} style={{ color: isActive('/dashboard') ? '#4A90D9' : 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 600, textDecoration: 'none', padding: '6px 0' }}>Dashboard</Link>
+          {user && <Link href="/meu-dia" onClick={() => setMenuOpen(false)} style={{ color: isActive('/meu-dia') ? '#7BB8F0' : 'rgba(123,184,240,0.75)', fontSize: 13, fontWeight: 600, textDecoration: 'none', padding: '6px 0' }}>Meu Dia</Link>}
+          {NAV.slice(1).map(({ href, label }) => (
             <Link key={href} href={href} onClick={() => setMenuOpen(false)} style={{
               color: isActive(href) ? '#4A90D9' : 'rgba(255,255,255,0.7)',
-              fontSize: 13, fontWeight: 600, textDecoration: 'none', padding: '6px 0',
-            }}>{label}</Link>
-          ))}
-          {user && NAV_AUTH.map(({ href, label }) => (
-            <Link key={href} href={href} onClick={() => setMenuOpen(false)} style={{
-              color: isActive(href) ? '#7BB8F0' : 'rgba(123,184,240,0.75)',
               fontSize: 13, fontWeight: 600, textDecoration: 'none', padding: '6px 0',
             }}>{label}</Link>
           ))}
