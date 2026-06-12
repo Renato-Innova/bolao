@@ -58,7 +58,7 @@ function NovaSenhaForm() {
           exchange_error: err?.message ?? '(none)',
         }))
         if (err) {
-          setError('Link inválido ou expirado. Solicite um novo link de redefinição.')
+          setError(`Erro Supabase: ${err.message} (status ${err.status ?? '?'})`)
         } else {
           setReady(true)
         }
