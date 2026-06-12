@@ -176,6 +176,14 @@ export default async function RankingPage() {
     /* datas únicas (inclui hoje) */
     chartDatas = [...new Set(historicoComHoje.map((h: { data: string }) => h.data))].sort()
 
+    // Garante pelo menos 2 pontos para o chart renderizar:
+    // se só existe hoje, injeta ontem com zero como baseline
+    if (chartDatas.length === 1) {
+      const ontem = new Date(Date.now() - 3 * 60 * 60 * 1000 - 24 * 60 * 60 * 1000)
+        .toISOString().slice(0, 10)
+      chartDatas = [ontem, ...chartDatas]
+    }
+
     /* top 10 + palpites do usuário logado (sem duplicar) */
     const top10Ids  = ranking.slice(0, 10).map(r => r.palpite_id)
     const chartIds  = [...new Set([...top10Ids, ...myPalpiteIds])]

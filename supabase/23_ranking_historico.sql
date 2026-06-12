@@ -45,10 +45,10 @@ AS $$
   DO UPDATE SET total_pontos = EXCLUDED.total_pontos;
 $$;
 
--- ── pg_cron job: run every day at 00:05 BRT (03:05 UTC) ─────────────────────
+-- ── pg_cron job: run every day at 23:55 BRT (02:55 UTC next day) ────────────
 -- Requires pg_cron extension enabled in Supabase (Dashboard → Database → Extensions)
 SELECT cron.schedule(
   'snapshot-ranking-diario',
-  '5 3 * * *',
+  '55 2 * * *',
   'SELECT public.snapshot_ranking_diario()'
 );
