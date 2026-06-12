@@ -27,6 +27,10 @@ export default async function DashboardPage() {
 
   const { data: { user: currentUser } } = await supabase.auth.getUser()
 
+  const brtNow  = new Date(Date.now() - 3 * 60 * 60 * 1000)
+  const hoje    = brtNow.toISOString().split('T')[0]
+  const ontem   = new Date(brtNow.getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
   const [
     { count: totalAtivos },
     { count: totalUsuarios },
@@ -37,22 +41,55 @@ export default async function DashboardPage() {
     ranking,
     { data: grupoJogos },
     { data: boletins },
+    { data: meusPalpites },
+    { data: jogosOntemData },
+    { data: jogosHojeData },
   ] = await Promise.all([
     supabase.from('palpites').select('*', { count: 'exact', head: true }).eq('status', 'ativo'),
     supabase.from('users').select('*', { count: 'exact', head: true }),
     supabase.from('jogos_copa').select('*', { count: 'exact', head: true }),
     supabase.from('resultados').select('*', { count: 'exact', head: true }),
-    supabase.from('jogos_copa').select('*, resultado:resultados(*)').gte('data', new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().split('T')[0]).order('data').order('horario').limit(8),
-    supabase.from('jogos_copa').select('*, resultado:resultados(*)').lt('data', new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().split('T')[0]).not('resultado', 'is', null).order('data', { ascending: false }).order('horario', { ascending: false }).limit(4),
+    supabase.from('jogos_copa').select('*, resultado:resultados(*)').gte('data', hoje).order('data').order('horario').limit(8),
+    supabase.from('jogos_copa').select('*, resultado:resultados(*)').lt('data', hoje).not('resultado', 'is', null).order('data', { ascending: false }).order('horario', { ascending: false }).limit(4),
     getRanking(),
     supabase.from('classificacao_grupos').select('*').order('grupo').order('pts', { ascending: false }).order('dg', { ascending: false }).order('m', { ascending: false }),
-    // Busca os dois boletins mais recentes (1 manha + 1 tarde)
     supabase.from('boletim_copa').select('*').order('gerado_em', { ascending: false }).limit(2),
+    // palpites ativos do usuário logado
+    currentUser
+      ? supabase.from('palpites').select('id, nome').eq('usuario_id', currentUser.id).eq('status', 'ativo')
+      : Promise.resolve({ data: [] }),
+    // jogos de ontem com resultado
+    supabase.from('jogos_copa').select('id, time_a, time_b, resultado:resultados(placar_real_a, placar_real_b)').eq('data', ontem).order('horario'),
+    // jogos de hoje
+    supabase.from('jogos_copa').select('id, time_a, time_b, horario, resultado:resultados(placar_real_a, placar_real_b)').eq('data', hoje).order('horario'),
   ])
 
   const lider   = (ranking[0]?.total_pontos ?? 0) > 0 ? ranking[0] : null
-  const hoje    = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().split('T')[0]
   const myEntry = currentUser ? ranking.find(r => r.usuario_id === currentUser.id) : null
+
+  // palpites_jogos do usuário para ontem e hoje
+  const palpiteIds = (meusPalpites ?? []).map((p: { id: number }) => p.id)
+  const jogoIdsOntem = (jogosOntemData ?? []).map((j: { id: number }) => j.id)
+  const jogoIdsHoje  = (jogosHojeData  ?? []).map((j: { id: number }) => j.id)
+
+  const { data: pjOntem } = palpiteIds.length && jogoIdsOntem.length
+    ? await supabase.from('palpites_jogos')
+        .select('palpite_id, jogo_id, placar_palpite_a, placar_palpite_b, pontos')
+        .in('palpite_id', palpiteIds).in('jogo_id', jogoIdsOntem)
+    : { data: [] }
+
+  const { data: pjHoje } = palpiteIds.length && jogoIdsHoje.length
+    ? await supabase.from('palpites_jogos')
+        .select('palpite_id, jogo_id, placar_palpite_a, placar_palpite_b, pontos')
+        .in('palpite_id', palpiteIds).in('jogo_id', jogoIdsHoje)
+    : { data: [] }
+
+  // pontos totais ganhos ontem por palpite
+  type PJ = { palpite_id: number; jogo_id: number; placar_palpite_a: number | null; placar_palpite_b: number | null; pontos: number }
+  const pontosOntemPorPalpite: Record<number, number> = {}
+  for (const pj of (pjOntem ?? []) as PJ[]) {
+    pontosOntemPorPalpite[pj.palpite_id] = (pontosOntemPorPalpite[pj.palpite_id] ?? 0) + pj.pontos
+  }
 
   /* slides do carrossel — todos os palpites do usuário logado */
   const mySlides: PalpiteSlide[] = currentUser
@@ -340,39 +377,142 @@ export default async function DashboardPage() {
               O primeiro boletim será publicado hoje às 7h. ☀️
             </div>
           ) : (
-            /* exibe até 2 boletins lado a lado */
-            <div style={{ display: 'grid', gridTemplateColumns: boletins.length > 1 ? '1fr 1fr' : '1fr', gap: 12 }}>
-              {boletins.map((b: { id: number; tipo: string; titulo: string; conteudo: string; gerado_em: string }) => {
-                const hora = new Date(b.gerado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
-                const isManha = b.tipo === 'manha'
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* boletins IA lado a lado */}
+              <div style={{ display: 'grid', gridTemplateColumns: boletins.length > 1 ? '1fr 1fr' : '1fr', gap: 12 }}>
+                {boletins.map((b: { id: number; tipo: string; titulo: string; conteudo: string; gerado_em: string }) => {
+                  const hora = new Date(b.gerado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+                  const isManha = b.tipo === 'manha'
+                  return (
+                    <div key={b.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(74,144,217,0.10)', borderRadius: 8, padding: '12px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: isManha ? '#FFD700' : '#7BB8F0', background: isManha ? 'rgba(255,215,0,0.10)' : 'rgba(74,144,217,0.12)', padding: '2px 8px', borderRadius: 20 }}>
+                          {isManha ? '☀️ Manhã' : '🌅 Tarde'}
+                        </span>
+                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>{hora}</span>
+                      </div>
+                      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.65 }}>
+                        {b.conteudo.split('\n').map((line, i) => {
+                          const parts = line.split(/(\*\*.*?\*\*)/)
+                          return (
+                            <p key={i} style={{ margin: line.startsWith('**') ? '8px 0 2px' : '0 0 2px', color: line.startsWith('**') ? 'white' : undefined, fontWeight: line.startsWith('**') ? 700 : undefined, fontSize: line.startsWith('**') ? 11 : 13 }}>
+                              {parts.map((part, j) =>
+                                part.startsWith('**') && part.endsWith('**')
+                                  ? <strong key={j} style={{ color: 'white', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4 }}>{part.slice(2, -2)}</strong>
+                                  : part
+                              )}
+                            </p>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* bloco personalizado — só para usuários logados com palpites ativos */}
+              {currentUser && (meusPalpites ?? []).length > 0 && (() => {
+                type Jogo = { id: number; time_a: string; time_b: string; horario?: string; resultado: { placar_real_a: number; placar_real_b: number } | null }
+                const jogosOntem = (jogosOntemData ?? []) as unknown as Jogo[]
+                const jogosHoje  = (jogosHojeData  ?? []) as unknown as Jogo[]
+                const temOntem   = jogosOntem.some(j => j.resultado)
+                const temHoje    = jogosHoje.length > 0
+
+                if (!temOntem && !temHoje) return null
+
                 return (
-                  <div key={b.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(74,144,217,0.10)', borderRadius: 8, padding: '12px 14px' }}>
-                    {/* badge tipo + hora */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                      <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: isManha ? '#FFD700' : '#7BB8F0', background: isManha ? 'rgba(255,215,0,0.10)' : 'rgba(74,144,217,0.12)', padding: '2px 8px', borderRadius: 20 }}>
-                        {isManha ? '☀️ Manhã' : '🌅 Tarde'}
-                      </span>
-                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>{hora}</span>
+                  <div style={{ background: 'rgba(74,144,217,0.05)', border: '1px solid rgba(74,144,217,0.20)', borderRadius: 8, padding: '12px 14px' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#7BB8F0', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
+                      🎯 Seu dia no bolão
                     </div>
-                    {/* conteúdo — renderiza markdown simples: **texto** → negrito */}
-                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.65 }}>
-                      {b.conteudo.split('\n').map((line, i) => {
-                        // converte **texto** em <strong>
-                        const parts = line.split(/(\*\*.*?\*\*)/)
-                        return (
-                          <p key={i} style={{ margin: line.startsWith('**') ? '8px 0 2px' : '0 0 2px', color: line.startsWith('**') ? 'white' : undefined, fontWeight: line.startsWith('**') ? 700 : undefined, fontSize: line.startsWith('**') ? 11 : 13 }}>
-                            {parts.map((part, j) =>
-                              part.startsWith('**') && part.endsWith('**')
-                                ? <strong key={j} style={{ color: 'white', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4 }}>{part.slice(2, -2)}</strong>
-                                : part
-                            )}
-                          </p>
-                        )
-                      })}
-                    </div>
+
+                    {/* ontem — resultados vs palpites */}
+                    {temOntem && (
+                      <div style={{ marginBottom: temHoje ? 12 : 0 }}>
+                        <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Ontem · {ontem.split('-').reverse().slice(0,2).join('/')}</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {(meusPalpites as { id: number; nome: string }[]).map(p => {
+                            const ptsTotais = pontosOntemPorPalpite[p.id] ?? 0
+                            const linhas = jogosOntem
+                              .filter(j => j.resultado)
+                              .map(j => {
+                                const pj = (pjOntem as PJ[]).find(x => x.palpite_id === p.id && x.jogo_id === j.id)
+                                return { jogo: j, pj }
+                              })
+                            return (
+                              <div key={p.id} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '8px 10px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                                  <span style={{ fontSize: 11, fontWeight: 700, color: 'white' }}>{p.nome}</span>
+                                  <span style={{ fontSize: 12, fontWeight: 700, color: ptsTotais > 0 ? '#4ade80' : 'rgba(255,255,255,0.35)' }}>
+                                    {ptsTotais > 0 ? `+${ptsTotais} pts` : '0 pts'}
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                  {linhas.map(({ jogo, pj }) => {
+                                    const apostou = pj && pj.placar_palpite_a != null
+                                      ? `${pj.placar_palpite_a}×${pj.placar_palpite_b}`
+                                      : '—'
+                                    const real = `${jogo.resultado!.placar_real_a}×${jogo.resultado!.placar_real_b}`
+                                    const pts  = pj?.pontos ?? 0
+                                    const acertou = pts > 0
+                                    return (
+                                      <div key={jogo.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10 }}>
+                                        <span style={{ color: acertou ? '#4ade80' : 'rgba(255,100,100,0.7)', fontSize: 10 }}>{acertou ? '✓' : '✗'}</span>
+                                        <span style={{ color: 'rgba(255,255,255,0.55)', flex: 1 }}>{jogo.time_a} × {jogo.time_b}</span>
+                                        <span style={{ color: 'rgba(255,255,255,0.35)' }}>apostei {apostou}</span>
+                                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>· real {real}</span>
+                                        {pts > 0 && <span style={{ color: '#4ade80', fontWeight: 700 }}>+{pts}</span>}
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* hoje — prévia das apostas */}
+                    {temHoje && (
+                      <div>
+                        <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Hoje · {hoje.split('-').reverse().slice(0,2).join('/')}</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {(meusPalpites as { id: number; nome: string }[]).map(p => (
+                            <div key={p.id} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '8px 10px' }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: 'white', marginBottom: 5 }}>{p.nome}</div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                {jogosHoje.map(j => {
+                                  const pj = (pjHoje as PJ[]).find(x => x.palpite_id === p.id && x.jogo_id === j.id)
+                                  const apostou = pj && pj.placar_palpite_a != null
+                                    ? `${pj.placar_palpite_a}×${pj.placar_palpite_b}`
+                                    : '—'
+                                  const encerrado = !!j.resultado
+                                  return (
+                                    <div key={j.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10 }}>
+                                      <span style={{ color: 'rgba(255,255,255,0.35)', minWidth: 32 }}>{j.horario?.slice(0,5)}h</span>
+                                      <span style={{ color: 'rgba(255,255,255,0.55)', flex: 1 }}>{j.time_a} × {j.time_b}</span>
+                                      {encerrado ? (
+                                        <>
+                                          <span style={{ color: 'rgba(255,255,255,0.35)' }}>apostei {apostou}</span>
+                                          <span style={{ color: 'rgba(255,255,255,0.55)' }}>· real {j.resultado!.placar_real_a}×{j.resultado!.placar_real_b}</span>
+                                          {(pj?.pontos ?? 0) > 0 && <span style={{ color: '#4ade80', fontWeight: 700 }}>+{pj!.pontos}</span>}
+                                        </>
+                                      ) : (
+                                        <span style={{ color: '#4A90D9', fontWeight: 600 }}>apostei {apostou}</span>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
-              })}
+              })()}
             </div>
           )}
         </div>
