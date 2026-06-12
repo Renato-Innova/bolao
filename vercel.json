@@ -11,7 +11,7 @@
     },
     {
       "path": "/api/artilheiros/atualizar",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 8 * * *"
     }
   ]
 }
