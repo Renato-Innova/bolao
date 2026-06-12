@@ -63,6 +63,10 @@ input[type='number'] { -moz-appearance: textfield; }
 /* ── palpites carousel ── */
 .car-desktop { display: block; }
 .car-mobile  { display: none; }
+
+/* ── meu dia — ontem + hoje lado a lado no desktop ── */
+.meu-dia-row { display: flex; flex-direction: row; gap: 16px; }
+.meu-dia-row > * { flex: 1; min-width: 0; }
 .tabela-palpite-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 
 /* ── chave bracket (desktop: all columns, mobile: 2 columns sliding) ── */
@@ -142,6 +146,7 @@ input[type='number'] { -moz-appearance: textfield; }
     border-radius: 10px !important;
   }
   .auth-two-col { grid-template-columns: 1fr !important; }
+  .meu-dia-row { flex-direction: column !important; }
 
   /* ── dashboard ── */
   .dash-metrics { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }

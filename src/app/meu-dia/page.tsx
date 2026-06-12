@@ -110,7 +110,7 @@ export default async function MeuDiaPage() {
             Nenhum jogo encontrado para ontem ou hoje.
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="meu-dia-row">
 
             {/* ontem */}
             {temOntem && (
