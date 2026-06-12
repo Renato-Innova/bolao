@@ -4,44 +4,14 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { updatePassword } from './actions'
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Fluxo de recuperação de senha — server-first:
-   1. esqueci-senha → redirectTo: /auth/callback?type=recovery
-   2. callback → exchangeCodeForSession SERVER-SIDE → seta cookies → redireciona
-   3. nova-senha → Server Action updatePassword() usa os cookies do servidor
-      (evita 422 que ocorre quando o client-side não tem a sessão de recovery)
+   Fluxo de recuperação de senha (client-side PKCE):
+   1. esqueci-senha → redirectTo: /auth/nova-senha (direto, sem callback)
+   2. Supabase envia email → link abre /auth/nova-senha?code=xxx
+   3. Esta página troca o code CLIENT-SIDE (browser tem o code_verifier nos cookies)
+   4. Sessão fica no browser → updateUser funciona sem 422
    ───────────────────────────────────────────────────────────────────────────── */
-
-function DebugInfo() {
-  const [info, setInfo] = useState<Record<string, string>>({})
-  useEffect(() => {
-    const supabase = createClient()
-    const params = new URLSearchParams(window.location.search)
-    const hash   = window.location.hash
-    supabase.auth.getSession().then(({ data, error }) => {
-      setInfo({
-        url_search: window.location.search || '(vazio)',
-        url_hash:   hash ? hash.slice(0, 40) + '...' : '(vazio)',
-        code:       params.get('code')       ?? '(null)',
-        token_hash: params.get('token_hash') ?? '(null)',
-        error_param:params.get('error')      ?? '(null)',
-        session:    data.session ? 'SIM — ' + data.session.user.email : 'NÃO',
-        sess_error: error?.message ?? '(none)',
-      })
-    })
-  }, [])
-  return (
-    <div style={{ fontSize: 11, fontFamily: 'monospace', color: 'rgba(255,255,255,0.5)', lineHeight: 2 }}>
-      <div style={{ marginBottom: 8, color: 'rgba(255,200,0,0.8)', fontWeight: 700 }}>⚠ Debug (temporário)</div>
-      {Object.entries(info).map(([k, v]) => (
-        <div key={k}><span style={{ color: 'rgba(255,255,255,0.35)' }}>{k}:</span> {v}</div>
-      ))}
-      {Object.keys(info).length === 0 && <div>Carregando...</div>}
-    </div>
-  )
-}
 
 function NovaSenhaForm() {
   const router       = useRouter()
@@ -54,6 +24,7 @@ function NovaSenhaForm() {
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState('')
   const [ready, setReady]               = useState(false)
+  const [debug, setDebug]               = useState<Record<string, string>>({})
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -61,40 +32,58 @@ function NovaSenhaForm() {
   }, [])
 
   useEffect(() => {
-    // Erro passado pelo callback quando a troca de código falhou
-    const urlError = searchParams.get('error')
-    if (urlError) {
-      setError('Link inválido ou expirado. Solicite um novo link de redefinição de senha.')
+    const supabase = createClient()
+    const code = searchParams.get('code')
+    const errorParam = searchParams.get('error')
+
+    // Coleta info de debug
+    setDebug({
+      url_search: window.location.search || '(vazio)',
+      code: code ?? '(null)',
+      error_param: errorParam ?? '(null)',
+    })
+
+    // Erro explícito na URL (ex: vindo do callback com link inválido)
+    if (errorParam) {
+      setError('Link inválido ou expirado. Solicite um novo link.')
       return
     }
 
-    // Verifica se há sessão ativa (estabelecida pelo callback server-side)
-    const supabase = createClient()
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session) {
-        setReady(true)
-        return
-      }
-
-      // Fallback: aguarda evento de auth (ex: link acessado diretamente com hash)
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-        if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+    if (code) {
+      // Troca o code pelo session token — o browser tem o code_verifier nos cookies
+      supabase.auth.exchangeCodeForSession(code).then(({ data, error: err }) => {
+        setDebug(prev => ({
+          ...prev,
+          exchange_user: data.session?.user.email ?? '(null)',
+          exchange_error: err?.message ?? '(none)',
+        }))
+        if (err) {
+          setError('Link inválido ou expirado. Solicite um novo link de redefinição.')
+        } else {
           setReady(true)
-          subscription.unsubscribe()
         }
       })
+      return
+    }
 
-      // Após 8s sem sessão, mostra erro orientando a solicitar novo link
-      const timer = setTimeout(() => {
+    // Sem code na URL — aguarda evento PASSWORD_RECOVERY (fluxo hash legado)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setDebug(prev => ({ ...prev, auth_event: event, session_user: session?.user.email ?? '' }))
+      if (event === 'PASSWORD_RECOVERY') {
+        setReady(true)
         subscription.unsubscribe()
-        setError('Link inválido ou expirado. Solicite um novo link de redefinição de senha.')
-      }, 8000)
-
-      return () => {
-        subscription.unsubscribe()
-        clearTimeout(timer)
       }
     })
+
+    const timer = setTimeout(() => {
+      subscription.unsubscribe()
+      setError('Link inválido ou expirado. Solicite um novo link de redefinição.')
+    }, 8000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timer)
+    }
   }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -103,20 +92,13 @@ function NovaSenhaForm() {
     if (password !== confirm) { setError('As senhas não coincidem.'); return }
     setLoading(true); setError('')
 
-    // Server Action: usa o client do servidor que tem a sessão de recovery nos cookies
-    const { error: err } = await updatePassword(password)
-
+    const supabase = createClient()
+    const { error: err } = await supabase.auth.updateUser({ password })
     if (err) {
-      // Fallback: tenta via client-side (caso a sessão esteja no browser storage)
-      const supabase = createClient()
-      const { error: clientErr } = await supabase.auth.updateUser({ password })
-      if (clientErr) {
-        setError('Não foi possível atualizar a senha. Solicite um novo link de redefinição.')
-        setLoading(false)
-        return
-      }
+      setError('Não foi possível atualizar a senha. Tente novamente ou solicite um novo link.')
+      setLoading(false)
+      return
     }
-
     router.push('/dashboard')
   }
 
@@ -133,10 +115,8 @@ function NovaSenhaForm() {
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: '0 16px',
     }}>
-      {/* glow */}
       <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-60%)', width: 600, height: 400, background: 'radial-gradient(ellipse,rgba(74,144,217,0.12) 0%,transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
 
-      {/* logo */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 32, position: 'relative', zIndex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, lineHeight: 1 }}>
           <span className="auth-logo-26" style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 52, color: 'white', letterSpacing: -3, lineHeight: 1 }}>2</span>
@@ -148,7 +128,6 @@ function NovaSenhaForm() {
         <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5 }}>Bolão Oficial dos Amigos</div>
       </div>
 
-      {/* card */}
       <div className="auth-card" style={{ width: '100%', maxWidth: 400, background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.18)', borderRadius: 12, overflow: 'hidden', position: 'relative', zIndex: 1 }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,#4A90D9,#7BB8F0,#4A90D9)' }} />
         <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(74,144,217,0.18)' }}>
@@ -162,15 +141,26 @@ function NovaSenhaForm() {
               {error}
               <div style={{ marginTop: 10 }}>
                 <a href="/auth/esqueci-senha" style={{ color: '#7BB8F0', fontWeight: 600, textDecoration: 'underline' }}>
-                  Solicitar novo link de redefinição
+                  Solicitar novo link
                 </a>
               </div>
             </div>
           )}
 
-          {/* ── Verificando (debug temporário) ── */}
+          {/* ── Debug temporário ── */}
           {!ready && !error && (
-            <DebugInfo />
+            <div>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginBottom: 12 }}>
+                Verificando link… aguarde.
+              </p>
+              {Object.keys(debug).length > 0 && (
+                <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'rgba(255,255,255,0.35)', lineHeight: 1.8, background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 6 }}>
+                  {Object.entries(debug).map(([k, v]) => (
+                    <div key={k}><span style={{ color: 'rgba(255,200,0,0.6)' }}>{k}:</span> {v}</div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {/* ── Formulário ── */}
