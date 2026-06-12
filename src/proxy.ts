@@ -5,10 +5,11 @@ export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const { pathname } = request.nextUrl
-  const isAuthRoute   = pathname.startsWith('/auth') || pathname === '/forgot-password' || pathname === '/reset-password'
+  const isAuthRoute   = pathname.startsWith('/auth')
   const isPublicFile  = pathname.startsWith('/_next') || pathname.startsWith('/favicon')
   // Pages accessible without login — ranking and palpites remain protected
   const isPublicRoute = pathname === '/' || pathname === '/dashboard' || pathname === '/tabela' || pathname === '/instrucoes'
+    || pathname === '/forgot-password' || pathname === '/reset-password'
 
   // Guard: if env vars are missing, skip auth checks and let the page render
   // (it will show a Supabase connection error rather than a blank 500).
