@@ -20,7 +20,7 @@ export default function EsqueciSenhaPage() {
     setLoading(true); setError('')
     const supabase = createClient()
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/nova-senha`,
+      redirectTo: `${window.location.origin}/auth/callback?next=/auth/nova-senha`,
     })
     if (error) {
       setError('Não foi possível enviar o email. Verifique o endereço e tente novamente.')

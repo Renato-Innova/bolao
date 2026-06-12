@@ -17,13 +17,20 @@ export default function NovaSenhaPage() {
     return () => { document.body.style.overflow = '' }
   }, [])
 
-  // Supabase sends the session via URL hash — wait for it to be picked up
   useEffect(() => {
     const supabase = createClient()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setReady(true)
+
+    // Fluxo via callback (PKCE): sessão já está nos cookies — basta detectá-la
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) { setReady(true); return }
+
+      // Fallback: token no hash (fluxo legado) — aguarda evento PASSWORD_RECOVERY
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'PASSWORD_RECOVERY') { setReady(true); subscription.unsubscribe() }
+      })
+      // cleanup retornado aqui não é chamado pelo React quando está dentro de .then()
+      // mas a subscription se auto-cancela no evento acima
     })
-    return () => subscription.unsubscribe()
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
