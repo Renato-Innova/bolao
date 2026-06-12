@@ -42,15 +42,15 @@ export default async function MeuDiaPage() {
         .in('palpite_id', palpiteIds).in('jogo_id', jogoIdsHoje)
     : { data: [] }
 
-  // rivais
+  // rivais — 2 acima e 2 abaixo de cada palpite
   const rivalIds: number[] = []
   for (const pid of palpiteIds) {
     const pos = ranking.find(r => r.palpite_id === pid)?.posicao
     if (pos != null) {
-      const acima  = ranking.find(r => r.posicao === pos - 1)
-      const abaixo = ranking.find(r => r.posicao === pos + 1)
-      if (acima)  rivalIds.push(acima.palpite_id)
-      if (abaixo) rivalIds.push(abaixo.palpite_id)
+      for (const delta of [-2, -1, 1, 2]) {
+        const rival = ranking.find(r => r.posicao === pos + delta)
+        if (rival) rivalIds.push(rival.palpite_id)
+      }
     }
   }
   const uniqueRivalIds = [...new Set(rivalIds.filter(id => !palpiteIds.includes(id)))]
@@ -195,15 +195,25 @@ export default async function MeuDiaPage() {
 
       {/* ── Olhando para cima e para baixo ── */}
       {palpiteIds.length > 0 && jogoIdsHoje.length > 0 && (() => {
+        type RankEntry = typeof ranking[0]
+        const pjRivaisTyped = (pjRivaisHoje ?? []) as { palpite_id: number; jogo_id: number; placar_palpite_a: number | null; placar_palpite_b: number | null }[]
+
         const blocos = (meusPalpites as { id: number; nome: string }[]).map(p => {
           const myRank = ranking.find(r => r.palpite_id === p.id)
           if (!myRank) return null
-          return {
-            p,
-            myRank,
-            rival_acima:  myRank.posicao > 1 ? (ranking.find(r => r.posicao === myRank.posicao - 1) ?? null) : null,
-            rival_abaixo: ranking.find(r => r.posicao === myRank.posicao + 1) ?? null,
+
+          const rivaisAcima: RankEntry[] = []
+          const rivaisAbaixo: RankEntry[] = []
+          for (const delta of [1, 2]) {
+            const r = ranking.find(e => e.posicao === myRank.posicao - delta)
+            if (r) rivaisAcima.push(r)
           }
+          for (const delta of [1, 2]) {
+            const r = ranking.find(e => e.posicao === myRank.posicao + delta)
+            if (r) rivaisAbaixo.push(r)
+          }
+
+          return { p, myRank, rivaisAcima, rivaisAbaixo }
         }).filter(Boolean)
 
         if (!blocos.length) return null
@@ -214,7 +224,7 @@ export default async function MeuDiaPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               {blocos.map(bloco => {
-                const { p, myRank, rival_acima, rival_abaixo } = bloco!
+                const { p, myRank, rivaisAcima, rivaisAbaixo } = bloco!
                 return (
                   <div key={p.id}>
                     {/* cabeçalho do palpite */}
@@ -225,29 +235,38 @@ export default async function MeuDiaPage() {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {/* rival acima */}
-                      {rival_acima ? (
+                      {/* rivais acima */}
+                      {rivaisAcima.length > 0 ? rivaisAcima.map(rival => (
                         <RivalCard
-                          rival={rival_acima}
+                          key={rival.palpite_id}
+                          rival={rival}
                           direcao="acima"
-                          diff={rival_acima.total_pontos - myRank.total_pontos}
+                          diff={rival.total_pontos - myRank.total_pontos}
                           jogosHoje={jogosHoje}
-                          pjRivais={(pjRivaisHoje ?? []) as { palpite_id: number; jogo_id: number; placar_palpite_a: number | null; placar_palpite_b: number | null }[]}
+                          pjRivais={pjRivaisTyped}
                         />
-                      ) : (
+                      )) : (
                         <div style={{ fontSize: 12, color: 'rgba(255,215,0,0.7)', fontStyle: 'italic', padding: '6px 0' }}>🏆 Você está na liderança com este palpite!</div>
                       )}
 
-                      {/* rival abaixo */}
-                      {rival_abaixo ? (
+                      {/* divisor — posição do usuário */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+                        <div style={{ flex: 1, height: 1, background: 'rgba(74,144,217,0.20)' }} />
+                        <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(74,144,217,0.60)', textTransform: 'uppercase', letterSpacing: 0.5 }}>você · #{myRank.posicao}</span>
+                        <div style={{ flex: 1, height: 1, background: 'rgba(74,144,217,0.20)' }} />
+                      </div>
+
+                      {/* rivais abaixo */}
+                      {rivaisAbaixo.length > 0 ? rivaisAbaixo.map(rival => (
                         <RivalCard
-                          rival={rival_abaixo}
+                          key={rival.palpite_id}
+                          rival={rival}
                           direcao="abaixo"
-                          diff={myRank.total_pontos - rival_abaixo.total_pontos}
+                          diff={myRank.total_pontos - rival.total_pontos}
                           jogosHoje={jogosHoje}
-                          pjRivais={(pjRivaisHoje ?? []) as { palpite_id: number; jogo_id: number; placar_palpite_a: number | null; placar_palpite_b: number | null }[]}
+                          pjRivais={pjRivaisTyped}
                         />
-                      ) : (
+                      )) : (
                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic', padding: '6px 0' }}>Nenhum palpite atrás de você ainda.</div>
                       )}
                     </div>
