@@ -355,15 +355,15 @@ export default async function DashboardPage() {
                       <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>{hora}</span>
                     </div>
                     {/* conteúdo — renderiza markdown simples: **texto** → negrito */}
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', lineHeight: 1.65 }}>
+                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.65 }}>
                       {b.conteudo.split('\n').map((line, i) => {
                         // converte **texto** em <strong>
                         const parts = line.split(/(\*\*.*?\*\*)/)
                         return (
-                          <p key={i} style={{ margin: line.startsWith('**') ? '8px 0 2px' : '0 0 2px', color: line.startsWith('**') ? 'white' : undefined, fontWeight: line.startsWith('**') ? 700 : undefined, fontSize: line.startsWith('**') ? 10 : 11 }}>
+                          <p key={i} style={{ margin: line.startsWith('**') ? '8px 0 2px' : '0 0 2px', color: line.startsWith('**') ? 'white' : undefined, fontWeight: line.startsWith('**') ? 700 : undefined, fontSize: line.startsWith('**') ? 11 : 13 }}>
                             {parts.map((part, j) =>
                               part.startsWith('**') && part.endsWith('**')
-                                ? <strong key={j} style={{ color: 'white', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.4 }}>{part.slice(2, -2)}</strong>
+                                ? <strong key={j} style={{ color: 'white', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4 }}>{part.slice(2, -2)}</strong>
                                 : part
                             )}
                           </p>
