@@ -90,10 +90,10 @@ export default async function DashboardPage() {
         .filter((j: JogoCopa) => j.fase === 'GS' && j.grupo)
         .map((j: JogoCopa) => j.grupo as string)
     ),
-  ].slice(0, 2)
+  ].slice(0, 3)
   const displayGroups = nextGSGroups.length > 0
     ? nextGSGroups
-    : Object.keys(byGrupo).slice(0, 2)
+    : Object.keys(byGrupo).slice(0, 3)
 
   function formatDate(d: string) {
     const parts = d.split('-')
@@ -322,7 +322,7 @@ export default async function DashboardPage() {
               <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8 }}>Tabela oficial</div>
               {nextGSGroups.length > 0 && (
                 <div style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
-                  Grupos com jogos hoje · {nextGSGroups.map(g => `Grupo ${g}`).join(' · ')}
+                  Grupos com jogos hoje
                 </div>
               )}
             </div>
