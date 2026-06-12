@@ -82,8 +82,8 @@ export default async function MeuDiaPage() {
     fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12,
   }
   const subLabel: React.CSSProperties = {
-    fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.40)',
-    textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6,
+    fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.80)',
+    textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 10,
   }
   const card: React.CSSProperties = {
     background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '10px 12px',
@@ -142,7 +142,7 @@ export default async function MeuDiaPage() {
                                 <span style={{ color: 'rgba(255,255,255,0.65)', flex: 1 }}>{jogo.time_a} × {jogo.time_b}</span>
                                 <span style={{ color: 'rgba(255,255,255,0.35)' }}>apostei {apostou}</span>
                                 <span style={{ color: 'rgba(255,255,255,0.55)' }}>· real {real}</span>
-                                {pts > 0 && <span style={{ color: '#4ade80', fontWeight: 700, minWidth: 40, textAlign: 'right' }}>+{pts}</span>}
+                                <span style={{ color: pts > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)', fontWeight: 700, minWidth: 40, textAlign: 'right' }}>{pts > 0 ? `+${pts}` : '0'}</span>
                               </div>
                             )
                           })}
@@ -175,7 +175,7 @@ export default async function MeuDiaPage() {
                                 <>
                                   <span style={{ color: 'rgba(255,255,255,0.35)' }}>apostei {apostou}</span>
                                   <span style={{ color: 'rgba(255,255,255,0.55)' }}>· real {j.resultado!.placar_real_a}×{j.resultado!.placar_real_b}</span>
-                                  {(pj?.pontos ?? 0) > 0 && <span style={{ color: '#4ade80', fontWeight: 700 }}>+{pj!.pontos}</span>}
+                                  <span style={{ color: (pj?.pontos ?? 0) > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)', fontWeight: 700, minWidth: 40, textAlign: 'right' }}>{(pj?.pontos ?? 0) > 0 ? `+${pj!.pontos}` : '0'}</span>
                                 </>
                               ) : (
                                 <span style={{ color: '#4A90D9', fontWeight: 600 }}>apostei {apostou}</span>
