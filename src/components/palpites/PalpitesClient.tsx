@@ -221,19 +221,19 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
       const dayGroups = groupByDay(jogosGS)
 
       // Find the two candidate days:
-      // A) first day with any unsubmitted match (critical — user needs to act)
-      // B) first day with any official result  (interesting — user wants to see result/points)
+      // A) first day with any unsubmitted match  (critical — user needs to act)
+      // B) first day with any game without result (próximo jogo da copa — upcoming)
       // Open the accordion for whichever comes first chronologically.
-      let firstPendingIdx = dayGroups.length
-      let firstResultIdx  = dayGroups.length
+      let firstPendingIdx  = dayGroups.length
+      let firstUpcomingIdx = dayGroups.length
       for (let i = 0; i < dayGroups.length; i++) {
         const g = dayGroups[i]
         if (firstPendingIdx === dayGroups.length && g.matches.some(m => !states[String(m.id)]?.submitted))
           firstPendingIdx = i
-        if (firstResultIdx === dayGroups.length && g.matches.some(m => !!m.resultado))
-          firstResultIdx = i
+        if (firstUpcomingIdx === dayGroups.length && g.matches.some(m => !m.resultado))
+          firstUpcomingIdx = i
       }
-      const targetIdx  = Math.min(firstPendingIdx, firstResultIdx)
+      const targetIdx  = Math.min(firstPendingIdx, firstUpcomingIdx)
       const targetGroup = targetIdx < dayGroups.length ? dayGroups[targetIdx] : dayGroups[0]
 
       setVisibleDays(targetIdx + 1)
