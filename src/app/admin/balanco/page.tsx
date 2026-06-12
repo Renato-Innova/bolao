@@ -269,9 +269,7 @@ export default async function BalancoPage() {
           background: 'rgba(74,144,217,0.06)', borderRadius: 8,
           fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.6,
         }}>
-          🔒 Os nomes dos líderes estão <strong style={{ color: 'rgba(255,255,255,0.55)' }}>ocultos até o final do bolão</strong> (19 jul 2026) para manter o suspense.
-          Os valores refletem a classificação atual e serão confirmados apenas na apuração final.
-          O custo de IA é estimado — pode variar conforme uso efetivo da API.
+          🔒 Os nomes dos líderes serão revelados apenas após o final do bolão (19 jul 2026)
         </div>
       </div>
 
