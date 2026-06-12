@@ -204,10 +204,12 @@ export default async function MeuDiaPage() {
 
           const rivaisAcima: RankEntry[] = []
           const rivaisAbaixo: RankEntry[] = []
-          for (const delta of [1, 2]) {
+          // acima: mais distante primeiro (delta 2 → delta 1)
+          for (const delta of [2, 1]) {
             const r = ranking.find(e => e.posicao === myRank.posicao - delta)
             if (r) rivaisAcima.push(r)
           }
+          // abaixo: menos distante primeiro (delta 1 → delta 2)
           for (const delta of [1, 2]) {
             const r = ranking.find(e => e.posicao === myRank.posicao + delta)
             if (r) rivaisAbaixo.push(r)
