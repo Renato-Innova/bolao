@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getRanking } from '@/services/ranking'
 import type { RankingEntry } from '@/types'
+
 import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
 import { RankingEvolutionChart, type ChartSeries } from '@/components/ranking/RankingEvolutionChart'
 
