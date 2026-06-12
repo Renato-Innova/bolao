@@ -20,7 +20,7 @@ export default async function MeuDiaPage() {
     { data: jogosHojeData },
     ranking,
   ] = await Promise.all([
-    supabase.from('palpites').select('id, nome').eq('usuario_id', currentUser.id).eq('status', 'ativo'),
+    supabase.from('palpites').select('id, nome, status').eq('usuario_id', currentUser.id).order('criado_em'),
     supabase.from('jogos_copa').select('id, time_a, time_b, resultado:resultados(placar_real_a, placar_real_b)').eq('data', ontem).order('horario'),
     supabase.from('jogos_copa').select('id, time_a, time_b, horario, resultado:resultados(placar_real_a, placar_real_b)').eq('data', hoje).order('horario'),
     getRanking(),
@@ -117,7 +117,7 @@ export default async function MeuDiaPage() {
               <div>
                 <div style={subLabel}>Ontem · {fmt(ontem)}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {(meusPalpites as { id: number; nome: string }[]).map(p => {
+                  {(meusPalpites as { id: number; nome: string; status: string }[]).map(p => {
                     const ptsTotais = pontosOntemPorPalpite[p.id] ?? 0
                     const linhas = jogosOntem.filter(j => j.resultado).map(j => ({
                       jogo: j,
@@ -126,7 +126,10 @@ export default async function MeuDiaPage() {
                     return (
                       <div key={p.id} style={{ ...card, border: '1px solid rgba(74,144,217,0.10)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{p.nome}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{p.nome}</span>
+                            {p.status === 'inativo' && <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.07)', padding: '2px 7px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>inativo</span>}
+                          </div>
                           <span style={{ fontSize: 14, fontWeight: 700, color: ptsTotais > 0 ? '#4ade80' : 'rgba(255,255,255,0.35)' }}>
                             {ptsTotais > 0 ? `+${ptsTotais} pts` : '0 pts'}
                           </span>
@@ -159,9 +162,12 @@ export default async function MeuDiaPage() {
               <div>
                 <div style={subLabel}>Hoje · {fmt(hoje)}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {(meusPalpites as { id: number; nome: string }[]).map(p => (
+                  {(meusPalpites as { id: number; nome: string; status: string }[]).map(p => (
                     <div key={p.id} style={{ ...card, border: '1px solid rgba(74,144,217,0.10)' }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 8 }}>{p.nome}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{p.nome}</span>
+                        {p.status === 'inativo' && <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.07)', padding: '2px 7px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>inativo</span>}
+                      </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                         {jogosHoje.map(j => {
                           const pj      = (pjHoje as PJ[]).find(x => x.palpite_id === p.id && x.jogo_id === j.id)
@@ -198,7 +204,7 @@ export default async function MeuDiaPage() {
         type RankEntry = typeof ranking[0]
         const pjRivaisTyped = (pjRivaisHoje ?? []) as { palpite_id: number; jogo_id: number; placar_palpite_a: number | null; placar_palpite_b: number | null }[]
 
-        const blocos = (meusPalpites as { id: number; nome: string }[]).map(p => {
+        const blocos = (meusPalpites as { id: number; nome: string; status: string }[]).map(p => {
           const myRank = ranking.find(r => r.palpite_id === p.id)
           if (!myRank) return null
 
