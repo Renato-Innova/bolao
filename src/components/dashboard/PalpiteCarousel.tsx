@@ -51,7 +51,7 @@ export function PalpiteCarousel({ slides }: Props) {
     return (
       <div style={styles.card}>
         <div style={styles.bar} />
-        <div style={{ padding: '16px 18px', height: 110, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4 }}>
+        <div style={{ padding: '16px 18px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4 }}>
           <div style={styles.nome}>Nenhum palpite</div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Crie um palpite para participar</div>
         </div>
@@ -167,7 +167,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 10,
     position: 'relative',
     overflow: 'hidden',
-    height: 120,
+    height: '100%',
   },
   bar: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 2,

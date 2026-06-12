@@ -135,7 +135,7 @@ export default async function DashboardPage() {
       <div className="dash-main-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'auto auto', gap: 12, marginBottom: 12 }}>
 
         {/* R1C1 — Carrossel de palpites do usuário */}
-        <div className="dash-card-carrossel"><PalpiteCarousel slides={mySlides} /></div>
+        <div className="dash-card-carrossel" style={{ height: '100%' }}><PalpiteCarousel slides={mySlides} /></div>
 
         {/* R1C2 — Jogos + Máx. pontos */}
         <div className="dash-card-jogos" style={card}>
@@ -249,7 +249,7 @@ export default async function DashboardPage() {
                     </div>
                     {/* barra de desempenho — borda inferior do card, sem track */}
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2 }}>
-                      <div style={{ height: 2, background: 'linear-gradient(90deg, rgba(74,144,217,0.55), rgba(123,184,240,0.25))', width: `${pct}%` }} />
+                      <div style={{ height: 2, background: 'linear-gradient(90deg, rgba(74,222,128,0.55), rgba(74,222,128,0.15))', width: `${pct}%` }} />
                     </div>
                   </div>
                 )

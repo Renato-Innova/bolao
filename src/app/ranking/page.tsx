@@ -252,16 +252,19 @@ export default async function RankingPage() {
                   : entry.posicao === 3 ? '#CD7F32'
                   : isMe ? '#4A90D9'
                   : 'rgba(255,255,255,0.25)'
+                const maxPts = ranking[0]?.total_pontos ?? 0
+                const pct    = maxPts > 0 ? Math.round((entry.total_pontos / maxPts) * 100) : 0
 
                 return (
                   <div key={entry.palpite_id}
                     className={`rank-row${isMe ? ' rank-me' : ''}`}
                     style={{
                       display: 'grid', gridTemplateColumns: '50px 1fr 80px 100px',
-                      padding: '11px 18px', alignItems: 'center', fontSize: 13,
+                      padding: '11px 18px 13px', alignItems: 'center', fontSize: 13,
                       borderBottom: idx < ranking.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
                       background: isMe ? 'rgba(74,144,217,0.07)' : 'transparent',
                       borderLeft: isMe ? '2px solid #4A90D9' : '2px solid transparent',
+                      position: 'relative', overflow: 'hidden',
                     }}>
 
                     {/* posição + variação */}
@@ -307,6 +310,11 @@ export default async function RankingPage() {
                           {entry.variacao > 0 ? `▲ +${entry.variacao} pts` : `▼ ${entry.variacao} pts`}
                         </div>
                       )}
+                    </div>
+
+                    {/* barra de desempenho — borda inferior da linha */}
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2 }}>
+                      <div style={{ height: 2, background: 'linear-gradient(90deg, rgba(74,222,128,0.55), rgba(74,222,128,0.15))', width: `${pct}%` }} />
                     </div>
                   </div>
                 )

@@ -4,9 +4,11 @@ import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
 interface Props {
   entries: RankingEntry[]
   currentUserId?: string
+  maxPontos?: number
 }
 
-export function RankingTabela({ entries, currentUserId }: Props) {
+export function RankingTabela({ entries, currentUserId, maxPontos }: Props) {
+  const maxPts = maxPontos ?? (entries[0]?.total_pontos ?? 0)
   return (
     <div
       className="rounded-xl overflow-hidden"
@@ -29,11 +31,13 @@ export function RankingTabela({ entries, currentUserId }: Props) {
 
       {entries.map((entry, idx) => {
         const isMe = entry.usuario_id === currentUserId
+        const pct  = maxPts > 0 ? Math.round((entry.total_pontos / maxPts) * 100) : 0
         return (
           <div
             key={entry.palpite_id}
-            className="grid grid-cols-12 gap-2 px-4 py-3 items-center"
+            className="grid grid-cols-12 gap-2 px-4 items-center"
             style={{
+              paddingTop: 10, paddingBottom: 12,
               borderBottom: idx < entries.length - 1 ? '1px solid rgba(74,144,217,0.07)' : 'none',
               background: isMe
                 ? 'rgba(74,144,217,0.08)'
@@ -41,6 +45,8 @@ export function RankingTabela({ entries, currentUserId }: Props) {
                 ? 'transparent'
                 : 'rgba(255,255,255,0.01)',
               border: isMe ? '1px solid rgba(74,144,217,0.3)' : undefined,
+              position: 'relative',
+              overflow: 'hidden',
             }}
           >
             {/* Position + position change */}
@@ -98,6 +104,11 @@ export function RankingTabela({ entries, currentUserId }: Props) {
                   {entry.variacao > 0 ? `▲ +${entry.variacao} pts` : `▼ ${entry.variacao} pts`}
                 </div>
               )}
+            </div>
+
+            {/* barra de desempenho — borda inferior da linha */}
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2 }}>
+              <div style={{ height: 2, background: 'linear-gradient(90deg, rgba(74,222,128,0.55), rgba(74,222,128,0.15))', width: `${pct}%` }} />
             </div>
           </div>
         )
