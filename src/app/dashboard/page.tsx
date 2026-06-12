@@ -39,6 +39,7 @@ export default async function DashboardPage() {
     ranking,
     { data: grupoJogos },
     { data: boletins },
+    { data: artilheiros },
   ] = await Promise.all([
     supabase.from('palpites').select('*', { count: 'exact', head: true }).eq('status', 'ativo'),
     supabase.from('users').select('*', { count: 'exact', head: true }),
@@ -49,6 +50,7 @@ export default async function DashboardPage() {
     getRanking(),
     supabase.from('classificacao_grupos').select('*').order('grupo').order('pts', { ascending: false }).order('dg', { ascending: false }).order('m', { ascending: false }),
     supabase.from('boletim_copa').select('*').order('gerado_em', { ascending: false }).limit(2),
+    supabase.from('artilheiros_copa').select('*').order('gols', { ascending: false }).order('assistencias', { ascending: false }).limit(10),
   ])
 
   const lider   = (ranking[0]?.total_pontos ?? 0) > 0 ? ranking[0] : null
@@ -332,20 +334,20 @@ export default async function DashboardPage() {
           {displayGroups.length === 0 ? (
             <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 12, padding: '16px 0' }}>Grupos em breve</p>
           ) : displayGroups.map((grupo, gi) => (
-            <div key={grupo} style={{ marginBottom: gi < displayGroups.length - 1 ? 18 : 0 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#4A90D9', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>
+            <div key={grupo} style={{ marginBottom: gi < displayGroups.length - 1 ? 10 : 0 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#4A90D9', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>
                 Grupo {grupo}
               </div>
-              <div className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '0 4px 5px', fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.50)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <div className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '0 4px 3px', fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.50)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                 <span>#</span><span style={{ textAlign: 'left' }}>Seleção</span><span>J</span><span>V</span><span>SG</span><span className="rank-acertos">GP</span><span>Pts</span>
               </div>
               {(byGrupo[grupo] ?? []).length === 0 ? (
-                <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 11, padding: '10px 0' }}>Jogos em breve</p>
+                <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 11, padding: '6px 0' }}>Jogos em breve</p>
               ) : (byGrupo[grupo] ?? []).map((row: ClassificacaoGrupo, idx: number) => {
                 const q     = idx < 2
                 const sgStr = row.dg > 0 ? `+${row.dg}` : String(row.dg)
                 return (
-                  <div key={row.pais_nome} className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '6px 4px', alignItems: 'center', fontSize: 11, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.85)', background: q ? 'rgba(74,144,217,0.07)' : 'transparent', borderRadius: q ? 4 : 0 }}>
+                  <div key={row.pais_nome} className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '4px 4px', alignItems: 'center', fontSize: 11, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.85)', background: q ? 'rgba(74,144,217,0.07)' : 'transparent', borderRadius: q ? 4 : 0 }}>
                     <span style={{ fontSize: 9, fontWeight: 700, color: q ? '#4A90D9' : 'rgba(255,255,255,0.25)' }}>{idx + 1}</span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 5, textAlign: 'left' }}>
                       <FlagImg codigo={row.pais_codigo} size={18} />
@@ -430,14 +432,45 @@ export default async function DashboardPage() {
         <div className="dash-card-artilheiro" style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8 }}>⚽ Artilheiro da Copa</div>
-              <div style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Ranking de gols · tempo real</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8 }}>⚽ Artilheiros da Copa</div>
+              <div style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
+                Atualizado a cada 30 min · football-data.org
+              </div>
             </div>
-            <span style={{ fontSize: 9, fontWeight: 700, color: '#4ade80', background: 'rgba(74,222,128,0.10)', padding: '3px 9px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>Em breve</span>
+            {artilheiros && artilheiros.length > 0 && (() => {
+              const ultima = new Date((artilheiros as { atualizado_em: string }[])[0].atualizado_em)
+              const hora = ultima.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+              return (
+                <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
+                  atualizado {hora}
+                </span>
+              )
+            })()}
           </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic', padding: '20px 0', textAlign: 'center' }}>
-            Ranking de artilheiros atualizado em tempo real.
-          </div>
+
+          {!artilheiros || artilheiros.length === 0 ? (
+            <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: 12, padding: '20px 0', fontStyle: 'italic' }}>
+              Aguardando primeiro jogo…
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {(artilheiros as { id: number; jogador: string; seleção: string; escudo_url: string | null; gols: number; assistencias: number; jogos: number }[]).map((a, i) => (
+                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 6px', background: i === 0 ? 'rgba(255,215,0,0.06)' : 'rgba(255,255,255,0.03)', border: `1px solid ${i === 0 ? 'rgba(255,215,0,0.18)' : 'rgba(255,255,255,0.05)'}`, borderRadius: 6 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: i === 0 ? '#FFD700' : 'rgba(255,255,255,0.30)', minWidth: 16, textAlign: 'center' }}>
+                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`}
+                  </span>
+                  {a.escudo_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={a.escudo_url} alt={a.seleção} width={16} height={16} style={{ objectFit: 'contain', flexShrink: 0 }} />
+                  )}
+                  <span style={{ flex: 1, fontSize: 11, fontWeight: 600, color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.jogador}</span>
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.40)', whiteSpace: 'nowrap' }}>{a.seleção}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: i === 0 ? '#FFD700' : '#4A90D9', minWidth: 20, textAlign: 'right' }}>{a.gols}</span>
+                  <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.30)' }}>⚽</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>
