@@ -33,6 +33,7 @@ export default async function PalpitesPage() {
       .from('palpites')
       .select('*, palpites_jogos(*, jogo:jogos_copa(*, resultado:resultados(*)))')
       .eq('usuario_id', user.id)
+      .order('status', { ascending: true })   // 'ativo' < 'inativo' alphabetically → ativos first
       .order('criado_em', { ascending: false }),
 
     // Fetch ALL 104 games — GS for tab 1 + Tabela, knockout for tab 2
