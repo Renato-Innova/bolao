@@ -10,6 +10,7 @@ export async function proxy(request: NextRequest) {
   // Pages accessible without login — ranking and palpites remain protected
   const isPublicRoute = pathname === '/' || pathname === '/dashboard' || pathname === '/tabela' || pathname === '/instrucoes'
     || pathname === '/forgot-password' || pathname === '/reset-password'
+    || pathname.startsWith('/api/')
 
   // Guard: if env vars are missing, skip auth checks and let the page render
   // (it will show a Supabase connection error rather than a blank 500).
