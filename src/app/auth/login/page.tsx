@@ -84,7 +84,7 @@ export default function LoginPage() {
             {error && <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(255,100,100,0.1)', border: '1px solid rgba(255,100,100,0.3)', borderRadius: 8, fontSize: 13, color: 'rgba(255,130,130,0.9)' }}>{error}</div>}
 
             <div style={{ textAlign: 'right', marginBottom: 4 }}>
-              <Link href="/auth/esqueci-senha" style={{ fontSize: 12, color: 'rgba(123,184,240,0.7)', textDecoration: 'none' }}>Esqueci minha senha</Link>
+              <Link href="/forgot-password" style={{ fontSize: 12, color: 'rgba(123,184,240,0.7)', textDecoration: 'none' }}>Esqueci minha senha</Link>
             </div>
 
             <button type="submit" disabled={loading}

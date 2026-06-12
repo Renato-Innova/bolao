@@ -4,11 +4,10 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
-export default function EsqueciSenhaPage() {
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
+  const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -17,16 +16,16 @@ export default function EsqueciSenhaPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true); setError('')
+    setLoading(true)
     const supabase = createClient()
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/recuperar`,
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
     })
-    if (error) {
-      setError('Não foi possível enviar o email. Verifique o endereço e tente novamente.')
-      setLoading(false); return
-    }
-    setSuccess(true)
+    setMessage(
+      error
+        ? 'Erro ao enviar o e-mail. Tente novamente.'
+        : 'E-mail enviado! Verifique sua caixa de entrada.'
+    )
     setLoading(false)
   }
 
@@ -58,10 +57,17 @@ export default function EsqueciSenhaPage() {
           <span style={{ fontSize: 13, fontWeight: 600, color: 'white', textTransform: 'uppercase', letterSpacing: 0.5 }}>Recuperar senha</span>
         </div>
         <div style={{ padding: 20 }}>
-          {success ? (
+          {message ? (
             <div>
-              <div style={{ marginBottom: 20, padding: '12px 14px', background: 'rgba(74,217,144,0.1)', border: '1px solid rgba(74,217,144,0.3)', borderRadius: 8, fontSize: 13, color: 'rgba(130,255,180,0.9)', lineHeight: 1.5 }}>
-                Email enviado! Verifique sua caixa de entrada e siga o link para redefinir sua senha.
+              <div style={{
+                marginBottom: 20, padding: '12px 14px',
+                background: message.startsWith('Erro') ? 'rgba(255,100,100,0.1)' : 'rgba(74,217,144,0.1)',
+                border: `1px solid ${message.startsWith('Erro') ? 'rgba(255,100,100,0.3)' : 'rgba(74,217,144,0.3)'}`,
+                borderRadius: 8, fontSize: 13,
+                color: message.startsWith('Erro') ? 'rgba(255,130,130,0.9)' : 'rgba(130,255,180,0.9)',
+                lineHeight: 1.5,
+              }}>
+                {message}
               </div>
               <Link href="/auth/login" style={{ display: 'block', textAlign: 'center', fontSize: 13, color: '#7BB8F0', textDecoration: 'none', fontWeight: 600 }}>
                 Voltar para o login
@@ -70,19 +76,22 @@ export default function EsqueciSenhaPage() {
           ) : (
             <form onSubmit={handleSubmit}>
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 16, lineHeight: 1.5 }}>
-                Informe seu email e enviaremos um link para você redefinir sua senha.
+                Informe seu e-mail e enviaremos um link para redefinir sua senha.
               </p>
               <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5 }}>Email</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="seu@email.com" autoComplete="email"
-                  className="auth-input" style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(74,144,217,0.18)', borderRadius: 8, padding: '11px 14px', fontSize: 14, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none' }} />
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5 }}>E-mail</label>
+                <input
+                  type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  required placeholder="seu@email.com" autoComplete="email"
+                  className="auth-input"
+                  style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(74,144,217,0.18)', borderRadius: 8, padding: '11px 14px', fontSize: 14, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none' }}
+                />
               </div>
 
-              {error && <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(255,100,100,0.1)', border: '1px solid rgba(255,100,100,0.3)', borderRadius: 8, fontSize: 13, color: 'rgba(255,130,130,0.9)' }}>{error}</div>}
-
               <button type="submit" disabled={loading}
-                className="auth-btn" style={{ width: '100%', marginTop: 8, background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', border: 'none', borderRadius: 8, padding: 13, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
-                {loading ? 'Enviando...' : 'Enviar link'}
+                className="auth-btn"
+                style={{ width: '100%', marginTop: 8, background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', border: 'none', borderRadius: 8, padding: 13, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                {loading ? 'Enviando...' : 'Enviar link de recuperação'}
               </button>
 
               <div style={{ marginTop: 16, textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.40)' }}>

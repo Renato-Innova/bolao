@@ -1,35 +1,38 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies'
+import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
-  const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
+  const requestUrl = new URL(request.url)
+  const code = requestUrl.searchParams.get('code')
+  const next = requestUrl.searchParams.get('next') ?? '/'
 
   if (code) {
-    const pending: Array<{ name: string; value: string; options: Partial<ResponseCookie> }> = []
-
+    const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          getAll: () => request.cookies.getAll(),
-          setAll: (list) => { list.forEach(({ name, value, options }) => pending.push({ name, value, options })) },
+          getAll() { return cookieStore.getAll() },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          },
         },
       }
     )
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
-    const dest = error ? '/auth/login' : next
-    const response = NextResponse.redirect(`${origin}${dest}`)
-    for (const { name, value, options } of pending) {
-      response.cookies.set({ name, value, ...options })
+    if (!error) {
+      return NextResponse.redirect(new URL(next, requestUrl.origin))
     }
-    return response
   }
 
-  return NextResponse.redirect(`${origin}/auth/login`)
+  return NextResponse.redirect(
+    new URL('/auth/login?error=link_invalido', requestUrl.origin)
+  )
 }
