@@ -240,55 +240,83 @@ export default async function MeuDiaPage() {
 
         return (
           <div style={{ background: '#0D1E3D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '16px 18px' }}>
-            <div style={{ ...sectionTitle, color: 'rgba(255,255,255,0.75)' }}>🔭 Olhando para cima e para baixo</div>
+            <div style={{ ...sectionTitle, color: 'rgba(255,255,255,0.75)' }}>🔭 Olhando para cima e para baixo no ranking</div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               {blocos.map(bloco => {
                 const { p, myRank, rivaisAcima, rivaisAbaixo } = bloco!
                 return (
                   <div key={p.id}>
-                    {/* cabeçalho do palpite */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, padding: '8px 10px', background: 'rgba(74,144,217,0.08)', border: '1px solid rgba(74,144,217,0.20)', borderRadius: 7 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#4A90D9' }}>#{myRank.posicao}</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'white', flex: 1 }}>{p.nome}</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9' }}>{myRank.total_pontos} pts</span>
-                    </div>
+                    {/* timeline vertical */}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {/* rivais acima */}
-                      {rivaisAcima.length > 0 ? rivaisAcima.map(rival => (
-                        <RivalCard
-                          key={rival.palpite_id}
-                          rival={rival}
-                          direcao="acima"
-                          diff={rival.total_pontos - myRank.total_pontos}
-                          jogosHoje={jogosHoje}
-                          pjRivais={pjRivaisTyped}
-                        />
-                      )) : (
-                        <div style={{ fontSize: 12, color: 'rgba(255,215,0,0.7)', fontStyle: 'italic', padding: '6px 0' }}>🏆 Você está na liderança com este palpite!</div>
+                      {rivaisAcima.length > 0 ? rivaisAcima.map((rival, idx) => {
+                        const distancia = rivaisAcima.length - idx
+                        const opacidadePonto = distancia === 2 ? 0.80 : 0.45
+                        const opacidadeDiff  = distancia === 2 ? 0.90 : 0.65
+                        return (
+                          <RivalCard
+                            key={rival.palpite_id}
+                            rival={rival}
+                            direcao="acima"
+                            diff={rival.total_pontos - myRank.total_pontos}
+                            opacidadePonto={opacidadePonto}
+                            opacidadeDiff={opacidadeDiff}
+                            isLast={false}
+                            jogosHoje={jogosHoje}
+                            pjRivais={pjRivaisTyped}
+                          />
+                        )
+                      }) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr', marginBottom: 2 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(251,191,36,0.30)', marginTop: 14 }} />
+                            <div style={{ width: 2, flex: 1, background: 'rgba(255,255,255,0.07)', margin: '0 auto' }} />
+                          </div>
+                          <div style={{ padding: '10px 0 10px 4px', fontSize: 12, color: 'rgba(255,215,0,0.65)', fontStyle: 'italic' }}>
+                            🏆 Você está na liderança!
+                          </div>
+                        </div>
                       )}
 
-                      {/* divisor — posição do usuário */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
-                        <div style={{ flex: 1, height: 1, background: 'rgba(74,144,217,0.20)' }} />
-                        <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(74,144,217,0.60)', textTransform: 'uppercase', letterSpacing: 0.5 }}>você · #{myRank.posicao}</span>
-                        <div style={{ flex: 1, height: 1, background: 'rgba(74,144,217,0.20)' }} />
+                      {/* você — nó central */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr', margin: '4px 0' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#4A90D9', border: '2px solid rgba(74,144,217,0.40)', marginTop: 12, flexShrink: 0 }} />
+                          <div style={{ width: 2, flex: 1, background: 'rgba(255,255,255,0.07)', margin: '0 auto' }} />
+                        </div>
+                        <div style={{ background: 'rgba(74,144,217,0.10)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 8, padding: '8px 12px', marginLeft: 4, display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: '#4A90D9' }}>#{myRank.posicao}</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'white', flex: 1 }}>{p.nome}</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9' }}>{myRank.total_pontos} pts</span>
+                        </div>
                       </div>
 
                       {/* rivais abaixo */}
-                      {rivaisAbaixo.length > 0 ? rivaisAbaixo.map(rival => (
+                      {rivaisAbaixo.length > 0 ? rivaisAbaixo.map((rival, idx) => (
                         <RivalCard
                           key={rival.palpite_id}
                           rival={rival}
                           direcao="abaixo"
                           diff={myRank.total_pontos - rival.total_pontos}
+                          opacidadePonto={idx === 0 ? 0.60 : 0.25}
+                          opacidadeDiff={idx === 0 ? 0.85 : 0.55}
+                          isLast={idx === rivaisAbaixo.length - 1}
                           jogosHoje={jogosHoje}
                           pjRivais={pjRivaisTyped}
                         />
                       )) : (
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic', padding: '6px 0' }}>Nenhum palpite atrás de você ainda.</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr' }}>
+                          <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(34,211,238,0.25)', marginTop: 14 }} />
+                          </div>
+                          <div style={{ padding: '10px 0 0 4px', fontSize: 12, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic' }}>
+                            Nenhum palpite atrás de você ainda.
+                          </div>
+                        </div>
                       )}
+
                     </div>
                   </div>
                 )
@@ -301,61 +329,51 @@ export default async function MeuDiaPage() {
   )
 }
 
-/* ── componente de rival ── */
+/* ── componente de rival — timeline paleta A ── */
 function RivalCard({
-  rival, direcao, diff, jogosHoje, pjRivais,
+  rival, direcao, diff, opacidadePonto, opacidadeDiff, isLast, jogosHoje, pjRivais,
 }: {
   rival: { palpite_id: number; nome: string; posicao: number; total_pontos: number }
   direcao: 'acima' | 'abaixo'
   diff: number
+  opacidadePonto: number
+  opacidadeDiff: number
+  isLast: boolean
   jogosHoje: { id: number; time_a: string; time_b: string; horario?: string; resultado: { placar_real_a: number; placar_real_b: number } | null }[]
   pjRivais: { palpite_id: number; jogo_id: number; placar_palpite_a: number | null; placar_palpite_b: number | null }[]
 }) {
-  const acima     = direcao === 'acima'
-  const cor       = acima ? 'rgba(255,100,100,0.85)' : '#4ade80'
-  const borderCor = acima ? 'rgba(255,100,100,0.18)' : 'rgba(74,222,128,0.18)'
-  const bgCor     = acima ? 'rgba(255,100,100,0.04)' : 'rgba(74,222,128,0.04)'
+  const acima   = direcao === 'acima'
+  const baseRgb = acima ? '251,191,36' : '34,211,238'
+  const corDiff = `rgba(${baseRgb},${opacidadeDiff})`
+  const corPonto = `rgba(${baseRgb},${opacidadePonto})`
 
   return (
-    <div style={{ background: bgCor, border: `1px solid ${borderCor}`, borderRadius: 7, padding: '10px 12px' }}>
-      {/* cabeçalho rival */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 12, color: cor }}>{acima ? '▲' : '▼'}</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{rival.nome}</span>
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>#{rival.posicao}</span>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: cor }}>
-            {acima ? `+${diff} à frente` : `-${diff} atrás`}
-          </div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.40)' }}>{rival.total_pontos} pts</div>
-        </div>
+    <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr', marginBottom: 2 }}>
+      {/* coluna da linha vertical + ponto */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ width: 10, height: 10, borderRadius: '50%', background: corPonto, flexShrink: 0, marginTop: 14 }} />
+        {!isLast && <div style={{ width: 2, flex: 1, background: 'rgba(255,255,255,0.07)', margin: '0 auto' }} />}
       </div>
 
-      {/* palpites do rival para hoje */}
-      <div style={{ borderTop: `1px solid ${borderCor}`, paddingTop: 8 }}>
-        <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
-          Apostas de hoje
+      {/* conteúdo */}
+      <div style={{ padding: '8px 0 8px 4px' }}>
+        {/* linha 1: posição + nome + diff */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.30)', width: 22 }}>#{rival.posicao}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.85)', flex: 1 }}>{rival.nome}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: corDiff }}>
+            {acima ? `+${diff}` : `-${diff}`}
+          </span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {/* linha 2: apostas em pills */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, paddingLeft: 30 }}>
           {jogosHoje.map(j => {
             const pj      = pjRivais.find(x => x.palpite_id === rival.palpite_id && x.jogo_id === j.id)
             const apostou = pj?.placar_palpite_a != null ? `${pj.placar_palpite_a}×${pj.placar_palpite_b}` : '—'
-            const enc     = !!j.resultado
             return (
-              <div key={j.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-                <span style={{ color: 'rgba(255,255,255,0.35)', minWidth: 36 }}>{j.horario?.slice(0, 5)}h</span>
-                <span style={{ color: 'rgba(255,255,255,0.65)', flex: 1 }}>{j.time_a} × {j.time_b}</span>
-                {enc ? (
-                  <>
-                    <span style={{ color: 'rgba(255,255,255,0.35)' }}>{apostou}</span>
-                    <span style={{ color: 'rgba(255,255,255,0.50)' }}>· real {j.resultado!.placar_real_a}×{j.resultado!.placar_real_b}</span>
-                  </>
-                ) : (
-                  <span style={{ color: pj ? cor : 'rgba(255,255,255,0.25)', fontWeight: pj ? 600 : 400 }}>{apostou}</span>
-                )}
-              </div>
+              <span key={j.id} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.50)', background: 'rgba(255,255,255,0.03)', whiteSpace: 'nowrap' }}>
+                {j.time_a.split(' ')[0]} × {j.time_b.split(' ')[0]} · <b style={{ color: 'rgba(255,255,255,0.70)' }}>{apostou}</b>
+              </span>
             )
           })}
         </div>
