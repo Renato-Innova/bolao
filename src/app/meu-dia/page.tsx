@@ -246,7 +246,9 @@ export default async function MeuDiaPage() {
               {blocos.map(bloco => {
                 const { p, myRank, rivaisAcima, rivaisAbaixo } = bloco!
                 return (
-                  <div key={p.id}>
+                  <div key={p.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(74,144,217,0.12)', borderRadius: 8, padding: '12px 14px' }}>
+                    {/* nome do palpite */}
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#7BB8F0', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>{p.nome}</div>
                     {/* timeline vertical */}
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
 
