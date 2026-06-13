@@ -379,14 +379,14 @@ export default async function DashboardPage() {
           {/* cabeçalho */}
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8 }}>
-              📰 Boletim da Copa 2026
+              Boletim da Copa 2026
               {ultimoBoletim && (
                 <span style={{ color: ultimoBoletim.tipo === 'manha' ? '#FFD700' : '#7BB8F0', marginLeft: 6 }}>
                   · Edição da {ultimoBoletim.tipo === 'manha' ? 'Manhã' : 'Tarde'}
                 </span>
               )}
             </div>
-            <div style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Resumo do dia · gerado por IA · 2× ao dia</div>
+            <div style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.60)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Resumo do dia · gerado por IA · 2× ao dia</div>
           </div>
 
           {!ultimoBoletim ? (
@@ -404,7 +404,7 @@ export default async function DashboardPage() {
                 return (
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(74,144,217,0.10)', borderRadius: 8, padding: '12px 14px' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>{dataHora}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.60)' }}>{dataHora}</span>
                     </div>
                     <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.65 }}>
                       {b.conteudo.split('\n').map((line, i) => {
