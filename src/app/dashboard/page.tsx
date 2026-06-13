@@ -56,14 +56,9 @@ export default async function DashboardPage() {
     supabase.from('artilheiros_copa').select('*').order('gols', { ascending: false }).order('assistencias', { ascending: false }).limit(10),
   ])
 
-  // Deduplica boletins: mantém apenas o mais recente de cada tipo (manha/tarde)
+  // Pega somente o boletim mais recente (independente de tipo)
   type Boletim = { id: number; tipo: string; titulo: string; conteudo: string; gerado_em: string }
-  const boletinsUnicos: Boletim[] = Object.values(
-    ((boletins ?? []) as Boletim[]).reduce((acc, b) => {
-      if (!acc[b.tipo]) acc[b.tipo] = b
-      return acc
-    }, {} as Record<string, Boletim>)
-  )
+  const ultimoBoletim: Boletim | null = ((boletins ?? []) as Boletim[])[0] ?? null
 
   const lider   = (ranking[0]?.total_pontos ?? 0) > 0 ? ranking[0] : null
   const myEntry = currentUser ? ranking.find(r => r.usuario_id === currentUser.id) : null
@@ -391,44 +386,43 @@ export default async function DashboardPage() {
             </span>
           </div>
 
-          {boletinsUnicos.length === 0 ? (
+          {!ultimoBoletim ? (
             /* estado vazio */
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic', padding: '16px 0', textAlign: 'center' }}>
               O primeiro boletim será publicado hoje às 7h. ☀️
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {/* boletins IA lado a lado */}
-              <div style={{ display: 'grid', gridTemplateColumns: boletinsUnicos.length > 1 ? '1fr 1fr' : '1fr', gap: 12 }}>
-                {boletinsUnicos.map((b) => {
-                  const hora = new Date(b.gerado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
-                  const isManha = b.tipo === 'manha'
-                  return (
-                    <div key={b.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(74,144,217,0.10)', borderRadius: 8, padding: '12px 14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                        <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: isManha ? '#FFD700' : '#7BB8F0', background: isManha ? 'rgba(255,215,0,0.10)' : 'rgba(74,144,217,0.12)', padding: '2px 8px', borderRadius: 20 }}>
-                          {isManha ? '☀️ Manhã' : '🌅 Tarde'}
-                        </span>
-                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>{hora}</span>
-                      </div>
-                      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.65 }}>
-                        {b.conteudo.split('\n').map((line, i) => {
-                          const parts = line.split(/(\*\*.*?\*\*)/)
-                          return (
-                            <p key={i} style={{ margin: line.startsWith('**') ? '8px 0 2px' : '0 0 2px', color: line.startsWith('**') ? 'white' : undefined, fontWeight: line.startsWith('**') ? 700 : undefined, fontSize: line.startsWith('**') ? 11 : 13 }}>
-                              {parts.map((part, j) =>
-                                part.startsWith('**') && part.endsWith('**')
-                                  ? <strong key={j} style={{ color: 'white', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4 }}>{part.slice(2, -2)}</strong>
-                                  : part
-                              )}
-                            </p>
-                          )
-                        })}
-                      </div>
+              {/* único boletim — o mais recente */}
+              {(() => {
+                const b = ultimoBoletim
+                const hora = new Date(b.gerado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+                const isManha = b.tipo === 'manha'
+                return (
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(74,144,217,0.10)', borderRadius: 8, padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: isManha ? '#FFD700' : '#7BB8F0', background: isManha ? 'rgba(255,215,0,0.10)' : 'rgba(74,144,217,0.12)', padding: '2px 8px', borderRadius: 20 }}>
+                        {isManha ? '☀️ Manhã' : '🌅 Tarde'}
+                      </span>
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>{hora}</span>
                     </div>
-                  )
-                })}
-              </div>
+                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.65 }}>
+                      {b.conteudo.split('\n').map((line, i) => {
+                        const parts = line.split(/(\*\*.*?\*\*)/)
+                        return (
+                          <p key={i} style={{ margin: line.startsWith('**') ? '8px 0 2px' : '0 0 2px', color: line.startsWith('**') ? 'white' : undefined, fontWeight: line.startsWith('**') ? 700 : undefined, fontSize: line.startsWith('**') ? 11 : 13 }}>
+                            {parts.map((part, j) =>
+                              part.startsWith('**') && part.endsWith('**')
+                                ? <strong key={j} style={{ color: 'white', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4 }}>{part.slice(2, -2)}</strong>
+                                : part
+                            )}
+                          </p>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/* link para página Meu Dia */}
               {currentUser && (
@@ -436,7 +430,6 @@ export default async function DashboardPage() {
                   🎯 Ver meu dia no bolão →
                 </Link>
               )}
-
             </div>
           )}
         </div>
