@@ -121,11 +121,11 @@ export default async function DashboardPage() {
     background: 'linear-gradient(90deg, #4A90D9, #1a5ca8)',
   }
   const label12: React.CSSProperties = {
-    fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.50)',
+    fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.60)',
     textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5,
   }
   const value24: React.CSSProperties = { fontSize: 24, fontWeight: 700, color: 'white', lineHeight: 1 }
-  const sub10: React.CSSProperties = { fontSize: 10, color: 'rgba(255,255,255,0.50)', marginTop: 3 }
+  const sub10: React.CSSProperties = { fontSize: 11, color: 'rgba(255,255,255,0.60)', marginTop: 3 }
 
   return (
     <div className="page-main" style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 24px 40px' }}>
@@ -175,11 +175,11 @@ export default async function DashboardPage() {
                       {j.resultado!.placar_real_a} – {j.resultado!.placar_real_b}
                     </div>
                     {j.resultado!.placar_penalti_a != null && (
-                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.40)' }}>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)' }}>
                         pên {j.resultado!.placar_penalti_a}–{j.resultado!.placar_penalti_b}
                       </div>
                     )}
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>{formatDate(j.data)}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 1 }}>{formatDate(j.data)}</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end' }}>
                     <span style={{ fontSize: 11, fontWeight: 600, color: 'white' }}>{j.time_b}</span>
@@ -196,7 +196,7 @@ export default async function DashboardPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8 }}>Ranking do bolão</div>
-              <div style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>5 primeiros + você</div>
+              <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.60)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>5 primeiros + você</div>
             </div>
             {currentUser && <Link href="/ranking" style={{ fontSize: 10, color: '#4A90D9', fontWeight: 500, textDecoration: 'none', letterSpacing: 0 }}>ranking completo →</Link>}
           </div>
@@ -236,12 +236,12 @@ export default async function DashboardPage() {
                     <PalpiteAvatar nome={entry.nome} avatarType={entry.avatar_type} avatarValue={entry.avatar_value} size={28} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{trunc(entry.nome, 20)}</div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', whiteSpace: 'nowrap' }}>{trunc(entry.usuario_nome, 30)}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)', whiteSpace: 'nowrap' }}>{trunc(entry.usuario_nome, 30)}</div>
                     </div>
                     <div style={{ textAlign: 'right', minWidth: 52 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9' }}>{entry.total_pontos} pts</div>
                       {entry.variacao !== 0 && (
-                        <div style={{ fontSize: 9, fontWeight: 700, marginTop: 1, color: entry.variacao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, marginTop: 1, color: entry.variacao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
                           {entry.variacao > 0 ? `▲ +${entry.variacao}` : `▼ ${entry.variacao}`}
                         </div>
                       )}
@@ -296,7 +296,7 @@ export default async function DashboardPage() {
                       {j.codigo_pais_a && <FlagImg codigo={j.codigo_pais_a} size={16} />}
                       {j.time_a}
                     </div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.50)', marginTop: 2 }}>{formatDate(j.data)}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)', marginTop: 2 }}>{formatDate(j.data)}</div>
                   </div>
                   <div style={{ textAlign: 'center', padding: '0 10px' }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9' }}>
@@ -315,7 +315,7 @@ export default async function DashboardPage() {
                       {j.time_b}
                       {j.codigo_pais_b && <FlagImg codigo={j.codigo_pais_b} size={16} />}
                     </div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.50)', marginTop: 2 }}>{j.cidade}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)', marginTop: 2 }}>{j.cidade}</div>
                   </div>
                 </div>
               )
@@ -332,7 +332,7 @@ export default async function DashboardPage() {
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8 }}>Tabela oficial</div>
               {nextGSGroups.length > 0 && (
-                <div style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
+                <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.60)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
                   Grupos com jogos hoje
                 </div>
               )}
@@ -439,7 +439,7 @@ export default async function DashboardPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8 }}>⚽ Artilheiros da Copa</div>
-              <div style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
+              <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.60)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
                 Atualizado a cada 30 min · football-data.org
               </div>
             </div>
@@ -447,7 +447,7 @@ export default async function DashboardPage() {
               const ultima = new Date((artilheiros as { atualizado_em: string }[])[0].atualizado_em)
               const hora = ultima.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
               return (
-                <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.60)', whiteSpace: 'nowrap' }}>
                   {hora}
                 </span>
               )
@@ -503,7 +503,7 @@ export default async function DashboardPage() {
                         {a.assistencias ?? 0}
                       </span>
                       {/* jogos */}
-                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.30)', textAlign: 'center' }}>{a.jogos}</span>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)', textAlign: 'center' }}>{a.jogos}</span>
                     </div>
                   )
                 })}
