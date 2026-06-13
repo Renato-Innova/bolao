@@ -30,7 +30,8 @@ export default async function DashboardPage() {
 
   const { data: { user: currentUser } } = await supabase.auth.getUser()
 
-  const hoje = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const hoje  = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const ontem = new Date(Date.now() - 3 * 60 * 60 * 1000 - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
   const [
     { count: totalAtivos },
@@ -49,7 +50,7 @@ export default async function DashboardPage() {
     supabase.from('jogos_copa').select('*', { count: 'exact', head: true }),
     supabase.from('resultados').select('*', { count: 'exact', head: true }),
     supabase.from('jogos_copa').select('*, resultado:resultados(*)').gte('data', hoje).order('data').order('horario').limit(8),
-    supabase.from('jogos_copa').select('*, resultado:resultados(*)').lt('data', hoje).not('resultado', 'is', null).order('data', { ascending: false }).order('horario', { ascending: false }).limit(4),
+    supabase.from('jogos_copa').select('*, resultado:resultados(*)').eq('data', ontem).not('resultado', 'is', null).order('horario', { ascending: false }),
     getRanking(),
     supabase.from('classificacao_grupos').select('*').order('grupo').order('pts', { ascending: false }).order('dg', { ascending: false }).order('m', { ascending: false }),
     supabase.from('boletim_copa').select('*').order('gerado_em', { ascending: false }).limit(10),
@@ -158,12 +159,12 @@ export default async function DashboardPage() {
         {/* R1C3 — Últimas Partidas */}
         <div className="dash-card-ultimas" style={card}>
           <div style={bar} />
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>Últimas Partidas</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>Partidas de Ontem</div>
           {!(ultimosResultados?.length) ? (
             <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: 12, padding: '12px 0' }}>Nenhum resultado ainda</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {(ultimosResultados as JogoCopa[]).slice(0, 4).map((j) => (
+              {(ultimosResultados as JogoCopa[]).map((j) => (
                 <div key={j.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', padding: '7px 8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 7 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     {j.codigo_pais_a && <FlagImg codigo={j.codigo_pais_a} size={16} />}
