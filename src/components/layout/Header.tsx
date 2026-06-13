@@ -117,7 +117,7 @@ export function Header() {
         <Link href="/dashboard" style={{ color: isActive('/dashboard') ? 'white' : 'rgba(255,255,255,0.45)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, padding: '6px 12px', borderRadius: 6, textDecoration: 'none', background: isActive('/dashboard') ? 'rgba(255,255,255,0.08)' : 'transparent' }}>Dashboard</Link>
         {/* Meu Dia — 2º, só logados */}
         {user && (
-          <Link href="/meu-dia" style={{ color: isActive('/meu-dia') ? '#7BB8F0' : 'rgba(123,184,240,0.60)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, padding: '6px 12px', borderRadius: 6, textDecoration: 'none', background: isActive('/meu-dia') ? 'rgba(74,144,217,0.12)' : 'transparent' }}>Meu Dia</Link>
+          <Link href="/meu-dia" style={{ color: isActive('/meu-dia') ? 'white' : 'rgba(255,255,255,0.45)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, padding: '6px 12px', borderRadius: 6, textDecoration: 'none', background: isActive('/meu-dia') ? 'rgba(255,255,255,0.08)' : 'transparent' }}>Meu Dia</Link>
         )}
         {/* restante do NAV exceto Dashboard */}
         {NAV.slice(1).map(({ href, label }) => (
@@ -221,7 +221,7 @@ export function Header() {
           padding: '12px 24px', display: 'flex', flexDirection: 'column', gap: 8, zIndex: 200,
         }}>
           <Link href="/dashboard" onClick={() => setMenuOpen(false)} style={{ color: isActive('/dashboard') ? '#4A90D9' : 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 600, textDecoration: 'none', padding: '6px 0' }}>Dashboard</Link>
-          {user && <Link href="/meu-dia" onClick={() => setMenuOpen(false)} style={{ color: isActive('/meu-dia') ? '#7BB8F0' : 'rgba(123,184,240,0.75)', fontSize: 13, fontWeight: 600, textDecoration: 'none', padding: '6px 0' }}>Meu Dia</Link>}
+          {user && <Link href="/meu-dia" onClick={() => setMenuOpen(false)} style={{ color: isActive('/meu-dia') ? '#4A90D9' : 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 600, textDecoration: 'none', padding: '6px 0' }}>Meu Dia</Link>}
           {NAV.slice(1).map(({ href, label }) => (
             <Link key={href} href={href} onClick={() => setMenuOpen(false)} style={{
               color: isActive(href) ? '#4A90D9' : 'rgba(255,255,255,0.7)',
