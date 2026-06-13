@@ -151,5 +151,12 @@ export async function POST(req: NextRequest) {
     console.warn('[resultado] snapshot ranking_historico error (non-fatal):', snapErr)
   }
 
+  // 5 — Dispara atualização dos artilheiros em background (fire-and-forget)
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  fetch(`${baseUrl}/api/artilheiros/atualizar`, {
+    method: 'GET',
+    headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET ?? ''}` },
+  }).catch(() => { /* não-crítico */ })
+
   return NextResponse.json({ ok: true, updatedCount: updated })
 }
