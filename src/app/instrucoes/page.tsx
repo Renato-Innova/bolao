@@ -333,7 +333,7 @@ export default async function InstrucoesPage() {
               },
               {
                 q: 'Como funciona o empate no ranking?',
-                a: 'Em caso de empate em pontos, vence quem tiver mais acertos de placar exato. Se ainda empatar, vence quem se cadastrou primeiro.',
+                a: 'Em caso de empate em pontos, vence quem tiver mais acertos de placar exato.',
               },
             ].map((faq, idx) => (
               <div key={idx} style={{ paddingTop: idx > 0 ? 12 : 0, borderTop: idx > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none', marginTop: idx > 0 ? 12 : 0 }}>

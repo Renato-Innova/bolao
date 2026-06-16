@@ -6,6 +6,7 @@ export interface PalpiteSlide {
   palpite_id: number
   nome: string
   total_pontos: number
+  acertos_exatos: number
   posicao: number
   total: number   // total de palpites no ranking (para exibir "de X")
   status: string  // 'ativo' | 'inativo'
@@ -140,15 +141,22 @@ function SlideContent({ slide }: { slide: PalpiteSlide }) {
         {slide.nome}
       </div>
 
-      {/* métricas lado a lado */}
+      {/* métricas — três colunas */}
       <div style={styles.metrics}>
         <div>
-          <div style={styles.lbl}>Sua Pontuação</div>
+          <div style={styles.lbl}>Pontuação</div>
           <div style={styles.valBlue}>{slide.total_pontos}</div>
           <div style={styles.sub}>pts no bolão</div>
         </div>
+        <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', alignSelf: 'stretch' }} />
+        <div style={{ textAlign: 'center' }}>
+          <div style={styles.lbl}>Acertos</div>
+          <div style={{ ...styles.valBlue, color: '#4ade80' }}>{slide.acertos_exatos}</div>
+          <div style={styles.sub}>placares exatos</div>
+        </div>
+        <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', alignSelf: 'stretch' }} />
         <div style={{ textAlign: 'right' }}>
-          <div style={styles.lbl}>Sua Posição</div>
+          <div style={styles.lbl}>Posição</div>
           <div style={{ ...styles.valBlue, color: slide.status === 'ativo' ? '#FFD700' : 'rgba(255,255,255,0.45)' }}>
             {slide.status === 'ativo' ? `#${slide.posicao}°` : '—'}
           </div>

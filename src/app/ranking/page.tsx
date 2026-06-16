@@ -5,6 +5,7 @@ import type { RankingEntry } from '@/types'
 
 import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
 import { RankingEvolutionChart, type ChartSeries } from '@/components/ranking/RankingEvolutionChart'
+import { RankingBarChart } from '@/components/ranking/RankingBarChart'
 
 export const dynamic = 'force-dynamic'
 
@@ -235,6 +236,9 @@ export default async function RankingPage() {
           {chartSeries.length >= 2 && chartDatas.length >= 2 && (
             <RankingEvolutionChart series={chartSeries} datas={chartDatas} />
           )}
+
+          {/* gráfico de barras */}
+          <RankingBarChart ranking={ranking} myIds={myPalpiteIds} />
 
           {/* tabela ranking */}
           <div className="rank-table-wrap" style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, overflow: 'hidden' }}>

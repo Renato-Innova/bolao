@@ -228,7 +228,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
       let firstUpcomingIdx = dayGroups.length
       for (let i = 0; i < dayGroups.length; i++) {
         const g = dayGroups[i]
-        if (firstPendingIdx === dayGroups.length && g.matches.some(m => !states[String(m.id)]?.submitted))
+        if (firstPendingIdx === dayGroups.length && g.matches.some(m => !states[String(m.id)]?.submitted && !m.resultado))
           firstPendingIdx = i
         if (firstUpcomingIdx === dayGroups.length && g.matches.some(m => !m.resultado))
           firstUpcomingIdx = i
@@ -1019,9 +1019,10 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
 
               {days.slice(0, visibleDays).map(group => {
                 const submitted = group.matches.filter(m => matchStates[String(m.id)]?.submitted)
-                const pending   = group.matches.filter(m => !matchStates[String(m.id)]?.submitted)
+                const pending   = group.matches.filter(m => !matchStates[String(m.id)]?.submitted && !m.resultado)
+                const perdido   = group.matches.filter(m => !matchStates[String(m.id)]?.submitted && !!m.resultado)
                 const allDone   = pending.length === 0
-                const hasSome   = submitted.length > 0
+                const hasSome   = submitted.length > 0 || perdido.length > 0
                 const isOpen    = !!accOpen[group.date]
                 const green  = { border: 'rgba(74,222,128,0.25)', bg: 'rgba(74,222,128,0.04)', line: 'rgba(74,222,128,0.15)', chevron: 'rgba(74,222,128,0.7)' }
                 const orange = { border: 'rgba(249,115,22,0.35)',  bg: 'rgba(249,115,22,0.04)',  line: 'rgba(249,115,22,0.2)',  chevron: 'rgba(249,115,22,0.8)' }
@@ -1058,6 +1059,12 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                               onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))}
                               pontos={getPontos(jogo.id)} minutosLock={minutosLockJogo} />
                           ))}
+                          {perdido.map(jogo => (
+                            <MatchCard key={jogo.id} jogo={jogo}
+                              state={matchStates[String(jogo.id)] ?? DEFAULT_MATCH_STATE}
+                              onScoreChange={() => {}} onSubmit={() => {}} onEdit={() => {}}
+                              pontos={null} minutosLock={minutosLockJogo} isPerdido />
+                          ))}
                         </div>
                       </Accordion>
                     )}
@@ -1071,6 +1078,12 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                                 onScoreChange={(side, val) => updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
                                 onSubmit={() => submitMatch(String(jogo.id))} onEdit={() => editMatch(String(jogo.id))}
                                 pontos={getPontos(jogo.id)} minutosLock={minutosLockJogo} />
+                            ))}
+                            {perdido.map(jogo => (
+                              <MatchCard key={jogo.id} jogo={jogo}
+                                state={matchStates[String(jogo.id)] ?? DEFAULT_MATCH_STATE}
+                                onScoreChange={() => {}} onSubmit={() => {}} onEdit={() => {}}
+                                pontos={null} minutosLock={minutosLockJogo} isPerdido />
                             ))}
                           </div>
                         </Accordion>
@@ -2475,6 +2488,7 @@ interface MatchCardProps {
   onSubmit: () => void; onEdit: () => void
   pontos?: number | null  // points earned for this game (shown after official result is known)
   minutosLock?: number
+  isPerdido?: boolean
 }
 
 /* ─── TeamInfoPanel — qualifying info shown inside MatchCard ─── */
@@ -2542,7 +2556,7 @@ function TeamInfoPanel({ nome }: { nome: string }) {
   )
 }
 
-function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos, minutosLock = 60 }: MatchCardProps) {
+function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos, minutosLock = 60, isPerdido = false }: MatchCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const [infoOpen, setInfoOpen] = useState(false)
@@ -2602,14 +2616,19 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos, minut
     <div style={{ background: '#0D1E3D', border: `1px solid ${borderColor}`, borderRadius: 10, padding: '1px 14px 12px', position: 'relative', opacity: locked ? 0.75 : 1, pointerEvents: locked ? 'none' : 'auto' }}>
 
       {/* ── Row 1: Grupo badge (left) + action buttons (right) ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, marginTop: 2 }}>
-        <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, marginTop: 2, position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           {jogo.grupo && (
             <span style={{ fontSize: 9, fontWeight: 800, color: '#7BB8F0', textTransform: 'uppercase', letterSpacing: 0.8, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 4, padding: '1px 5px' }}>
               Grupo {jogo.grupo}
             </span>
           )}
         </div>
+        {isPerdido && (
+          <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>
+            Jogo Sem Palpite
+          </span>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
           {/* Info toggle */}
           <button

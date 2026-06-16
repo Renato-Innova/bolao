@@ -43,6 +43,7 @@ export default async function DashboardPage() {
     ranking,
     { data: grupoJogos },
     { data: boletins },
+    { count: totalBoletins },
     { data: artilheiros },
   ] = await Promise.all([
     supabase.from('palpites').select('*', { count: 'exact', head: true }).eq('status', 'ativo'),
@@ -54,6 +55,7 @@ export default async function DashboardPage() {
     getRanking(),
     supabase.from('classificacao_grupos').select('*').order('grupo').order('pts', { ascending: false }).order('dg', { ascending: false }).order('m', { ascending: false }),
     supabase.from('boletim_copa').select('*').order('gerado_em', { ascending: false }).limit(10),
+    supabase.from('boletim_copa').select('*', { count: 'exact', head: true }),
     supabase.from('artilheiros_copa').select('*').order('gols', { ascending: false }).order('assistencias', { ascending: false }).limit(10),
   ])
 
@@ -69,12 +71,13 @@ export default async function DashboardPage() {
     ? ranking
         .filter(r => r.usuario_id === currentUser.id)
         .map(r => ({
-          palpite_id:   r.palpite_id,
-          nome:         r.nome,
-          total_pontos: r.total_pontos,
-          posicao:      r.posicao,
-          total:        ranking.length,
-          status:       r.status ?? 'ativo',
+          palpite_id:     r.palpite_id,
+          nome:           r.nome,
+          total_pontos:   r.total_pontos,
+          acertos_exatos: r.acertos_exatos,
+          posicao:        r.posicao,
+          total:          ranking.length,
+          status:         r.status ?? 'ativo',
         }))
     : []
 
@@ -380,13 +383,13 @@ export default async function DashboardPage() {
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8 }}>
               Boletim da Copa 2026
-              {ultimoBoletim && (
-                <span style={{ color: ultimoBoletim.tipo === 'manha' ? '#FFD700' : '#7BB8F0', marginLeft: 6 }}>
-                  · Edição da {ultimoBoletim.tipo === 'manha' ? 'Manhã' : 'Tarde'}
+              {totalBoletins != null && (
+                <span style={{ color: '#7BB8F0', marginLeft: 6 }}>
+                  · Edição no. {totalBoletins}
                 </span>
               )}
             </div>
-            <div style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.60)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Resumo do dia · gerado por IA · 2× ao dia</div>
+            <div style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.60)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>Resumo do dia · gerado por IA</div>
           </div>
 
           {!ultimoBoletim ? (

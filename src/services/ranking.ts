@@ -27,11 +27,12 @@ export async function getRanking(): Promise<RankingEntry[]> {
 
   const palpiteIds = palpites.map((p: { id: number }) => p.id)
 
-  // Step 2 — aggregate points per palpite via RPC (avoids PostgREST max_rows=1000 cap)
-  // A query REST simples retorna no máximo 1000 linhas mesmo com .limit() maior;
-  // a função SQL agrega no banco e retorna 1 linha por palpite, sem toque no cap.
-  const { data: jogos, error: errJ } = await supabase
-    .rpc('get_pontos_por_palpite', { p_ids: palpiteIds })
+  // Step 2 — aggregate points and exact-score hits per palpite via RPC
+  // (avoids PostgREST max_rows=1000 cap — both functions aggregate in DB)
+  const [{ data: jogos, error: errJ }, { data: acertosData }] = await Promise.all([
+    supabase.rpc('get_pontos_por_palpite', { p_ids: palpiteIds }),
+    supabase.rpc('get_acertos_exatos_por_palpite', { p_ids: palpiteIds }),
+  ])
 
   if (errJ) {
     console.warn('[getRanking] get_pontos_por_palpite error (non-fatal):', errJ.message)
@@ -60,10 +61,13 @@ export async function getRanking(): Promise<RankingEntry[]> {
     .limit(palpiteIds.length)
 
   // Build lookup maps
-  // RPC retorna 1 linha por palpite com total_pontos já somado
   const pontosPorPalpite: Record<number, number> = {}
   for (const j of (jogos ?? [])) {
     pontosPorPalpite[j.palpite_id] = Number(j.total_pontos ?? 0)
+  }
+  const acertosPorPalpite: Record<number, number> = {}
+  for (const a of (acertosData ?? [])) {
+    acertosPorPalpite[a.palpite_id] = Number(a.acertos_exatos ?? 0)
   }
   const nomeUsuario: Record<string, string> = {}
   for (const u of (users ?? [])) {
@@ -99,7 +103,7 @@ export async function getRanking(): Promise<RankingEntry[]> {
       usuario_nome:     nomeUsuario[p.usuario_id as string] ?? '',
       usuario_id:       p.usuario_id as string,
       total_pontos:     pontosHoje,
-      acertos_exatos:   0,
+      acertos_exatos:   acertosPorPalpite[id] ?? 0,
       acertos_vencedor: 0,
       variacao,
       variacao_posicao,
@@ -108,8 +112,12 @@ export async function getRanking(): Promise<RankingEntry[]> {
     }
   })
 
-  // Desempate por palpite_id (estável e determinístico quando pontos são iguais)
-  entries.sort((a, b) => b.total_pontos - a.total_pontos || a.palpite_id - b.palpite_id)
+  // Desempate: 1º acertos de placar exato, 2º palpite_id (estável/determinístico)
+  entries.sort((a, b) =>
+    b.total_pontos - a.total_pontos ||
+    b.acertos_exatos - a.acertos_exatos ||
+    a.palpite_id - b.palpite_id
+  )
   entries.forEach((e, i) => {
     e.posicao = i + 1
     // positive = moved up in ranking (e.g. was 5th yesterday, now 3rd → +2)
