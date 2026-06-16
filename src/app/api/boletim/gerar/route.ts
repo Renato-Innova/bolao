@@ -185,7 +185,7 @@ ${preJogo || 'Nenhum jogo previsto ate o proximo boletim.'}
 
 ===== INSTRUCAO =====
 
-Antes de escrever, analise os dados e identifique internamente:
+Analise mentalmente os dados (NAO escreva essa analise — ela e apenas para voce):
 - qual resultado e qual placar sao os mais apostados em cada jogo pendente
 - quem apostou contra a maioria em cada jogo
 - quem fez o palpite mais ousado do dia (placar mais incomum ou resultado improvavel)
@@ -195,7 +195,9 @@ Antes de escrever, analise os dados e identifique internamente:
 - quem esta em trajetoria ascendente ou descendente nos ultimos dias (usar as variacoes de 1, 2 e 3 dias)
 - os palpites de hoje dos lideres e dos ultimos colocados: onde concordam, onde divergem
 
-Use essa analise para escrever um boletim em portugues brasileiro, SEM emojis e SEM icones de nenhum tipo.
+Com base nessa analise, escreva DIRETAMENTE o boletim em portugues brasileiro, SEM emojis e SEM icones de nenhum tipo.
+NAO escreva introducoes, pensamentos, analises ou qualquer texto antes da secao 0.
+Comece imediatamente com o subtitulo "SAUDACAO" e siga as seis secoes em sequencia.
 Use subtitulos simples em letras maiusculas para separar as seis secoes obrigatorias.
 IMPORTANTE: respeite rigorosamente os limites de palavras de cada secao — conte mentalmente antes de finalizar e corte o que ultrapassar.
 
