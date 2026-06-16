@@ -434,8 +434,13 @@ export async function GET(req: NextRequest) {
     '=== RANKING REAL (posição, nome, pontos, variações 1d/2d/3d) ===',
     rankingStr,
     '',
-    '=== RESULTADOS REAIS ===',
+    '=== RESULTADOS REAIS (jogos encerrados) ===',
     encerrados.map(j => fmtResultado(j)).join('\n') || 'Nenhum resultado disponível.',
+    '',
+    '=== JOGOS PENDENTES DE HOJE (ainda não ocorreram) ===',
+    pendentes.length > 0
+      ? pendentes.map(j => `${j.time_a} x ${j.time_b} | ${(j.horario as string).slice(0, 5)}h`).join('\n')
+      : 'Nenhum jogo pendente.',
     palpitesTabela ? '\n=== PALPITES DOS PARTICIPANTES ===' : '',
     palpitesTabela,
   ].join('\n')
