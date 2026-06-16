@@ -196,10 +196,13 @@ Antes de escrever, analise os dados e identifique internamente:
 - os palpites de hoje dos lideres e dos ultimos colocados: onde concordam, onde divergem
 
 Use essa analise para escrever um boletim em portugues brasileiro, SEM emojis e SEM icones de nenhum tipo.
-Use subtitulos simples em letras maiusculas para separar as cinco secoes obrigatorias.
+Use subtitulos simples em letras maiusculas para separar as seis secoes obrigatorias.
 IMPORTANTE: respeite rigorosamente os limites de palavras de cada secao — conte mentalmente antes de finalizar e corte o que ultrapassar.
 
-1. RODADA DE HOJE — LIMITE RIGIDO: maximo 100 palavras. Nem uma a mais.
+0. SAUDACAO — LIMITE RIGIDO: maximo 40 palavras. Nem uma a mais.
+Uma saudacao matinal curta, engracada ou motivante para os participantes do bolao. Pode referenciar um resultado inesperado do dia anterior, uma variacao curiosa do ranking (quem subiu muito, quem caiu), ou simplesmente animar o dia. Tom leve, como um amigo acordando o grupo no WhatsApp. SEM emojis.
+
+1. RODADA DE HOJE NO RANKING — LIMITE RIGIDO: maximo 100 palavras. Nem uma a mais.
 Comente brevemente os resultados ja ocorridos e faca entre 2 e 4 provocacoes leves citando participantes pelo nome. Tom de mesa de bar, nao de tribunal. Se passar de 100 palavras, corte ate caber.
 
 2. ANALISE DOS JOGOS ENCERRADOS — LIMITE RIGIDO: entre 120 e 150 palavras. Nem uma a menos, nem uma a mais.
@@ -372,15 +375,47 @@ export async function GET(req: NextRequest) {
   const conteudo = (message.content[0] as { type: string; text: string }).text.trim()
   const titulo   = 'Boletim da Copa 2026 · Edição da Manhã'
 
-  /* ── 9. salva ── */
+  /* ── 9. auditoria automática (Haiku, barata e rápida) ── */
+  // Monta os fatos verificáveis que temos no banco para auditar o boletim
+  const fatosReais = [
+    '=== RESULTADOS REAIS ===',
+    (encerrados ?? []).map(j => fmtResultado(j as Record<string, unknown>)).join('\n') || 'Nenhum resultado disponível.',
+    '',
+    '=== RANKING REAL (top 10) ===',
+    sorted.slice(0, 10).map((id, i) => `#${i + 1} ${nomeMap[id]} ${ptMap[id] ?? 0} pts`).join('\n'),
+  ].join('\n')
+
+  const auditPrompt = `Você é um auditor factual. Compare o BOLETIM abaixo com os FATOS REAIS do banco de dados.
+Liste APENAS os erros factuais encontrados (placares errados, posições de ranking incorretas, pontuações erradas, nomes trocados).
+Seja breve — máximo 5 itens. Se não houver erros verificáveis, responda exatamente: "SEM ERROS IDENTIFICADOS".
+Não comente estilo, tom ou sugestões de melhoria — apenas fatos verificáveis.
+
+${fatosReais}
+
+=== BOLETIM ===
+${conteudo}`
+
+  let auditoria = ''
+  try {
+    const auditMsg = await anthropic.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      messages:   [{ role: 'user', content: auditPrompt }],
+    })
+    auditoria = (auditMsg.content[0] as { type: string; text: string }).text.trim()
+  } catch (e) {
+    auditoria = `Auditoria falhou: ${e instanceof Error ? e.message : String(e)}`
+  }
+
+  /* ── 10. salva ── */
   const { error } = await supabase
     .from('boletim_copa')
-    .insert({ tipo: 'manha', titulo, conteudo })
+    .insert({ tipo: 'manha', titulo, conteudo, prompt_texto: prompt, auditoria })
 
   if (error) {
     console.error('Erro ao salvar boletim:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, titulo, gerado_em: new Date().toISOString() })
+  return NextResponse.json({ ok: true, titulo, auditoria, gerado_em: new Date().toISOString() })
 }
