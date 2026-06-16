@@ -6,6 +6,8 @@ import { FlagImg } from '@/components/ui/FlagImg'
 import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
 import { PalpiteCarousel } from '@/components/dashboard/PalpiteCarousel'
 import type { PalpiteSlide } from '@/components/dashboard/PalpiteCarousel'
+import { JogosDiaCard } from '@/components/dashboard/JogosDiaCard'
+import type { JogoHoje } from '@/components/dashboard/JogosDiaCard'
 import type { JogoCopa, ClassificacaoGrupo } from '@/types'
 
 // Inicio do código
@@ -59,6 +61,42 @@ export default async function DashboardPage() {
     supabase.from('artilheiros_copa').select('*').order('gols', { ascending: false }).order('assistencias', { ascending: false }).limit(10),
   ])
 
+  // Jogos do dia com contagem de palpites (vitória A / empate / vitória B)
+  const jogosHoje = (proximosJogos ?? []).filter((j: JogoCopa) => j.data === hoje)
+  const jogosHojeIds = jogosHoje.map((j: JogoCopa) => j.id)
+
+  type PJRow = { jogo_id: number; placar_palpite_a: number; placar_palpite_b: number }
+  let palpitesHoje: PJRow[] = []
+  if (jogosHojeIds.length > 0) {
+    const { data: pjData } = await supabase
+      .from('palpites_jogos')
+      .select('jogo_id, placar_palpite_a, placar_palpite_b')
+      .in('jogo_id', jogosHojeIds)
+      .not('submitted_at', 'is', null)
+    palpitesHoje = (pjData ?? []) as PJRow[]
+  }
+
+  const jogosDiaData: JogoHoje[] = jogosHoje.map((j: JogoCopa) => {
+    const pals = palpitesHoje.filter(p => p.jogo_id === j.id && p.placar_palpite_a != null && p.placar_palpite_b != null)
+    const total = pals.length
+    const winA  = pals.filter(p => p.placar_palpite_a > p.placar_palpite_b).length
+    const draw  = pals.filter(p => p.placar_palpite_a === p.placar_palpite_b).length
+    const winB  = pals.filter(p => p.placar_palpite_a < p.placar_palpite_b).length
+    const res   = Array.isArray(j.resultado) ? (j.resultado[0] ?? null) : j.resultado
+    return {
+      id:            j.id,
+      time_a:        j.time_a,
+      time_b:        j.time_b,
+      codigo_pais_a: j.codigo_pais_a ?? '',
+      codigo_pais_b: j.codigo_pais_b ?? '',
+      horario:       j.horario ?? '',
+      fase:          j.fase,
+      grupo:         j.grupo ?? null,
+      resultado:     res,
+      total, winA, draw, winB,
+    }
+  })
+
   // Pega somente o boletim mais recente (independente de tipo)
   type Boletim = { id: number; tipo: string; titulo: string; conteudo: string; gerado_em: string }
   const ultimoBoletim: Boletim | null = ((boletins ?? []) as Boletim[])[0] ?? null
@@ -86,9 +124,6 @@ export default async function DashboardPage() {
     ?? (proximosJogos?.[0] as JogoCopa | undefined)?.fase
     ?? 'GS'
   const faseAtual = FASE_LABEL[faseAtualRaw] ?? 'Fase de Grupos'
-
-  /* Max pontos possíveis = all played games * 20 (placar exato) */
-  const maxPontosPossiveis = (jogosRealizados ?? 0) * 20
 
   /* Two groups to display — derived from next GS games */
   const classRows  = (grupoJogos ?? []) as ClassificacaoGrupo[]
@@ -123,12 +158,6 @@ export default async function DashboardPage() {
     position: 'absolute', top: 0, left: 0, right: 0, height: 2,
     background: 'linear-gradient(90deg, #4A90D9, #1a5ca8)',
   }
-  const label12: React.CSSProperties = {
-    fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.60)',
-    textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5,
-  }
-  const value24: React.CSSProperties = { fontSize: 24, fontWeight: 700, color: 'white', lineHeight: 1 }
-  const sub10: React.CSSProperties = { fontSize: 11, color: 'rgba(255,255,255,0.60)', marginTop: 3 }
 
   return (
     <div className="page-main" style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 24px 40px' }}>
@@ -139,24 +168,14 @@ export default async function DashboardPage() {
         {/* R1C1 — Carrossel de palpites do usuário */}
         <div className="dash-card-carrossel" style={{ height: '100%' }}><PalpiteCarousel slides={mySlides} /></div>
 
-        {/* R1C2 — Jogos + Máx. pontos */}
-        <div className="dash-card-jogos" style={card}>
-          <div style={bar} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div style={label12}>Jogos realizados</div>
-              <div style={value24}>
-                {jogosRealizados ?? 0}
-                <span style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}> / {totalJogos ?? 104}</span>
-              </div>
-              <div style={sub10}>{faseAtual}</div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={label12}>Máx. de pontos</div>
-              <div style={value24}>{maxPontosPossiveis}</div>
-              <div style={sub10}>pts possíveis</div>
-            </div>
-          </div>
+        {/* R1C2 — Jogos do dia + progresso */}
+        <div className="dash-card-jogos" style={{ height: '100%' }}>
+          <JogosDiaCard
+            jogos={jogosDiaData}
+            jogosRealizados={jogosRealizados ?? 0}
+            totalJogos={totalJogos ?? 104}
+            faseAtual={faseAtual}
+          />
         </div>
 
         {/* R1C3 — Últimas Partidas */}

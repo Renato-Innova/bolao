@@ -140,7 +140,7 @@ function draw(
   ctx.fillStyle = NAVY
   ctx.fillRect(0, 0, cssW, cssH)
 
-  const PL = 28, PR = 8
+  const PL = 8, PR = 8
   const PT = AR * 2 + 20
   const PB = 14
   const CW = cssW - PL - PR
@@ -149,21 +149,16 @@ function draw(
   const gap = CW / N
   const bw  = gap * 0.64
 
-  // linhas guia
-  ;[0, 20, 40, 60].forEach(v => {
-    if (v > maxPts + 5) return
+  // linhas guia horizontais sutis (sem labels no eixo Y)
+  const step = Math.ceil(maxPts / 5 / 10) * 10
+  for (let v = step; v <= maxPts; v += step) {
     const yy = PT + CH - (v / maxPts) * CH
     ctx.beginPath()
     ctx.strokeStyle = 'rgba(255,255,255,0.06)'
     ctx.lineWidth = 1
     ctx.moveTo(PL, yy); ctx.lineTo(cssW - PR, yy)
     ctx.stroke()
-    ctx.fillStyle = MUTED
-    ctx.font = '400 8px sans-serif'
-    ctx.textAlign = 'right'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(String(v), PL - 3, yy)
-  })
+  }
 
   // base
   ctx.beginPath()
@@ -204,7 +199,7 @@ function draw(
 
     // pontuação no topo interno
     ctx.fillStyle = WHITE
-    ctx.font = `700 ${FS + 6}px sans-serif`
+    ctx.font = `700 ${isMobile ? FS + 2 : FS + 6}px sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'
     ctx.fillText(String(e.total_pontos), cx, by + 5)
@@ -275,7 +270,7 @@ export function RankingBarChart({ ranking, myIds }: Props) {
     const top10   = ranking.slice(0, 10)
     const myExtra = ranking.filter(e => myIds.includes(e.palpite_id) && e.posicao > 10)
     const entries = [...new Map([...top10, ...myExtra].map(e => [e.palpite_id, e])).values()]
-    const ordered = centerOrder(entries)
+    const ordered = [...entries].sort((a, b) => a.total_pontos - b.total_pontos)
     const maxPts  = Math.max(...entries.map(e => e.total_pontos), 10) + 12
 
     loadImages(entries).then(imgMap => {
@@ -287,7 +282,7 @@ export function RankingBarChart({ ranking, myIds }: Props) {
   return (
     <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px', marginBottom: 12 }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 14 }}>
-        Top 10 — pontuação
+        Ranking - TOP 10
       </div>
 
       {/* desktop/tablet */}
