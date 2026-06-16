@@ -412,9 +412,12 @@ export async function GET(req: NextRequest) {
   // geração do boletim
   const message  = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
-    max_tokens: 1600,
+    max_tokens: 2400,
     messages:   [{ role: 'user', content: prompt }],
   })
+  if (message.stop_reason === 'max_tokens') {
+    console.warn('[boletim] geração cortada por max_tokens — considere aumentar o limite')
+  }
   const conteudo = (message.content[0] as { type: string; text: string }).text.trim()
   const titulo   = 'Boletim da Copa 2026 · Edição da Manhã'
 
