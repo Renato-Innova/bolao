@@ -196,13 +196,13 @@ Analise mentalmente os dados (NAO escreva essa analise — ela e apenas para voc
 - os palpites de hoje dos lideres e dos ultimos colocados: onde concordam, onde divergem
 
 Com base nessa analise, escreva DIRETAMENTE o boletim em portugues brasileiro, SEM emojis e SEM icones de nenhum tipo.
-NAO escreva introducoes, pensamentos, analises ou qualquer texto antes da secao 0.
-Comece imediatamente com o subtitulo "SAUDACAO" e siga as seis secoes em sequencia.
-Use subtitulos simples em letras maiusculas para separar as seis secoes obrigatorias.
+NAO escreva introducoes, pensamentos, analises ou qualquer texto antes da saudacao.
+Separe cada secao com uma linha em branco antes e depois do subtitulo.
+Use subtitulos simples em letras maiusculas para separar as cinco secoes numeradas (1 a 5).
 IMPORTANTE: respeite rigorosamente os limites de palavras de cada secao — conte mentalmente antes de finalizar e corte o que ultrapassar.
 
-0. SAUDACAO — LIMITE RIGIDO: maximo 40 palavras. Nem uma a mais.
-Uma saudacao matinal curta, engracada ou motivante para os participantes do bolao. Pode referenciar um resultado inesperado do dia anterior, uma variacao curiosa do ranking (quem subiu muito, quem caiu), ou simplesmente animar o dia. Tom leve, como um amigo acordando o grupo no WhatsApp. SEM emojis.
+0. [SEM SUBTITULO] — LIMITE RIGIDO: maximo 40 palavras. Nem uma a mais.
+Comece diretamente com a saudacao, sem nenhum titulo ou rotulo antes dela. Uma saudacao matinal curta, engracada ou motivante para os participantes do bolao. Pode referenciar um resultado inesperado do dia anterior, uma variacao curiosa do ranking (quem subiu muito, quem caiu), ou simplesmente animar o dia. Tom leve, como um amigo acordando o grupo no WhatsApp. SEM emojis.
 
 1. RODADA DE HOJE NO RANKING — LIMITE RIGIDO: maximo 100 palavras. Nem uma a mais.
 Comente brevemente os resultados ja ocorridos e faca entre 2 e 4 provocacoes leves citando participantes pelo nome. Tom de mesa de bar, nao de tribunal. Se passar de 100 palavras, corte ate caber.
