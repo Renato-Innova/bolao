@@ -219,40 +219,47 @@ Destaque o palpite mais ousado: quem fez, qual e, o que aconteceria no ranking s
 Cubra em ate 4 paragrafos curtos: (a) consistencia da lideranca, (b) quem sobe e quem cai com base nas variacoes de 1, 2 e 3 dias, (c) disputa pelo topo — onde lideres concordam ou divergem nos palpites de hoje, (d) fundo do poco — quem ainda pode recuperar. Crie expectativa para a proxima edicao. Corte o que ultrapassar 120 palavras.`
 }
 
-/* ── handler principal ─────────────────────────────────────────────────────── */
-export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization')
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+/* ── tipos compartilhados ──────────────────────────────────────────────────── */
+type Jogo    = Record<string, unknown>
+type HistRow = { palpite_id: number; total_pontos: number }
 
-  const now  = brtNow()
-  const hoje = brtDate(now)
-  const ontem  = daysAgo(now, 1)
-  const amanha = daysAhead(now, 1)
+type RankingData = {
+  rankingStr: string
+  sorted:     number[]
+  nomeMap:    Record<number, string>
+  ptMap:      Record<number, number>
+  palpiteIds: number[]
+}
 
-  /* ── 1. jogos encerrados desde o último boletim (ontem + hoje) ── */
-  const { data: encerrados } = await supabase
+/* ── funções de coleta de dados ────────────────────────────────────────────── */
+
+async function getJogosEncerrados(datas: string[]): Promise<Jogo[]> {
+  const { data } = await supabase
     .from('jogos_copa')
     .select('*, resultado:resultados(*)')
-    .in('data', [ontem, hoje])
+    .in('data', datas)
     .not('resultado', 'is', null)
     .order('data')
     .order('horario')
+  return data ?? []
+}
 
-  /* ── 2. jogos pendentes até o próximo boletim (hoje + amanhã) ── */
-  // Busca todos os jogos do período com join em resultados; filtra client-side os sem resultado
-  const { data: jogosPeriodo } = await supabase
+async function getJogosPendentes(datas: string[]): Promise<Jogo[]> {
+  const { data } = await supabase
     .from('jogos_copa')
     .select('*, resultado:resultados(*)')
-    .in('data', [hoje, amanha])
+    .in('data', datas)
     .order('data')
     .order('horario')
-  const pendentes = (jogosPeriodo ?? []).filter(
-    (j: Record<string, unknown>) => !j.resultado || (Array.isArray(j.resultado) && j.resultado.length === 0)
+  // filtra client-side: sem resultado = pendente
+  return (data ?? []).filter(
+    (j: Jogo) => !j.resultado || (Array.isArray(j.resultado) && j.resultado.length === 0)
   )
+}
 
-  /* ── 3. ranking com variação de 1, 2 e 3 dias ── */
+async function getRankingComVariacao(now: Date): Promise<RankingData> {
+  const ontem = daysAgo(now, 1)
+
   const { data: palpitesAtivos } = await supabase
     .from('palpites')
     .select('id, nome')
@@ -260,13 +267,8 @@ export async function GET(req: NextRequest) {
 
   const palpiteIds = (palpitesAtivos ?? []).map((p: { id: number }) => p.id)
 
-  const [
-    { data: pontos },
-    { data: h1 },
-    { data: h2 },
-    { data: h3 },
-  ] = await Promise.all([
-    supabase.rpc('get_pontos_por_palpite', { p_ids: palpiteIds }) as unknown as Promise<{ data: { palpite_id: number; total_pontos: number }[] | null }>,
+  const [{ data: pontos }, { data: h1 }, { data: h2 }, { data: h3 }] = await Promise.all([
+    supabase.rpc('get_pontos_por_palpite', { p_ids: palpiteIds }) as unknown as Promise<{ data: HistRow[] | null }>,
     supabase.from('ranking_historico').select('palpite_id,total_pontos').eq('data', ontem).in('palpite_id', palpiteIds),
     supabase.from('ranking_historico').select('palpite_id,total_pontos').eq('data', daysAgo(now, 2)).in('palpite_id', palpiteIds),
     supabase.from('ranking_historico').select('palpite_id,total_pontos').eq('data', daysAgo(now, 3)).in('palpite_id', palpiteIds),
@@ -278,128 +280,190 @@ export async function GET(req: NextRequest) {
   const ptMap: Record<number, number> = {}
   for (const r of pontos ?? []) ptMap[r.palpite_id] = Number(r.total_pontos ?? 0)
 
-  const toHistMap = (rows: { palpite_id: number; total_pontos: number }[] | null) => {
+  const toHistMap = (rows: HistRow[] | null) => {
     const m: Record<number, number> = {}
     for (const r of rows ?? []) m[r.palpite_id] = Number(r.total_pontos ?? 0)
     return m
   }
-  const h1m = toHistMap(h1), h2m = toHistMap(h2), h3m = toHistMap(h3)
+  const h1m = toHistMap(h1 as HistRow[] | null)
+  const h2m = toHistMap(h2 as HistRow[] | null)
+  const h3m = toHistMap(h3 as HistRow[] | null)
 
   const sorted = [...palpiteIds].sort((a, b) => (ptMap[b] ?? 0) - (ptMap[a] ?? 0))
-  const fmt = (d: number) => d > 0 ? `+${d}` : String(d)
+  const fmt    = (d: number) => d > 0 ? `+${d}` : String(d)
 
   const rankingStr = sorted.map((id, i) => {
     const pts = ptMap[id] ?? 0
     return `#${i + 1}  ${nomeMap[id]}  ${pts} pts  [1d:${fmt(pts - (h1m[id] ?? 0))} / 2d:${fmt(pts - (h2m[id] ?? 0))} / 3d:${fmt(pts - (h3m[id] ?? 0))}]`
   }).join('\n')
 
-  /* ── 4. palpites dos jogos pendentes por participante ── */
-  const pendentesIds = (pendentes ?? []).map((j: Record<string, unknown>) => j.id as number)
-  let palpitesTabela = ''
-  if (pendentesIds.length > 0 && palpiteIds.length > 0) {
-    const { data: pj } = await supabase
-      .from('palpites_jogos')
-      .select('palpite_id, jogo_id, placar_palpite_a, placar_palpite_b, submitted_at')
-      .in('palpite_id', palpiteIds)
-      .in('jogo_id', pendentesIds)
+  return { rankingStr, sorted, nomeMap, ptMap, palpiteIds }
+}
 
-    const jogosOrd = (pendentes ?? []).slice().sort(
-      (a: Record<string, unknown>, b: Record<string, unknown>) =>
-        (a.data as string) < (b.data as string) ? -1 : (a.data as string) > (b.data as string) ? 1 :
-        (a.horario as string) < (b.horario as string) ? -1 : 1
-    )
+async function getTabelaPalpites(
+  pendentes:  Jogo[],
+  palpiteIds: number[],
+  sorted:     number[],
+  nomeMap:    Record<number, string>,
+): Promise<string> {
+  const pendentesIds = pendentes.map(j => j.id as number)
+  if (pendentesIds.length === 0 || palpiteIds.length === 0) return ''
 
-    const header = ['Nome'.padEnd(35), ...jogosOrd.map((j: Record<string, unknown>) =>
-      `${j.time_a} x ${j.time_b}`.slice(0, 20)
-    )].join(' | ')
+  const { data: pj } = await supabase
+    .from('palpites_jogos')
+    .select('palpite_id, jogo_id, placar_palpite_a, placar_palpite_b, submitted_at')
+    .in('palpite_id', palpiteIds)
+    .in('jogo_id', pendentesIds)
 
-    const placarMap: Record<string, string> = {}
-    for (const row of pj ?? []) {
-      if (!row.submitted_at) continue
-      placarMap[`${row.palpite_id}_${row.jogo_id}`] =
-        row.placar_palpite_a != null && row.placar_palpite_b != null
-          ? `${row.placar_palpite_a}x${row.placar_palpite_b}`
-          : 'sem palpite'
-    }
+  const jogosOrd = pendentes.slice().sort(
+    (a, b) =>
+      (a.data as string) < (b.data as string) ? -1 : (a.data as string) > (b.data as string) ? 1 :
+      (a.horario as string) < (b.horario as string) ? -1 : 1
+  )
 
-    const linhas = sorted.map(pid => {
-      const cols = jogosOrd.map((j: Record<string, unknown>) =>
-        (placarMap[`${pid}_${j.id}`] ?? 'sem palpite').padEnd(20)
-      )
-      return [nomeMap[pid].slice(0, 34).padEnd(35), ...cols].join(' | ')
-    })
+  const header = ['Nome'.padEnd(35), ...jogosOrd.map(j =>
+    `${j.time_a} x ${j.time_b}`.slice(0, 20)
+  )].join(' | ')
 
-    palpitesTabela = '\nPALPITES DOS PARTICIPANTES:\n' + [header, ...linhas].join('\n')
+  const placarMap: Record<string, string> = {}
+  for (const row of pj ?? []) {
+    if (!row.submitted_at) continue
+    placarMap[`${row.palpite_id}_${row.jogo_id}`] =
+      row.placar_palpite_a != null && row.placar_palpite_b != null
+        ? `${row.placar_palpite_a}x${row.placar_palpite_b}`
+        : 'sem palpite'
   }
 
-  /* ── 5. UOL crawling em paralelo ── */
+  const linhas = sorted.map(pid => {
+    const cols = jogosOrd.map(j =>
+      (placarMap[`${pid}_${j.id}`] ?? 'sem palpite').padEnd(20)
+    )
+    return [nomeMap[pid].slice(0, 34).padEnd(35), ...cols].join(' | ')
+  })
+
+  return '\nPALPITES DOS PARTICIPANTES:\n' + [header, ...linhas].join('\n')
+}
+
+async function getContextoUol(
+  encerrados: Jogo[],
+  pendentes:  Jogo[],
+): Promise<{ encTexts: string[]; penTexts: string[] }> {
   const [encTexts, penTexts] = await Promise.all([
-    Promise.all((encerrados ?? []).map(j =>
+    Promise.all(encerrados.map(j =>
       fetchUolPage(uolPlacarUrl(j.time_a as string, j.time_b as string, j.data as string))
     )),
-    Promise.all((pendentes ?? []).map(j =>
+    Promise.all(pendentes.map(j =>
       fetchUolPage(uolPlacarUrl(j.time_a as string, j.time_b as string, j.data as string))
     )),
   ])
+  return { encTexts, penTexts }
+}
 
-  /* ── 6. monta seção pós-jogo ── */
-  let posJogo = ''
-  ;(encerrados ?? []).forEach((j, i) => {
-    posJogo += `▶ ${fmtResultado(j as Record<string, unknown>)}\n`
+/* ── funções de montagem de texto ──────────────────────────────────────────── */
+
+function buildPosJogo(encerrados: Jogo[], encTexts: string[]): string {
+  let out = ''
+  encerrados.forEach((j, i) => {
+    out += `▶ ${fmtResultado(j)}\n`
     const ctx = extractPosJogo(encTexts[i])
-    if (ctx) posJogo += ctx + '\n'
-    posJogo += '\n'
+    if (ctx) out += ctx + '\n'
+    out += '\n'
   })
+  return out.trim()
+}
 
-  /* ── 7. monta seção pré-jogo ── */
-  let preJogo = ''
-  ;(pendentes ?? []).forEach((j, i) => {
-    const jogo = j as Record<string, unknown>
-    preJogo += `▶ ${jogo.time_a} x ${jogo.time_b} | ${jogo.data} ${(jogo.horario as string).slice(0, 5)}h\n`
+function buildPreJogo(pendentes: Jogo[], penTexts: string[], palpitesTabela: string): string {
+  let out = ''
+  pendentes.forEach((j, i) => {
+    out += `▶ ${j.time_a} x ${j.time_b} | ${j.data} ${(j.horario as string).slice(0, 5)}h\n`
     const ctx = extractPreJogo(penTexts[i], 4, 380)
-    if (ctx) preJogo += ctx + '\n'
-    else preJogo += '(contexto UOL ainda nao disponivel — usar conhecimento proprio)\n'
-    preJogo += '\n'
+    if (ctx) out += ctx + '\n'
+    else out += '(contexto UOL ainda nao disponivel — usar conhecimento proprio)\n'
+    out += '\n'
   })
-  preJogo += palpitesTabela
+  return (out + palpitesTabela).trim()
+}
 
-  /* ── 8. chama Claude ── */
-  const prompt = buildPrompt({ hoje, ranking: rankingStr, posJogo: posJogo.trim(), preJogo: preJogo.trim() })
+/* ── handler principal ─────────────────────────────────────────────────────── */
+export async function GET(req: NextRequest) {
+  const authHeader = req.headers.get('authorization')
+  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
-  const message = await anthropic.messages.create({
+  const now    = brtNow()
+  const hoje   = brtDate(now)
+  const ontem  = daysAgo(now, 1)
+  const amanha = daysAhead(now, 1)
+
+  // coleta de dados
+  const encerrados                             = await getJogosEncerrados([ontem, hoje])
+  const pendentes                              = await getJogosPendentes([hoje])
+  const { rankingStr, sorted, nomeMap, ptMap,
+          palpiteIds }                         = await getRankingComVariacao(now)
+  const palpitesTabela                         = await getTabelaPalpites(pendentes, palpiteIds, sorted, nomeMap)
+  const { encTexts, penTexts }                 = await getContextoUol(encerrados, pendentes)
+
+  // montagem do prompt
+  const posJogo = buildPosJogo(encerrados, encTexts)
+  const preJogo = buildPreJogo(pendentes, penTexts, palpitesTabela)
+  const prompt  = buildPrompt({ hoje, ranking: rankingStr, posJogo, preJogo })
+
+  // geração do boletim
+  const message  = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
     max_tokens: 1600,
     messages:   [{ role: 'user', content: prompt }],
   })
-
   const conteudo = (message.content[0] as { type: string; text: string }).text.trim()
   const titulo   = 'Boletim da Copa 2026 · Edição da Manhã'
 
-  /* ── 9. auditoria automática (Haiku, barata e rápida) ── */
-  // Monta os fatos verificáveis que temos no banco para auditar o boletim
+  // auditoria automática (Haiku) — fatos + português
   const fatosReais = [
-    '=== RESULTADOS REAIS ===',
-    (encerrados ?? []).map(j => fmtResultado(j as Record<string, unknown>)).join('\n') || 'Nenhum resultado disponível.',
+    '=== RANKING REAL (posição, nome, pontos, variações 1d/2d/3d) ===',
+    rankingStr,
     '',
-    '=== RANKING REAL (top 10) ===',
-    sorted.slice(0, 10).map((id, i) => `#${i + 1} ${nomeMap[id]} ${ptMap[id] ?? 0} pts`).join('\n'),
+    '=== RESULTADOS REAIS ===',
+    encerrados.map(j => fmtResultado(j)).join('\n') || 'Nenhum resultado disponível.',
+    palpitesTabela ? '\n=== PALPITES DOS PARTICIPANTES ===' : '',
+    palpitesTabela,
   ].join('\n')
 
-  const auditPrompt = `Você é um auditor factual. Compare o BOLETIM abaixo com os FATOS REAIS do banco de dados.
-Liste APENAS os erros factuais encontrados (placares errados, posições de ranking incorretas, pontuações erradas, nomes trocados).
-Seja breve — máximo 5 itens. Se não houver erros verificáveis, responda exatamente: "SEM ERROS IDENTIFICADOS".
-Não comente estilo, tom ou sugestões de melhoria — apenas fatos verificáveis.
+  const auditPrompt = `Você é um auditor rigoroso do boletim do Bolão Copa 2026. Analise o BOLETIM abaixo em duas dimensões:
+
+1. ERROS FACTUAIS — compare com os FATOS REAIS:
+   - Placares errados
+   - Posições de ranking incorretas
+   - Pontuações ou variações erradas (1d/2d/3d)
+   - Nomes trocados ou distorcidos
+   - Contagens de palpites incorretas (ex: "só 2 apostaram em empate" quando eram 5)
+   - Afirmações sobre trajetória incorretas (ex: "subiu 3 posições" quando subiu 1)
+
+2. ERROS DE PORTUGUÊS — identifique:
+   - Erros de concordância verbal ou nominal
+   - Erros de ortografia ou acentuação
+   - Frases incoerentes ou com sentido ambíguo
+   - Repetição excessiva de palavras no mesmo parágrafo
+
+FORMATO DA RESPOSTA:
+- Liste cada erro em uma linha, prefixado com [FATO] ou [PORTUGUÊS]
+- Máximo 8 itens no total
+- Se não houver nenhum erro em nenhuma das duas dimensões, responda exatamente: "SEM ERROS IDENTIFICADOS"
+- Não comente estilo, tom, sugestões de melhoria ou opinião — apenas erros concretos
 
 ${fatosReais}
 
 === BOLETIM ===
 ${conteudo}`
 
+  const conteudoOriginal = conteudo
   let auditoria = ''
+  let conteudoFinal = conteudo
+
   try {
     const auditMsg = await anthropic.messages.create({
       model:      'claude-haiku-4-5-20251001',
-      max_tokens: 400,
+      max_tokens: 600,
       messages:   [{ role: 'user', content: auditPrompt }],
     })
     auditoria = (auditMsg.content[0] as { type: string; text: string }).text.trim()
@@ -407,15 +471,50 @@ ${conteudo}`
     auditoria = `Auditoria falhou: ${e instanceof Error ? e.message : String(e)}`
   }
 
-  /* ── 10. salva ── */
+  // reescrita cirúrgica (Sonnet) — só se Haiku encontrou erros
+  if (auditoria && auditoria !== 'SEM ERROS IDENTIFICADOS' && !auditoria.startsWith('Auditoria falhou')) {
+    try {
+      const rewritePrompt = `Você é um revisor. Corrija APENAS os erros listados abaixo no boletim.
+Não altere tom, estrutura, humor, estilo ou qualquer trecho não mencionado nos erros.
+Cada correção deve ser mínima — troque somente o que está errado.
+Se não tiver certeza de que um trecho precisa de correção, deixe exatamente como está.
+Retorne apenas o boletim corrigido, sem explicações.
+
+ERROS A CORRIGIR:
+${auditoria}
+
+BOLETIM ORIGINAL:
+${conteudoOriginal}`
+
+      const rewriteMsg = await anthropic.messages.create({
+        model:      'claude-sonnet-4-6',
+        max_tokens: 1800,
+        messages:   [{ role: 'user', content: rewritePrompt }],
+      })
+      conteudoFinal = (rewriteMsg.content[0] as { type: string; text: string }).text.trim()
+    } catch (e) {
+      // se a reescrita falhar, publica o original e registra no campo auditoria
+      auditoria += `\n\n[Reescrita falhou: ${e instanceof Error ? e.message : String(e)}]`
+    }
+  }
+
+  // salva
   const { error } = await supabase
     .from('boletim_copa')
-    .insert({ tipo: 'manha', titulo, conteudo, prompt_texto: prompt, auditoria })
+    .insert({
+      tipo: 'manha',
+      titulo,
+      conteudo:          conteudoFinal,
+      conteudo_original: conteudoOriginal,
+      prompt_texto:      prompt,
+      auditoria,
+    })
 
   if (error) {
     console.error('Erro ao salvar boletim:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, titulo, auditoria, gerado_em: new Date().toISOString() })
+  const reescrito = conteudoFinal !== conteudoOriginal
+  return NextResponse.json({ ok: true, titulo, auditoria, reescrito, gerado_em: new Date().toISOString() })
 }
