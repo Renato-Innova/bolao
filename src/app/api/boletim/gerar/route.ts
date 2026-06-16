@@ -141,8 +141,15 @@ function extractPosJogo(text: string): string {
 }
 
 /* ── formatadores de jogo ──────────────────────────────────────────────────── */
+function resolveResultado(j: Jogo): Record<string, unknown> | null {
+  const r = j.resultado
+  if (!r) return null
+  if (Array.isArray(r)) return r.length > 0 ? r[0] as Record<string, unknown> : null
+  return r as Record<string, unknown>
+}
+
 function fmtResultado(j: Record<string, unknown>): string {
-  const r = j.resultado as Record<string, unknown>
+  const r = resolveResultado(j)!
   const pen = r.placar_penalti_a != null
     ? ` (pên: ${r.placar_penalti_a}-${r.placar_penalti_b})`
     : ''
@@ -240,10 +247,10 @@ async function getJogosEncerrados(datas: string[]): Promise<Jogo[]> {
     .from('jogos_copa')
     .select('*, resultado:resultados(*)')
     .in('data', datas)
-    .not('resultado', 'is', null)
     .order('data')
     .order('horario')
-  return data ?? []
+  // filtra client-side: tem resultado = encerrado (mesmo padrão de getJogosPendentes)
+  return (data ?? []).filter((j: Jogo) => resolveResultado(j) !== null)
 }
 
 async function getJogosPendentes(datas: string[]): Promise<Jogo[]> {
