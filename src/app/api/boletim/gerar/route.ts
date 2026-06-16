@@ -204,7 +204,6 @@ Analise mentalmente os dados (NAO escreva essa analise — ela e apenas para voc
 
 Com base nessa analise, escreva DIRETAMENTE o boletim em portugues brasileiro, SEM emojis e SEM icones de nenhum tipo.
 NAO escreva introducoes, pensamentos, analises ou qualquer texto antes da saudacao.
-Separe cada secao com uma linha em branco antes e depois do subtitulo.
 Use subtitulos simples em letras maiusculas para separar as cinco secoes numeradas (1 a 5).
 IMPORTANTE: respeite rigorosamente os limites de palavras de cada secao — conte mentalmente antes de finalizar e corte o que ultrapassar.
 

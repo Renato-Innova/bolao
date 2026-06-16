@@ -445,7 +445,7 @@ export default async function DashboardPage() {
                       {b.conteudo.split('\n').map((line, i) => {
                         const parts = line.split(/(\*\*.*?\*\*)/)
                         return (
-                          <p key={i} style={{ margin: line.startsWith('**') ? '14px 0 4px' : '0 0 8px', color: line.startsWith('**') ? 'white' : undefined, fontWeight: line.startsWith('**') ? 700 : undefined, fontSize: line.startsWith('**') ? 11 : 13 }}>
+                          <p key={i} style={{ margin: line.startsWith('**') ? '8px 0 2px' : '0 0 2px', color: line.startsWith('**') ? 'white' : undefined, fontWeight: line.startsWith('**') ? 700 : undefined, fontSize: line.startsWith('**') ? 11 : 13 }}>
                             {parts.map((part, j) =>
                               part.startsWith('**') && part.endsWith('**')
                                 ? <strong key={j} style={{ color: 'white', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4 }}>{part.slice(2, -2)}</strong>
