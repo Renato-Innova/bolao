@@ -276,88 +276,107 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
       margin: isSent ? '6px 10px' : 0,
       borderBottom: isSent ? undefined : '1px solid rgba(255,255,255,0.05)',
     }}>
-      {/* Main row — wraps on mobile so score inputs don't overflow */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', flexWrap: 'wrap' }}>
+      {/* Main row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px' }}>
 
-        {/* Teams + meta — takes all available width, score section goes below on wrap */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: '1 1 160px', minWidth: 0 }}>
-          {localCodigoA && <FlagImg codigo={localCodigoA} />}
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{localTimeA}</span>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>×</span>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{localTimeB}</span>
-          {localCodigoB && <FlagImg codigo={localCodigoB} />}
-        </div>
-
-        {/* Meta */}
-        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
-          <span>{fmtTime(jogo.horario)} · {FASE_LABEL[jogo.fase] ?? jogo.fase}{jogo.grupo ? ` · Gr.${jogo.grupo}` : ''}</span>
-          {jogo.cidade && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.18)' }}>{jogo.cidade}</span>}
-        </div>
-
-        {/* ── Teams not set yet: block score entry ── */}
-        {teamsUnknown ? (
-          <div style={{ fontSize: 10, color: 'rgba(255,200,80,0.6)', fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
-            🔒 <span>Preencha os times primeiro</span>
+        {/* Centro: meta + times + inputs em linha única */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0 }}>
+          {/* Meta: horário · fase · grupo */}
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.40)', whiteSpace: 'nowrap' }}>
+            {fmtTime(jogo.horario)} · {FASE_LABEL[jogo.fase] ?? jogo.fase}{jogo.grupo ? ` · Gr.${jogo.grupo}` : ''}
+            {isKO && <span style={{ color: 'rgba(255,200,80,0.6)', marginLeft: 6, fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>inclui prorrogação</span>}
           </div>
-        ) : isSent && !editing ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            {/* Score badge */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 8, padding: '4px 12px' }}>
-                <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: '#4ade80', minWidth: 14, textAlign: 'center' }}>{savedA}</span>
-                <span style={{ fontSize: 11, color: 'rgba(74,222,128,0.4)', fontWeight: 300 }}>–</span>
-                <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: '#4ade80', minWidth: 14, textAlign: 'center' }}>{savedB}</span>
-              </div>
-              {savedPenA != null && savedPenB != null && (
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', letterSpacing: 0.3 }}>
-                  pen {savedPenA}–{savedPenB}
-                </span>
-              )}
+
+          {/* Times + inputs */}
+          {teamsUnknown ? (
+            <div style={{ fontSize: 10, color: 'rgba(255,200,80,0.6)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+              🔒 <span>Preencha os times primeiro</span>
             </div>
-            {/* Checkmark */}
-            <span style={{ color: '#4ade80', fontSize: 16, fontWeight: 700 }}>✓</span>
-            {/* ⋮ menu */}
-            <div ref={menuRef} style={{ position: 'relative' }}>
-              <button onClick={() => setMenuOpen(o => !o)}
-                style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'rgba(255,255,255,0.55)', fontSize: 14, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>⋮</button>
-              {menuOpen && (
-                <div style={{ position: 'absolute', top: 30, right: 0, background: '#1a2d50', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 8, padding: 4, minWidth: 160, zIndex: 20, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
-                  <div onClick={startEdit}
-                    style={{ padding: '8px 12px', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.8)', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(74,144,217,0.15)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                    ✏️ Editar resultado
+          ) : isSent && !editing ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {localCodigoA && <FlagImg codigo={localCodigoA} />}
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{localTimeA}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 8, padding: '4px 12px' }}>
+                  <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: '#4ade80', minWidth: 14, textAlign: 'center' }}>{savedA}</span>
+                  <span style={{ fontSize: 11, color: 'rgba(74,222,128,0.4)', fontWeight: 300 }}>–</span>
+                  <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: '#4ade80', minWidth: 14, textAlign: 'center' }}>{savedB}</span>
+                </div>
+                {savedPenA != null && savedPenB != null && (
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', letterSpacing: 0.3 }}>pen {savedPenA}–{savedPenB}</span>
+                )}
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{localTimeB}</span>
+              {localCodigoB && <FlagImg codigo={localCodigoB} />}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+              {/* Score inputs row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {localCodigoA && <FlagImg codigo={localCodigoA} />}
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{localTimeA}</span>
+                <input type="number" min={0} value={placarA} onChange={e => setPlacarA(e.target.value)}
+                  style={{ width: 38, height: 32, textAlign: 'center', borderRadius: 6, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.4)', color: '#4A90D9', fontSize: 14, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
+                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>×</span>
+                <input type="number" min={0} value={placarB} onChange={e => setPlacarB(e.target.value)}
+                  style={{ width: 38, height: 32, textAlign: 'center', borderRadius: 6, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.4)', color: '#4A90D9', fontSize: 14, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{localTimeB}</span>
+                {localCodigoB && <FlagImg codigo={localCodigoB} />}
+              </div>
+              {/* Penalty row */}
+              {isDraw && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.8)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>Pênaltis</span>
+                    <input type="number" min={0} value={penaltiA} onChange={e => setPenaltiA(e.target.value)}
+                      style={{ width: 38, height: 28, textAlign: 'center', borderRadius: 5, background: 'rgba(255,200,80,0.08)', border: `1px solid ${penaltiBlocked ? 'rgba(255,80,80,0.5)' : 'rgba(255,200,80,0.35)'}`, color: '#ffc850', fontSize: 13, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
+                    <span style={{ color: 'rgba(255,200,80,0.4)', fontSize: 11 }}>×</span>
+                    <input type="number" min={0} value={penaltiB} onChange={e => setPenaltiB(e.target.value)}
+                      style={{ width: 38, height: 28, textAlign: 'center', borderRadius: 5, background: 'rgba(255,200,80,0.08)', border: `1px solid ${penaltiBlocked ? 'rgba(255,80,80,0.5)' : 'rgba(255,200,80,0.35)'}`, color: '#ffc850', fontSize: 13, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
                   </div>
-                  {isKO && (
-                    <div onClick={() => { setEditTimes(v => !v); setMenuOpen(false) }}
-                      style={{ padding: '8px 12px', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.8)', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(240,192,64,0.12)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                      🏳️ Editar times
-                    </div>
+                  {penaltiBlocked && (
+                    <span style={{ fontSize: 9, color: 'rgba(255,120,120,0.9)', fontWeight: 600 }}>⚠️ Preencha os pênaltis</span>
                   )}
                 </div>
               )}
             </div>
-          </div>
-        ) : (
-          /* ── PENDING / EDITING state ── */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '1 1 auto', alignItems: 'flex-end' }}>
-            {/* Score label */}
-            {isKO && (
-              <div style={{ fontSize: 9, color: 'rgba(255,200,80,0.65)', fontWeight: 600, textAlign: 'right', textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                Placar final (inclui prorrogação)
+          )}
+        </div>
+
+        {/* Direita: botão salvar / checkmark + menu */}
+        {!teamsUnknown && (
+          isSent && !editing ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <span style={{ color: '#4ade80', fontSize: 16, fontWeight: 700 }}>✓</span>
+              <div ref={menuRef} style={{ position: 'relative' }}>
+                <button onClick={() => setMenuOpen(o => !o)}
+                  style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'rgba(255,255,255,0.55)', fontSize: 14, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>⋮</button>
+                {menuOpen && (
+                  <div style={{ position: 'absolute', top: 30, right: 0, background: '#1a2d50', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 8, padding: 4, minWidth: 160, zIndex: 20, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+                    <div onClick={startEdit}
+                      style={{ padding: '8px 12px', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.8)', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(74,144,217,0.15)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                      ✏️ Editar resultado
+                    </div>
+                    {isKO && (
+                      <div onClick={() => { setEditTimes(v => !v); setMenuOpen(false) }}
+                        style={{ padding: '8px 12px', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.8)', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(240,192,64,0.12)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        🏳️ Editar times
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-            {/* 90-min / ET score row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <input type="number" min={0} value={placarA} onChange={e => setPlacarA(e.target.value)}
-                style={{ width: 38, height: 32, textAlign: 'center', borderRadius: 6, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.4)', color: '#4A90D9', fontSize: 14, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
-              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>×</span>
-              <input type="number" min={0} value={placarB} onChange={e => setPlacarB(e.target.value)}
-                style={{ width: 38, height: 32, textAlign: 'center', borderRadius: 6, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.4)', color: '#4A90D9', fontSize: 14, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
               <button onClick={salvar} disabled={saving || !canSave}
-                style={{ padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: (saving || !canSave) ? 'not-allowed' : 'pointer', border: 'none', fontFamily: 'Inter,sans-serif', background: canSave ? 'linear-gradient(90deg,#4A90D9,#1a5ca8)' : 'rgba(255,255,255,0.12)', color: canSave ? 'white' : 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap', opacity: saving ? 0.7 : 1 }}>
+                style={{ padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: (saving || !canSave) ? 'not-allowed' : 'pointer', border: 'none', fontFamily: 'Inter,sans-serif', background: canSave ? 'linear-gradient(90deg,#4A90D9,#1a5ca8)' : 'rgba(255,255,255,0.12)', color: canSave ? 'white' : 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap', opacity: saving ? 0.7 : 1, transition: 'filter 0.15s, opacity 0.15s' }}
+                onMouseEnter={e => { if (canSave && !saving) (e.currentTarget as HTMLButtonElement).style.filter = 'brightness(1.2)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.filter = 'none' }}>
                 {saving ? 'Salvando…' : 'Salvar'}
               </button>
               {isSent && (
@@ -371,25 +390,7 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
                 </button>
               )}
             </div>
-            {/* Penalty row — appears for KO games when scores are equal */}
-            {isDraw && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.8)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>Pênaltis</span>
-                  <input type="number" min={0} value={penaltiA} onChange={e => setPenaltiA(e.target.value)}
-                    style={{ width: 38, height: 28, textAlign: 'center', borderRadius: 5, background: 'rgba(255,200,80,0.08)', border: `1px solid ${penaltiBlocked ? 'rgba(255,80,80,0.5)' : 'rgba(255,200,80,0.35)'}`, color: '#ffc850', fontSize: 13, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
-                  <span style={{ color: 'rgba(255,200,80,0.4)', fontSize: 11 }}>×</span>
-                  <input type="number" min={0} value={penaltiB} onChange={e => setPenaltiB(e.target.value)}
-                    style={{ width: 38, height: 28, textAlign: 'center', borderRadius: 5, background: 'rgba(255,200,80,0.08)', border: `1px solid ${penaltiBlocked ? 'rgba(255,80,80,0.5)' : 'rgba(255,200,80,0.35)'}`, color: '#ffc850', fontSize: 13, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
-                </div>
-                {penaltiBlocked && (
-                  <span style={{ fontSize: 9, color: 'rgba(255,120,120,0.9)', fontWeight: 600 }}>
-                    ⚠️ Preencha os pênaltis
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
+          )
         )}
       </div>
 
