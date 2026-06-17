@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export async function GET() {
-  const supabase = await createClient()
+  const supabase      = await createClient()
+  const supabaseAdmin = createAdminClient()
 
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -32,7 +33,7 @@ export async function GET() {
   const isAdmin = user ? (await supabase.from('users').select('is_admin').eq('id', user.id).single()).data?.is_admin : false
 
   if (config?.resultado_visivel || isAdmin) {
-    const { data: votos } = await supabase
+    const { data: votos } = await supabaseAdmin
       .from('enquete_votos')
       .select('opcao')
 
@@ -42,7 +43,7 @@ export async function GET() {
     totalVotaram = votos?.length ?? 0
 
     // Total de usuários com ao menos 1 palpite ativo
-    const { count } = await supabase
+    const { count } = await supabaseAdmin
       .from('users')
       .select('id', { count: 'exact', head: true })
       .filter('id', 'in', `(SELECT DISTINCT usuario_id FROM palpites WHERE status = 'ativo')`)
