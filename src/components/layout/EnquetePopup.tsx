@@ -72,9 +72,10 @@ export function EnquetePopup() {
   if (fase === 'carregando' || fase === 'oculto' || !estado) return null
 
   const total = estado.totalVotaram
+  const totais = estado.totais
   function getPct(letra: string) {
     if (total === 0) return 0
-    return Math.round((estado!.totais[letra as keyof typeof estado.totais] / total) * 100)
+    return Math.round((totais[letra as keyof typeof totais] / total) * 100)
   }
 
   return (
