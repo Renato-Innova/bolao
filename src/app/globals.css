@@ -325,13 +325,21 @@ input[type='number'] { -moz-appearance: textfield; }
     flex: 1 !important;
     min-width: 0 !important;
     width: auto !important;
+    overflow: hidden !important;
     justify-content: flex-end !important;
   }
   .res-team-b {
     flex: 1 !important;
     min-width: 0 !important;
     width: auto !important;
+    overflow: hidden !important;
     justify-content: flex-start !important;
   }
-  .res-team-a span, .res-team-b span { font-size: 11px !important; }
+  .res-team-a span, .res-team-b span {
+    font-size: 11px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    min-width: 0 !important;
+  }
 }
