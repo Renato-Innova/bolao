@@ -79,9 +79,12 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais, acti
   const [recalcMsg,    setRecalcMsg]    = useState('')
 
   // ── Reset results state ───────────────────────────────────────────────────
-  const [resetConfirm, setResetConfirm] = useState(false)
-  const [resetSaving,  setResetSaving]  = useState(false)
-  const [resetMsg,     setResetMsg]     = useState('')
+  const [resetConfirm,  setResetConfirm]  = useState(false)
+  const [resetSaving,   setResetSaving]   = useState(false)
+  const [resetMsg,      setResetMsg]      = useState('')
+  const [resetWord,     setResetWord]     = useState('')
+  const [resetSenha,    setResetSenha]    = useState('')
+  const [resetSenhaErr, setResetSenhaErr] = useState('')
 
   // ── Boletim manual state ──────────────────────────────────────────────────
   type BoletimStatus = {
@@ -205,18 +208,34 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais, acti
   }
 
   async function resetResultados() {
+    setResetSenhaErr('')
+    // Verifica senha no cliente antes de chamar a API
+    const supabaseClient = createClient()
+    const { data: { user } } = await supabaseClient.auth.getUser()
+    if (!user) { setResetSenhaErr('Sessão expirada. Recarregue a página.'); return }
+    const { error: signInErr } = await supabaseClient.auth.signInWithPassword({
+      email: user.email!,
+      password: resetSenha,
+    })
+    if (signInErr) { setResetSenhaErr('Senha incorreta.'); return }
+
     setResetSaving(true)
     setResetMsg('')
     try {
       const res = await fetch('/api/admin/reset-resultados', { method: 'POST' })
       const { ok, error } = await res.json()
-      if (ok) setResetMsg('✅ Todos os resultados foram apagados e os pontos zerados.')
-      else    setResetMsg(`❌ ${error}`)
+      if (ok) {
+        setResetMsg('✅ Todos os resultados foram apagados e os pontos zerados.')
+        setResetConfirm(false)
+        setResetWord('')
+        setResetSenha('')
+      } else {
+        setResetMsg(`❌ ${error}`)
+      }
     } catch {
       setResetMsg('❌ Erro de rede.')
     } finally {
       setResetSaving(false)
-      setResetConfirm(false)
     }
   }
 
@@ -611,21 +630,57 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais, acti
               Os palpites e suas predições são preservados. Use apenas para testes.
             </div>
             {!resetConfirm ? (
-              <button onClick={() => { setResetConfirm(true); setResetMsg('') }}
+              <button onClick={() => { setResetConfirm(true); setResetMsg(''); setResetWord(''); setResetSenha(''); setResetSenhaErr('') }}
                 style={{ background: 'rgba(255,80,80,0.12)', border: '1px solid rgba(255,80,80,0.35)', color: 'rgba(255,130,130,0.9)', padding: '10px 24px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Resetar Resultados
               </button>
             ) : (
-              <div style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.3)', borderRadius: 8, padding: '14px 16px' }}>
-                <div style={{ fontSize: 12, color: 'rgba(255,200,200,0.9)', fontWeight: 600, marginBottom: 12 }}>
-                  Tem certeza? Esta ação apagará todos os resultados, zerará todos os pontos e restaurará o Mata-Mata. Os palpites não serão apagados.
+              <div style={{ background: 'rgba(255,80,80,0.06)', border: '1px solid rgba(255,80,80,0.3)', borderRadius: 8, padding: '16px' }}>
+                <div style={{ fontSize: 12, color: 'rgba(255,200,200,0.9)', fontWeight: 600, marginBottom: 16, lineHeight: 1.5 }}>
+                  Esta ação é irreversível. Para confirmar, preencha os campos abaixo.
                 </div>
+
+                {/* Campo 1: palavra RESETAR */}
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 5 }}>
+                    Digite <strong style={{ color: 'rgba(255,150,150,0.9)', letterSpacing: 1 }}>RESETAR</strong> para continuar
+                  </label>
+                  <input
+                    type="text"
+                    value={resetWord}
+                    onChange={e => setResetWord(e.target.value)}
+                    placeholder="RESETAR"
+                    autoComplete="off"
+                    style={{ width: '100%', maxWidth: 240, background: '#020F2A', border: `1px solid ${resetWord === 'RESETAR' ? 'rgba(74,222,128,0.4)' : 'rgba(255,80,80,0.3)'}`, borderRadius: 6, padding: '8px 12px', fontSize: 13, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none', boxSizing: 'border-box', letterSpacing: 1 }}
+                  />
+                </div>
+
+                {/* Campo 2: senha */}
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 5 }}>
+                    Confirme sua senha
+                  </label>
+                  <input
+                    type="password"
+                    value={resetSenha}
+                    onChange={e => { setResetSenha(e.target.value); setResetSenhaErr('') }}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    style={{ width: '100%', maxWidth: 240, background: '#020F2A', border: `1px solid ${resetSenhaErr ? 'rgba(255,80,80,0.7)' : 'rgba(255,80,80,0.3)'}`, borderRadius: 6, padding: '8px 12px', fontSize: 13, color: 'white', fontFamily: 'Inter,sans-serif', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                  {resetSenhaErr && (
+                    <div style={{ fontSize: 11, color: 'rgba(255,100,100,0.9)', marginTop: 4 }}>⚠️ {resetSenhaErr}</div>
+                  )}
+                </div>
+
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <button onClick={resetResultados} disabled={resetSaving}
-                    style={{ background: 'rgba(255,80,80,0.25)', border: '1px solid rgba(255,80,80,0.5)', color: 'rgba(255,150,150,0.9)', padding: '8px 20px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: resetSaving ? 'not-allowed' : 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                  <button
+                    onClick={resetResultados}
+                    disabled={resetSaving || resetWord !== 'RESETAR' || !resetSenha}
+                    style={{ background: (resetSaving || resetWord !== 'RESETAR' || !resetSenha) ? 'rgba(255,255,255,0.06)' : 'rgba(255,80,80,0.25)', border: '1px solid rgba(255,80,80,0.5)', color: (resetSaving || resetWord !== 'RESETAR' || !resetSenha) ? 'rgba(255,255,255,0.25)' : 'rgba(255,150,150,0.9)', padding: '8px 20px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: (resetSaving || resetWord !== 'RESETAR' || !resetSenha) ? 'not-allowed' : 'pointer', fontFamily: 'Inter,sans-serif' }}>
                     {resetSaving ? 'Resetando...' : '🗑 Confirmar reset'}
                   </button>
-                  <button onClick={() => setResetConfirm(false)} disabled={resetSaving}
+                  <button onClick={() => { setResetConfirm(false); setResetWord(''); setResetSenha(''); setResetSenhaErr('') }} disabled={resetSaving}
                     style={{ background: 'rgba(255,255,255,0.07)', border: 'none', color: 'rgba(255,255,255,0.5)', padding: '8px 20px', borderRadius: 7, fontSize: 12, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
                     Cancelar
                   </button>
