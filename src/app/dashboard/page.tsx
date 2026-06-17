@@ -300,7 +300,7 @@ export default async function DashboardPage() {
               const isToday   = j.data === hoje
               const hasPlacar = !!j.resultado
               const counts    = pctMap[j.id]
-              const showPct   = !hasPlacar && counts && counts.total > 0
+              const showPct   = counts && counts.total > 0
               return (
                 <div key={j.id} style={{
                   padding: '8px 10px',
