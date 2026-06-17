@@ -326,7 +326,7 @@ export default async function DashboardPage() {
                         background: hasPlacar ? 'rgba(74,144,217,0.15)' : isToday ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.07)',
                         color: hasPlacar ? '#7BB8F0' : isToday ? '#4ade80' : 'rgba(255,255,255,0.5)',
                       }}>
-                        {hasPlacar ? 'Encerrado' : isToday ? `Hoje ${formatTime(j.horario)}h` : 'Em breve'}
+                        {hasPlacar ? 'Encerrado' : isToday ? `Hoje ${formatTime(j.horario)}h` : `Amanhã ${formatTime(j.horario)}h`}
                       </span>
                     </div>
                     <div style={{ textAlign: 'right' }}>
