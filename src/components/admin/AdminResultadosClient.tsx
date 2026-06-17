@@ -279,21 +279,27 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
       {/* Main row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px' }}>
 
-        {/* Centro: meta + times + inputs em linha única */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0 }}>
-          {/* Meta: horário · fase · grupo */}
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.40)', whiteSpace: 'nowrap' }}>
-            {fmtTime(jogo.horario)} · {FASE_LABEL[jogo.fase] ?? jogo.fase}{jogo.grupo ? ` · Gr.${jogo.grupo}` : ''}
-            {isKO && <span style={{ color: 'rgba(255,200,80,0.6)', marginLeft: 6, fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>inclui prorrogação</span>}
-          </div>
+        {/* Centro: tudo numa linha */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, minWidth: 0 }}>
 
-          {/* Times + inputs */}
           {teamsUnknown ? (
-            <div style={{ fontSize: 10, color: 'rgba(255,200,80,0.6)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
-              🔒 <span>Preencha os times primeiro</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
+                {fmtTime(jogo.horario)} · {FASE_LABEL[jogo.fase] ?? jogo.fase}{jogo.grupo ? ` · Gr.${jogo.grupo}` : ''}
+              </span>
+              {localCodigoA && <FlagImg codigo={localCodigoA} />}
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{localTimeA}</span>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>×</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{localTimeB}</span>
+              {localCodigoB && <FlagImg codigo={localCodigoB} />}
+              <span style={{ fontSize: 10, color: 'rgba(255,200,80,0.6)', fontWeight: 600 }}>🔒 Preencha os times primeiro</span>
             </div>
           ) : isSent && !editing ? (
+            /* Resultado já salvo: linha única */
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
+                {fmtTime(jogo.horario)} · {FASE_LABEL[jogo.fase] ?? jogo.fase}{jogo.grupo ? ` · Gr.${jogo.grupo}` : ''}
+              </span>
               {localCodigoA && <FlagImg codigo={localCodigoA} />}
               <span style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{localTimeA}</span>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
@@ -310,9 +316,13 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
               {localCodigoB && <FlagImg codigo={localCodigoB} />}
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
-              {/* Score inputs row */}
+            /* Pendente / editando: inputs na mesma linha */
+            <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
+                  {fmtTime(jogo.horario)} · {FASE_LABEL[jogo.fase] ?? jogo.fase}{jogo.grupo ? ` · Gr.${jogo.grupo}` : ''}
+                  {isKO && <span style={{ color: 'rgba(255,200,80,0.6)', marginLeft: 6, fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.3 }}>· inclui prorrogação</span>}
+                </span>
                 {localCodigoA && <FlagImg codigo={localCodigoA} />}
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{localTimeA}</span>
                 <input type="number" min={0} value={placarA} onChange={e => setPlacarA(e.target.value)}
@@ -323,9 +333,9 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{localTimeB}</span>
                 {localCodigoB && <FlagImg codigo={localCodigoB} />}
               </div>
-              {/* Penalty row */}
+              {/* Pênaltis — linha separada abaixo, ainda centralizada */}
               {isDraw && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.8)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>Pênaltis</span>
                     <input type="number" min={0} value={penaltiA} onChange={e => setPenaltiA(e.target.value)}
@@ -339,7 +349,7 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
                   )}
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
 
