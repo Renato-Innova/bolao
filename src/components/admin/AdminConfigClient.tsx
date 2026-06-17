@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { FASES, ALL_TEAMS, ARTILHEIRO_OPTIONS, GOLEIRO_OPTIONS } from '@/utils/constants'
 import { SPECIAL_POINTS } from '@/utils/scoring'
@@ -82,6 +82,49 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais, acti
   const [resetConfirm, setResetConfirm] = useState(false)
   const [resetSaving,  setResetSaving]  = useState(false)
   const [resetMsg,     setResetMsg]     = useState('')
+
+  // ── Boletim manual state ──────────────────────────────────────────────────
+  type BoletimStatus = {
+    gerado_em: string
+    auditoria: string | null
+    reescrito: boolean
+    total: number
+  }
+  const [boletimSaving,   setBoletimSaving]   = useState(false)
+  const [boletimErro,     setBoletimErro]     = useState('')
+  const [boletimStatus,   setBoletimStatus]   = useState<BoletimStatus | null>(null)
+  const [boletimLoaded,   setBoletimLoaded]   = useState(false)
+  const [auditExpanded,   setAuditExpanded]   = useState(false)
+
+  async function carregarBoletimStatus() {
+    if (boletimLoaded) return
+    try {
+      const res  = await fetch('/api/admin/boletim-status')
+      const json = await res.json()
+      if (res.ok && json.data) setBoletimStatus(json.data)
+      setBoletimLoaded(true)
+    } catch { /* silencioso */ }
+  }
+
+  async function gerarBoletim() {
+    setBoletimSaving(true)
+    setBoletimErro('')
+    try {
+      const res  = await fetch('/api/boletim/gerar')
+      const json = await res.json()
+      if (!res.ok) {
+        setBoletimErro(json.error ?? 'Erro ao gerar boletim.')
+      } else {
+        // Recarrega o status do banco para refletir o novo boletim
+        setBoletimLoaded(false)
+        setBoletimStatus(null)
+        await carregarBoletimStatus()
+      }
+    } catch {
+      setBoletimErro('Erro de conexão.')
+    }
+    setBoletimSaving(false)
+  }
 
   // ── Configurações do sistema (prazos) ─────────────────────────────────────
   const [especiaisDeadline,    setEspeciaisDeadline]    = useState('')
@@ -246,7 +289,7 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais, acti
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
         {abas.map(tab => (
-          <button key={tab.key} onClick={() => { setAba(tab.key); if (tab.key === 'operacoes') carregarPrazos() }} style={{
+          <button key={tab.key} onClick={() => { setAba(tab.key); if (tab.key === 'operacoes') { carregarPrazos(); carregarBoletimStatus() } }} style={{
             padding: '7px 16px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer',
             fontFamily: 'Inter,sans-serif', border: 'none', transition: 'all 0.15s',
             background: aba === tab.key ? 'rgba(74,144,217,0.2)' : 'rgba(255,255,255,0.05)',
@@ -479,6 +522,84 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais, acti
               )}
             </div>
           </div>
+
+          {/* ── Boletim manual ── */}
+          <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '20px', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 6 }}>
+              📰 Boletim da Copa
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 16, lineHeight: 1.6 }}>
+              Gera uma nova edição do boletim agora. Use quando o boletim automático tiver informações incorretas ou quebrar alguma regra de formato.
+            </div>
+
+            {/* Status do último boletim */}
+            {boletimStatus && (
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(74,144,217,0.12)', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+                <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 4 }}>
+                  <div>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Último boletim</span>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>
+                      {new Date(boletimStatus.gerado_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Status</span>
+                    <div style={{ fontSize: 12, marginTop: 2 }}>
+                      {boletimStatus.reescrito
+                        ? <span style={{ color: '#fbbf24' }}>⚠️ Gerado com correções</span>
+                        : <span style={{ color: '#4ade80' }}>✅ Gerado com sucesso</span>}
+                    </div>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Total gerados</span>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>{boletimStatus.total}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Auditoria do Haiku — colapsável */}
+            {boletimStatus?.auditoria && boletimStatus.auditoria !== 'SEM ERROS IDENTIFICADOS' && (
+              <div style={{ background: 'rgba(251,191,36,0.05)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 8, marginBottom: 16, overflow: 'hidden' }}>
+                <button
+                  onClick={() => setAuditExpanded(v => !v)}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                >
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(251,191,36,0.85)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    ⚠️ Auditoria Haiku — último boletim
+                  </span>
+                  <span style={{ fontSize: 11, color: 'rgba(251,191,36,0.6)', flexShrink: 0 }}>
+                    {auditExpanded ? '▲ Recolher' : '▼ Expandir'}
+                  </span>
+                </button>
+                {auditExpanded && (
+                  <div style={{ padding: '0 14px 12px' }}>
+                    <pre style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.7, fontFamily: 'Inter,sans-serif' }}>
+                      {boletimStatus.auditoria}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
+            {boletimStatus?.auditoria === 'SEM ERROS IDENTIFICADOS' && (
+              <div style={{ fontSize: 11, color: '#4ade80', marginBottom: 16 }}>
+                ✅ Haiku não encontrou erros no último boletim.
+              </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <button onClick={gerarBoletim} disabled={boletimSaving}
+                style={{ background: boletimSaving ? 'rgba(255,255,255,0.08)' : 'linear-gradient(90deg,#4A90D9,#7c3aed)', color: boletimSaving ? 'rgba(255,255,255,0.4)' : 'white', border: 'none', padding: '10px 24px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: boletimSaving ? 'not-allowed' : 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {boletimSaving ? 'Gerando boletim...' : '📰 Gerar Novo Boletim'}
+              </button>
+              {boletimErro && (
+                <span style={{ fontSize: 12, color: 'rgba(255,100,100,0.9)' }}>❌ {boletimErro}</span>
+              )}
+            </div>
+          </div>
+
+          {/* ── Enquete ── */}
+          <EnqueteAdminCard />
 
           {/* Reset all results */}
           <div style={{ background: '#0D1E3D', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 10, padding: '20px 20px' }}>
@@ -952,6 +1073,137 @@ function ActivityLogTab({ log }: { log: ActivityLog[] }) {
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+// ── Enquete admin card (usado dentro da aba Operações) ────────────────────────
+function EnqueteAdminCard() {
+  const [config,   setConfig]   = useState<{ aberta: boolean; resultado_visivel: boolean } | null>(null)
+  const [totais,   setTotais]   = useState<{ A: number; B: number; C: number }>({ A: 0, B: 0, C: 0 })
+  const [votaram,  setVotaram]  = useState(0)
+  const [ativos,   setAtivos]   = useState(0)
+  const [saving,   setSaving]   = useState(false)
+  const [msg,      setMsg]      = useState('')
+
+  useEffect(() => {
+    fetch('/api/enquete/resultado')
+      .then(r => r.json())
+      .then(d => {
+        setConfig({ aberta: d.aberta, resultado_visivel: d.resultado_visivel })
+        setTotais(d.totais)
+        setVotaram(d.totalVotaram)
+        setAtivos(d.totalUsuariosAtivos)
+      })
+      .catch(() => {})
+  }, [])
+
+  async function toggle(field: 'aberta' | 'resultado_visivel', value: boolean) {
+    setSaving(true)
+    setMsg('')
+    try {
+      const res = await fetch('/api/admin/enquete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value }),
+      })
+      const json = await res.json()
+      if (json.ok) {
+        setConfig(prev => prev ? { ...prev, [field]: value } : null)
+        setMsg('✅ Salvo.')
+      } else {
+        setMsg(`❌ ${json.error}`)
+      }
+    } catch {
+      setMsg('❌ Erro de rede.')
+    }
+    setSaving(false)
+  }
+
+  const total = Object.values(totais).reduce((s, v) => s + v, 0)
+  const faltam = ativos - votaram
+
+  const OPCOES = [
+    { letra: 'A', texto: 'Não. Deixe bloqueados como estão.' },
+    { letra: 'B', texto: 'Sim. Mas somente Campeão e Vice-Campeão.' },
+    { letra: 'C', texto: 'Sim. Todos os palpites especiais.' },
+  ]
+
+  return (
+    <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '20px', marginBottom: 12 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 4 }}>
+        🗳️ Enquete — Palpites Especiais
+      </div>
+      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 16, lineHeight: 1.6 }}>
+        Controle quando o popup aparece e quando os resultados ficam visíveis para os participantes.
+      </div>
+
+      {config && (
+        <>
+          {/* Toggles */}
+          <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => toggle('aberta', !config.aberta)}
+              disabled={saving}
+              style={{
+                padding: '8px 18px', borderRadius: 7, fontSize: 12, fontWeight: 700,
+                border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
+                background: config.aberta ? 'rgba(74,222,128,0.18)' : 'rgba(255,255,255,0.07)',
+                color: config.aberta ? '#4ade80' : 'rgba(255,255,255,0.5)',
+                outline: config.aberta ? '1px solid rgba(74,222,128,0.35)' : '1px solid transparent',
+              }}
+            >
+              {config.aberta ? '🟢 Enquete aberta' : '⚫ Enquete fechada'}
+            </button>
+            <button
+              onClick={() => toggle('resultado_visivel', !config.resultado_visivel)}
+              disabled={saving}
+              style={{
+                padding: '8px 18px', borderRadius: 7, fontSize: 12, fontWeight: 700,
+                border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
+                background: config.resultado_visivel ? 'rgba(74,144,217,0.18)' : 'rgba(255,255,255,0.07)',
+                color: config.resultado_visivel ? '#7BB8F0' : 'rgba(255,255,255,0.5)',
+                outline: config.resultado_visivel ? '1px solid rgba(74,144,217,0.35)' : '1px solid transparent',
+              }}
+            >
+              {config.resultado_visivel ? '👁 Resultado visível' : '🙈 Resultado oculto'}
+            </button>
+          </div>
+
+          {/* Progresso */}
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(74,144,217,0.1)', borderRadius: 8, padding: '12px 14px', marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
+              {votaram} de {ativos} participantes votaram
+              {faltam > 0 && <span style={{ color: 'rgba(251,191,36,0.8)', marginLeft: 8 }}>· faltam {faltam}</span>}
+              {faltam === 0 && ativos > 0 && <span style={{ color: '#4ade80', marginLeft: 8 }}>· todos votaram ✅</span>}
+            </div>
+            {OPCOES.map(({ letra, texto }) => {
+              const votos = totais[letra as keyof typeof totais]
+              const pct   = total > 0 ? Math.round((votos / total) * 100) : 0
+              return (
+                <div key={letra} style={{ marginBottom: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>
+                      <strong style={{ color: '#7BB8F0' }}>{letra}</strong> — {texto}
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', flexShrink: 0, marginLeft: 10 }}>
+                      {votos}v · {pct}%
+                    </span>
+                  </div>
+                  <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 99, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: 'rgba(74,144,217,0.6)', borderRadius: 99, transition: 'width 0.4s ease' }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {msg && <div style={{ fontSize: 11, color: msg.startsWith('✅') ? '#4ade80' : 'rgba(255,100,100,0.9)' }}>{msg}</div>}
+        </>
+      )}
+      {!config && (
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Carregando...</div>
+      )}
     </div>
   )
 }

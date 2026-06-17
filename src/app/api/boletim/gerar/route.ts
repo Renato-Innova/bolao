@@ -162,8 +162,9 @@ function buildPrompt(params: {
   ranking: string
   posJogo: string
   preJogo: string
+  rodadaInfo: string
 }) {
-  const { hoje, ranking, posJogo, preJogo } = params
+  const { hoje, ranking, posJogo, preJogo, rodadaInfo } = params
 
   return `Você é o narrador oficial do Bolão Copa 2026 — um jornalista esportivo com o tom da ESPN Brasil: animado e com pitadas de ironia, mas sempre profissional e com análise técnica de verdade.
 
@@ -176,7 +177,7 @@ REGRAS DE TOM E LINGUAGEM:
 
 O bolão é uma competição entre amigos onde cada participante registrou palpites para todos os jogos da Copa. Os pontos são somados conforme os acertos.
 
-DATA: ${hoje} — EDICAO: MANHA
+DATA: ${hoje} — EDICAO: MANHA — BOLAO NA ${rodadaInfo.toUpperCase()}
 
 ===== RANKING ATUAL =====
 
@@ -186,9 +187,9 @@ ${ranking}
 
 ${posJogo || 'Nenhum jogo encerrado desde o ultimo boletim.'}
 
-===== JOGOS ATE O PROXIMO BOLETIM (analise pre-jogo) =====
+===== JOGOS DE HOJE E DE AMANHA (analise pre-jogo) =====
 
-${preJogo || 'Nenhum jogo previsto ate o proximo boletim.'}
+${preJogo || 'Nenhum jogo previsto.'}
 
 ===== INSTRUCAO =====
 
@@ -199,7 +200,7 @@ Analise mentalmente os dados (NAO escreva essa analise — ela e apenas para voc
 - quem esta sem palpites registrados
 - que impacto os resultados possiveis teriam no ranking
 - quem lidera ha quantos dias consecutivos e se a lideranca e confortavel ou ameacada
-- quem esta em trajetoria ascendente ou descendente nos ultimos dias (usar as variacoes de 1, 2 e 3 dias)
+- quem esta em trajetoria ascendente ou descendente: use a posicao historica de cada rodada (coluna "era #X") para narrar saltos e quedas concretos
 - os palpites de hoje dos lideres e dos ultimos colocados: onde concordam, onde divergem
 
 Com base nessa analise, escreva DIRETAMENTE o boletim em portugues brasileiro, SEM emojis e SEM icones de nenhum tipo.
@@ -207,6 +208,12 @@ NAO escreva introducoes, pensamentos, analises ou qualquer texto antes da saudac
 Use subtitulos simples em letras maiusculas para separar as cinco secoes numeradas (1 a 5).
 Entre o fim de uma secao e o subtitulo da proxima, deixe uma linha em branco.
 IMPORTANTE: respeite rigorosamente os limites de palavras de cada secao — conte mentalmente antes de finalizar e corte o que ultrapassar.
+
+REGRAS OBRIGATORIAS DE FORMATO:
+- Numeros sempre em algarismos, NUNCA por extenso. Correto: "250 pontos", "5 a frente", "35 pontos". Errado: "duzentos e cinquenta pontos", "cinco a frente", "trinta e cinco pontos".
+- Placares sempre no formato "AxB". Correto: "3x1", "2x0". Errado: "tres a um", "dois a zero".
+- Ao mencionar um jogo ja encerrado, inclua sempre o placar. Correto: "Franca 3x1 Senegal". Errado: "Franca e Senegal".
+- Ao mencionar um palpite de placar, use o formato numerico. Correto: "apostou 5x0". Errado: "apostou cinco a zero".
 
 0. [SEM SUBTITULO] — LIMITE RIGIDO: maximo 40 palavras. Nem uma a mais.
 Comece diretamente com a saudacao, sem nenhum titulo ou rotulo antes dela. Uma saudacao matinal curta, engracada ou motivante para os participantes do bolao. Pode referenciar um resultado inesperado do dia anterior, uma variacao curiosa do ranking (quem subiu muito, quem caiu), ou simplesmente animar o dia. Tom leve, como um amigo acordando o grupo no WhatsApp. SEM emojis.
@@ -225,7 +232,7 @@ Se nao houver jogos pendentes: escreva uma analise de 120 a 150 palavras sobre o
 Destaque o palpite mais ousado: quem fez, qual e, o que aconteceria no ranking se confirmar. Se nao houver jogos pendentes, destaque o palpite mais ousado dentre os jogos encerrados e quem acertou ou errou. Corte o que ultrapassar 70 palavras.
 
 5. BRIGA PELO RANKING — LIMITE RIGIDO: entre 100 e 120 palavras. Nem uma a menos, nem uma a mais.
-Cubra em ate 4 paragrafos curtos: (a) consistencia da lideranca, (b) quem sobe e quem cai com base nas variacoes de 1, 2 e 3 dias, (c) disputa pelo topo — onde lideres concordam ou divergem nos palpites de hoje, (d) fundo do poco — quem ainda pode recuperar. Crie expectativa para a proxima edicao. Corte o que ultrapassar 120 palavras.`
+Cubra em ate 4 paragrafos curtos: (a) consistencia da lideranca, (b) use as posicoes historicas por rodada para narrar quem subiu ou caiu (ex: "estava em #5 na R1, foi para #3 na R2, agora e #1"), (c) disputa pelo topo — onde lideres concordam ou divergem nos palpites de hoje, (d) fundo do poco — quem ainda pode recuperar. Crie expectativa para o boletim de amanha. Corte o que ultrapassar 120 palavras.`
 }
 
 /* ── tipos compartilhados ──────────────────────────────────────────────────── */
@@ -238,6 +245,7 @@ type RankingData = {
   nomeMap:    Record<number, string>
   ptMap:      Record<number, number>
   palpiteIds: number[]
+  rodadaInfo: string
 }
 
 /* ── funções de coleta de dados ────────────────────────────────────────────── */
@@ -266,8 +274,16 @@ async function getJogosPendentes(datas: string[]): Promise<Jogo[]> {
   )
 }
 
+// Ordena um ptMap e retorna mapa de palpite_id → posição (#1, #2, …)
+function buildPosMap(ptMap: Record<number, number>, ids: number[]): Record<number, number> {
+  const sorted = [...ids].sort((a, b) => (ptMap[b] ?? 0) - (ptMap[a] ?? 0))
+  const pos: Record<number, number> = {}
+  sorted.forEach((id, i) => { pos[id] = i + 1 })
+  return pos
+}
+
 async function getRankingComVariacao(now: Date): Promise<RankingData> {
-  const ontem = daysAgo(now, 1)
+  const hoje = brtDate(now)
 
   const { data: palpitesAtivos } = await supabase
     .from('palpites')
@@ -276,11 +292,44 @@ async function getRankingComVariacao(now: Date): Promise<RankingData> {
 
   const palpiteIds = (palpitesAtivos ?? []).map((p: { id: number }) => p.id)
 
+  // "Rodada" = número de dias de jogo já realizados (datas distintas com pelo menos 1 resultado)
+  // Isso é independente do campo `rodada` do banco, que agrupa vários dias numa mesma rodada da fase de grupos.
+  const { data: datasComJogo } = await supabase
+    .from('jogos_copa')
+    .select('data, resultado:resultados(id)')
+    .lte('data', hoje)
+    .order('data')
+
+  const datasComResultado = [...new Set(
+    (datasComJogo ?? [])
+      .filter((j: Record<string, unknown>) => {
+        const r = j.resultado
+        return Array.isArray(r) ? r.length > 0 : r != null
+      })
+      .map((j: Record<string, unknown>) => j.data as string)
+  )]
+
+  const diaDeJogoAtual = datasComResultado.length        // ex: 6 dias de jogo realizados
+  const rodadaInfo = diaDeJogoAtual > 0
+    ? `Rodada ${diaDeJogoAtual} (${diaDeJogoAtual}º dia de jogos da Copa)`
+    : 'Copa ainda sem jogos realizados'
+
+  // Snapshots históricos: busca as 3 datas de jogo imediatamente anteriores ao dia atual
+  // (usa datas reais de jogo, não simplesmente D-1/D-2/D-3 do calendário)
+  const datasHistoricas = datasComResultado.slice(-4, -1).reverse()  // [D-1, D-2, D-3] em datas de jogo
+  const [dataH1, dataH2, dataH3] = [datasHistoricas[0], datasHistoricas[1], datasHistoricas[2]]
+
   const [{ data: pontos }, { data: h1 }, { data: h2 }, { data: h3 }] = await Promise.all([
     supabase.rpc('get_pontos_por_palpite', { p_ids: palpiteIds }) as unknown as Promise<{ data: HistRow[] | null }>,
-    supabase.from('ranking_historico').select('palpite_id,total_pontos').eq('data', ontem).in('palpite_id', palpiteIds),
-    supabase.from('ranking_historico').select('palpite_id,total_pontos').eq('data', daysAgo(now, 2)).in('palpite_id', palpiteIds),
-    supabase.from('ranking_historico').select('palpite_id,total_pontos').eq('data', daysAgo(now, 3)).in('palpite_id', palpiteIds),
+    dataH1
+      ? supabase.from('ranking_historico').select('palpite_id,total_pontos').eq('data', dataH1).in('palpite_id', palpiteIds)
+      : Promise.resolve({ data: null }),
+    dataH2
+      ? supabase.from('ranking_historico').select('palpite_id,total_pontos').eq('data', dataH2).in('palpite_id', palpiteIds)
+      : Promise.resolve({ data: null }),
+    dataH3
+      ? supabase.from('ranking_historico').select('palpite_id,total_pontos').eq('data', dataH3).in('palpite_id', palpiteIds)
+      : Promise.resolve({ data: null }),
   ])
 
   const nomeMap: Record<number, string> = {}
@@ -298,15 +347,44 @@ async function getRankingComVariacao(now: Date): Promise<RankingData> {
   const h2m = toHistMap(h2 as HistRow[] | null)
   const h3m = toHistMap(h3 as HistRow[] | null)
 
+  // Posições históricas (só calcula se há dados suficientes)
+  const hasH1 = Object.keys(h1m).length > 0
+  const hasH2 = Object.keys(h2m).length > 0
+  const hasH3 = Object.keys(h3m).length > 0
+  const posH1 = hasH1 ? buildPosMap(h1m, palpiteIds) : null
+  const posH2 = hasH2 ? buildPosMap(h2m, palpiteIds) : null
+  const posH3 = hasH3 ? buildPosMap(h3m, palpiteIds) : null
+
   const sorted = [...palpiteIds].sort((a, b) => (ptMap[b] ?? 0) - (ptMap[a] ?? 0))
-  const fmt    = (d: number) => d > 0 ? `+${d}` : String(d)
+  const fmtDelta = (d: number) => d > 0 ? `+${d}` : String(d)
+
+  // Rótulos: "R5(ontem)", "R4(D-2)", "R3(D-3)" referenciando o número do dia de jogo
+  const r1Label = diaDeJogoAtual > 1 && hasH1 ? `R${diaDeJogoAtual - 1}(ontem)` : 'ontem'
+  const r2Label = diaDeJogoAtual > 2 && hasH2 ? `R${diaDeJogoAtual - 2}(D-2)`   : 'D-2'
+  const r3Label = diaDeJogoAtual > 3 && hasH3 ? `R${diaDeJogoAtual - 3}(D-3)`   : 'D-3'
 
   const rankingStr = sorted.map((id, i) => {
     const pts = ptMap[id] ?? 0
-    return `#${i + 1}  ${nomeMap[id]}  ${pts} pts  [1d:${fmt(pts - (h1m[id] ?? 0))} / 2d:${fmt(pts - (h2m[id] ?? 0))} / 3d:${fmt(pts - (h3m[id] ?? 0))}]`
+    const hist: string[] = []
+
+    if (hasH1 && posH1) {
+      const delta = pts - (h1m[id] ?? 0)
+      hist.push(`${r1Label}: era #${posH1[id] ?? '?'} ${fmtDelta(delta)}pts`)
+    }
+    if (hasH2 && posH2) {
+      const delta = pts - (h2m[id] ?? 0)
+      hist.push(`${r2Label}: era #${posH2[id] ?? '?'} ${fmtDelta(delta)}pts`)
+    }
+    if (hasH3 && posH3) {
+      const delta = pts - (h3m[id] ?? 0)
+      hist.push(`${r3Label}: era #${posH3[id] ?? '?'} ${fmtDelta(delta)}pts`)
+    }
+
+    const histStr = hist.length > 0 ? `  [${hist.join(' | ')}]` : ''
+    return `#${i + 1}  ${nomeMap[id]}  ${pts} pts${histStr}`
   }).join('\n')
 
-  return { rankingStr, sorted, nomeMap, ptMap, palpiteIds }
+  return { rankingStr, sorted, nomeMap, ptMap, palpiteIds, rodadaInfo }
 }
 
 async function getTabelaPalpites(
@@ -409,14 +487,14 @@ export async function GET(req: NextRequest) {
   const encerrados                             = await getJogosEncerrados([ontem, hoje])
   const pendentes                              = await getJogosPendentes([hoje])
   const { rankingStr, sorted, nomeMap, ptMap,
-          palpiteIds }                         = await getRankingComVariacao(now)
+          palpiteIds, rodadaInfo }              = await getRankingComVariacao(now)
   const palpitesTabela                         = await getTabelaPalpites(pendentes, palpiteIds, sorted, nomeMap)
   const { encTexts, penTexts }                 = await getContextoUol(encerrados, pendentes)
 
   // montagem do prompt
   const posJogo = buildPosJogo(encerrados, encTexts)
   const preJogo = buildPreJogo(pendentes, penTexts, palpitesTabela)
-  const prompt  = buildPrompt({ hoje, ranking: rankingStr, posJogo, preJogo })
+  const prompt  = buildPrompt({ hoje, ranking: rankingStr, posJogo, preJogo, rodadaInfo })
 
   // geração do boletim
   const message  = await anthropic.messages.create({
@@ -431,41 +509,48 @@ export async function GET(req: NextRequest) {
   const titulo   = 'Boletim da Copa 2026 · Edição da Manhã'
 
   // auditoria automática (Haiku) — fatos + português
+  // fatosReais espelha exatamente o que o Sonnet recebeu: data, rodada, ranking, pos-jogo (UOL), pre-jogo (UOL + tabela de palpites)
   const fatosReais = [
-    '=== RANKING REAL (posição, nome, pontos, variações 1d/2d/3d) ===',
+    `=== DATA: ${hoje} — BOLÃO NA ${rodadaInfo.toUpperCase()} ===`,
+    '',
+    '=== RANKING REAL (posição atual, pontos e histórico por rodada) ===',
     rankingStr,
     '',
-    '=== RESULTADOS REAIS (jogos encerrados) ===',
-    encerrados.map(j => fmtResultado(j)).join('\n') || 'Nenhum resultado disponível.',
+    '=== JOGOS ENCERRADOS — RESULTADOS E CONTEXTO PÓS-JOGO (UOL) ===',
+    posJogo || 'Nenhum resultado disponível.',
     '',
-    '=== JOGOS PENDENTES DE HOJE (ainda não ocorreram) ===',
-    pendentes.length > 0
-      ? pendentes.map(j => `${j.time_a} x ${j.time_b} | ${(j.horario as string).slice(0, 5)}h`).join('\n')
-      : 'Nenhum jogo pendente.',
-    palpitesTabela ? '\n=== PALPITES DOS PARTICIPANTES ===' : '',
-    palpitesTabela,
+    '=== JOGOS PENDENTES — CONTEXTO PRÉ-JOGO (UOL) E PALPITES DOS PARTICIPANTES ===',
+    // preJogo já contém palpitesTabela concatenada dentro de buildPreJogo
+    preJogo || 'Nenhum jogo pendente.',
   ].join('\n')
 
   const auditPrompt = `Você é um auditor rigoroso do boletim do Bolão Copa 2026. Analise o BOLETIM abaixo em duas dimensões:
 
 1. ERROS FACTUAIS — compare com os FATOS REAIS:
    - Placares errados
-   - Posições de ranking incorretas
-   - Pontuações ou variações erradas (1d/2d/3d)
+   - Posições de ranking incorretas (posição atual ou histórica por rodada)
+   - Pontuações ou variações de pontos erradas
+   - Número da rodada/dia de jogo incorreto
    - Nomes trocados ou distorcidos
    - Contagens de palpites incorretas (ex: "só 2 apostaram em empate" quando eram 5)
    - Afirmações sobre trajetória incorretas (ex: "subiu 3 posições" quando subiu 1)
 
-2. ERROS DE PORTUGUÊS — identifique:
+2. ERROS DE FORMATO — verifique cada ocorrência:
+   - Número escrito por extenso onde deveria ser algarismo: "duzentos pontos" → deve ser "200 pontos", "cinco à frente" → "5 à frente", "trinta e cinco pontos" → "35 pontos"
+   - Placar de jogo encerrado escrito por extenso: "três a um" → deve ser "3x1", "dois a zero" → "2x0"
+   - Palpite de placar escrito por extenso: "apostou cinco a zero" → deve ser "apostou 5x0"
+   - Jogo encerrado mencionado sem placar: "França e Senegal" ou "França contra Senegal" sem o resultado → deve incluir "França 3x1 Senegal"
+
+3. ERROS DE PORTUGUÊS — identifique:
    - Erros de concordância verbal ou nominal
    - Erros de ortografia ou acentuação
    - Frases incoerentes ou com sentido ambíguo
    - Repetição excessiva de palavras no mesmo parágrafo
 
 FORMATO DA RESPOSTA:
-- Liste cada erro em uma linha, prefixado com [FATO] ou [PORTUGUÊS]
-- Máximo 8 itens no total
-- Se não houver nenhum erro em nenhuma das duas dimensões, responda exatamente: "SEM ERROS IDENTIFICADOS"
+- Liste cada erro em uma linha, prefixado com [FATO], [FORMATO] ou [PORTUGUÊS]
+- Máximo 10 itens no total
+- Se não houver nenhum erro em nenhuma das dimensões, responda exatamente: "SEM ERROS IDENTIFICADOS"
 - Não comente estilo, tom, sugestões de melhoria ou opinião — apenas erros concretos
 
 ${fatosReais}

@@ -8,7 +8,9 @@ import { BottomNav } from '@/components/layout/BottomNav'
 import { Footer } from '@/components/layout/Footer'
 import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar'
 import { NotificationPopup } from '@/components/layout/NotificationPopup'
+import { EnquetePopup } from '@/components/layout/EnquetePopup'
 import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' })
 const bebasNeue = Bebas_Neue({ weight: '400', subsets: ['latin'], variable: '--font-bebas', display: 'swap' })
@@ -45,7 +47,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Footer />
         <BottomNav />
         <NotificationPopup />
+        <EnquetePopup />
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
