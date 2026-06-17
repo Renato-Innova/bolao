@@ -57,9 +57,17 @@ export default async function MeuDiaPage() {
 
   const { data: pjRivaisHoje } = uniqueRivalIds.length && jogoIdsHoje.length
     ? await supabase.from('palpites_jogos')
-        .select('palpite_id, jogo_id, placar_palpite_a, placar_palpite_b')
+        .select('palpite_id, jogo_id, placar_palpite_a, placar_palpite_b, pontos')
         .in('palpite_id', uniqueRivalIds).in('jogo_id', jogoIdsHoje)
     : { data: [] }
+
+  // Minutos até cada jogo de hoje (para controle do blur)
+  const minutosAteJogoMap: Record<number, number> = {}
+  for (const j of (jogosHojeData ?? []) as { id: number; horario: string }[]) {
+    const [hh, mm] = j.horario.split(':').map(Number)
+    const jogoMs   = new Date(brtNow.toISOString().split('T')[0] + `T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:00-03:00`).getTime()
+    minutosAteJogoMap[j.id] = Math.round((jogoMs - brtNow.getTime()) / 60000)
+  }
 
   type PJ = { palpite_id: number; jogo_id: number; placar_palpite_a: number | null; placar_palpite_b: number | null; pontos: number }
   type Jogo = { id: number; time_a: string; time_b: string; horario?: string; resultado: { placar_real_a: number; placar_real_b: number } | null }
@@ -214,7 +222,7 @@ export default async function MeuDiaPage() {
       {/* ── Olhando para cima e para baixo ── */}
       {palpiteIds.length > 0 && jogoIdsHoje.length > 0 && (() => {
         type RankEntry = typeof ranking[0]
-        const pjRivaisTyped = (pjRivaisHoje ?? []) as { palpite_id: number; jogo_id: number; placar_palpite_a: number | null; placar_palpite_b: number | null }[]
+        const pjRivaisTyped = (pjRivaisHoje ?? []) as { palpite_id: number; jogo_id: number; placar_palpite_a: number | null; placar_palpite_b: number | null; pontos: number }[]
 
         const blocos = (meusPalpites as { id: number; nome: string }[]).map(p => {
           const myRank = ranking.find(r => r.palpite_id === p.id)
@@ -268,6 +276,7 @@ export default async function MeuDiaPage() {
                             isLast={false}
                             jogosHoje={jogosHoje}
                             pjRivais={pjRivaisTyped}
+                            minutosAteJogoMap={minutosAteJogoMap}
                           />
                         )
                       }) : (
@@ -307,6 +316,7 @@ export default async function MeuDiaPage() {
                           isLast={idx === rivaisAbaixo.length - 1}
                           jogosHoje={jogosHoje}
                           pjRivais={pjRivaisTyped}
+                          minutosAteJogoMap={minutosAteJogoMap}
                         />
                       )) : (
                         <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr' }}>
@@ -333,7 +343,7 @@ export default async function MeuDiaPage() {
 
 /* ── componente de rival — timeline paleta A ── */
 function RivalCard({
-  rival, direcao, diff, opacidadePonto, opacidadeDiff, isLast, jogosHoje, pjRivais,
+  rival, direcao, diff, opacidadePonto, opacidadeDiff, isLast, jogosHoje, pjRivais, minutosAteJogoMap,
 }: {
   rival: { palpite_id: number; nome: string; posicao: number; total_pontos: number }
   direcao: 'acima' | 'abaixo'
@@ -342,11 +352,12 @@ function RivalCard({
   opacidadeDiff: number
   isLast: boolean
   jogosHoje: { id: number; time_a: string; time_b: string; horario?: string; resultado: { placar_real_a: number; placar_real_b: number } | null }[]
-  pjRivais: { palpite_id: number; jogo_id: number; placar_palpite_a: number | null; placar_palpite_b: number | null }[]
+  pjRivais: { palpite_id: number; jogo_id: number; placar_palpite_a: number | null; placar_palpite_b: number | null; pontos: number }[]
+  minutosAteJogoMap: Record<number, number>
 }) {
-  const acima   = direcao === 'acima'
-  const baseRgb = acima ? '251,191,36' : '34,211,238'
-  const corDiff = `rgba(${baseRgb},${opacidadeDiff})`
+  const acima    = direcao === 'acima'
+  const baseRgb  = acima ? '251,191,36' : '34,211,238'
+  const corDiff  = `rgba(${baseRgb},${opacidadeDiff})`
   const corPonto = `rgba(${baseRgb},${opacidadePonto})`
 
   return (
@@ -370,11 +381,29 @@ function RivalCard({
         {/* linha 2: apostas em pills */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, paddingLeft: 30 }}>
           {jogosHoje.map(j => {
-            const pj      = pjRivais.find(x => x.palpite_id === rival.palpite_id && x.jogo_id === j.id)
-            const apostou = pj?.placar_palpite_a != null ? `${pj.placar_palpite_a}×${pj.placar_palpite_b}` : '—'
+            const pj           = pjRivais.find(x => x.palpite_id === rival.palpite_id && x.jogo_id === j.id)
+            const apostou      = pj?.placar_palpite_a != null ? `${pj.placar_palpite_a}×${pj.placar_palpite_b}` : '—'
+            const minutosAte   = minutosAteJogoMap[j.id] ?? -999
+            // blur se jogo ainda não começou E faltam mais de 60min
+            const blurred      = !j.resultado && minutosAte > 60
+            const pts          = pj?.pontos ?? 0
+            const realStr      = j.resultado ? `${j.resultado.placar_real_a}×${j.resultado.placar_real_b}` : null
             return (
-              <span key={j.id} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.50)', background: 'rgba(255,255,255,0.03)', whiteSpace: 'nowrap' }}>
-                {j.time_a.split(' ')[0]} × {j.time_b.split(' ')[0]} · <b style={{ color: 'rgba(255,255,255,0.70)' }}>{apostou}</b>
+              <span
+                key={j.id}
+                style={{
+                  fontSize: 10, padding: '2px 7px', borderRadius: 20,
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.50)',
+                  background: 'rgba(255,255,255,0.03)',
+                  whiteSpace: 'nowrap',
+                  ...(blurred ? { filter: 'blur(4px)', userSelect: 'none', pointerEvents: 'none' } : {}),
+                }}
+              >
+                {j.time_a.split(' ')[0]} × {j.time_b.split(' ')[0]}
+                {realStr && <span style={{ color: 'rgba(255,255,255,0.35)' }}> · {realStr}</span>}
+                {' · '}<b style={{ color: 'rgba(255,255,255,0.70)' }}>{apostou}</b>
+                {j.resultado && <span style={{ color: pts > 0 ? '#4ade80' : 'rgba(255,255,255,0.30)', fontWeight: 700 }}> +{pts}pts</span>}
               </span>
             )
           })}
