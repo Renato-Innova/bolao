@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -15,7 +15,8 @@ export async function POST(req: NextRequest) {
   if (typeof body.aberta === 'boolean') updates.aberta = body.aberta
   if (typeof body.resultado_visivel === 'boolean') updates.resultado_visivel = body.resultado_visivel
 
-  const { error } = await supabase
+  const admin = createAdminClient()
+  const { error } = await admin
     .from('enquete_config')
     .upsert({ id: 1, ...updates }, { onConflict: 'id' })
 
