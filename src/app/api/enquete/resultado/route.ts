@@ -43,12 +43,13 @@ export async function GET() {
     totalVotaram = votos?.length ?? 0
 
     // Total de usuários com ao menos 1 palpite ativo
-    const { count } = await supabaseAdmin
-      .from('users')
-      .select('id', { count: 'exact', head: true })
-      .filter('id', 'in', `(SELECT DISTINCT usuario_id FROM palpites WHERE status = 'ativo')`)
+    const { data: palpitesAtivos } = await supabaseAdmin
+      .from('palpites')
+      .select('usuario_id')
+      .eq('status', 'ativo')
 
-    totalUsuariosAtivos = count ?? 0
+    const uniqueUserIds = [...new Set((palpitesAtivos ?? []).map(p => p.usuario_id))]
+    totalUsuariosAtivos = uniqueUserIds.length
   }
 
   return NextResponse.json({
