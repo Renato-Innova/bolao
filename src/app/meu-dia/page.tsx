@@ -396,14 +396,15 @@ function RivalCard({
                   border: '1px solid rgba(255,255,255,0.08)',
                   color: 'rgba(255,255,255,0.50)',
                   background: 'rgba(255,255,255,0.03)',
-                  whiteSpace: 'nowrap',
-                  ...(blurred ? { filter: 'blur(4px)', userSelect: 'none', pointerEvents: 'none' } : {}),
+                  whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 2,
                 }}
               >
                 {j.time_a.split(' ')[0]} × {j.time_b.split(' ')[0]}
-                {realStr && <span style={{ color: 'rgba(255,255,255,0.35)' }}> · {realStr}</span>}
-                {' · '}<b style={{ color: 'rgba(255,255,255,0.70)' }}>{apostou}</b>
-                {j.resultado && <span style={{ color: pts > 0 ? '#4ade80' : 'rgba(255,255,255,0.30)', fontWeight: 700 }}> +{pts}pts</span>}
+                <span style={{ ...(blurred ? { filter: 'blur(4px)', userSelect: 'none' } : {}) }}>
+                  {realStr && <span style={{ color: 'rgba(255,255,255,0.35)' }}> · {realStr}</span>}
+                  {' · '}<b style={{ color: 'rgba(255,255,255,0.70)' }}>{apostou}</b>
+                  {j.resultado && <span style={{ color: pts > 0 ? '#4ade80' : 'rgba(255,255,255,0.30)', fontWeight: 700 }}> +{pts}pts</span>}
+                </span>
               </span>
             )
           })}
