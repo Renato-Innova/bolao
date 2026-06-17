@@ -314,4 +314,24 @@ input[type='number'] { -moz-appearance: textfield; }
   .instr-col-hide { display: none !important; }
   /* show the simplified specials mini-grid below table */
   .instr-specials-mini { display: grid !important; }
+
+  /* ── admin resultados — mobile game row ── */
+  .res-grid {
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+  }
+  .res-team-a {
+    flex: 1 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    justify-content: flex-end !important;
+  }
+  .res-team-b {
+    flex: 1 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    justify-content: flex-start !important;
+  }
+  .res-team-a span, .res-team-b span { font-size: 11px !important; }
 }

@@ -282,74 +282,89 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
         {/* Centro: tudo numa linha */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, minWidth: 0 }}>
 
-          {teamsUnknown ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
-                {fmtTime(jogo.horario)} · {FASE_LABEL[jogo.fase] ?? jogo.fase}{jogo.grupo ? ` · Gr.${jogo.grupo}` : ''}
-              </span>
-              {localCodigoA && <FlagImg codigo={localCodigoA} />}
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{localTimeA}</span>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>×</span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{localTimeB}</span>
-              {localCodigoB && <FlagImg codigo={localCodigoB} />}
-              <span style={{ fontSize: 10, color: 'rgba(255,200,80,0.6)', fontWeight: 600 }}>🔒 Preencha os times primeiro</span>
+          {/* Meta: sempre acima, centralizada */}
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
+            {fmtTime(jogo.horario)} · {FASE_LABEL[jogo.fase] ?? jogo.fase}{jogo.grupo ? ` · Gr.${jogo.grupo}` : ''}
+            {isKO && !teamsUnknown && !isSent && <span style={{ color: 'rgba(255,200,80,0.6)', marginLeft: 6, fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.3 }}>· inclui prorrogação</span>}
+          </span>
+
+          {/* Linha dos times — grid 5 colunas para alinhar o × */}
+          {/* col: [teamA 160px right] [inputA 30px] [× 20px center] [inputB 30px] [teamB 160px left] */}
+          <div className="res-grid" style={{ display: 'grid', gridTemplateColumns: '160px 30px 20px 30px 160px', alignItems: 'center', gap: '0 6px' }}>
+
+            {/* Team A — right-aligned */}
+            <div className="res-team-a" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5, minWidth: 0, width: 160 }}>
+              {teamsUnknown
+                ? <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{localTimeA}</span>
+                : <>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{localTimeA}</span>
+                    {localCodigoA && <FlagImg codigo={localCodigoA} />}
+                  </>
+              }
             </div>
-          ) : isSent && !editing ? (
-            /* Resultado já salvo: linha única */
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
-                {fmtTime(jogo.horario)} · {FASE_LABEL[jogo.fase] ?? jogo.fase}{jogo.grupo ? ` · Gr.${jogo.grupo}` : ''}
-              </span>
-              {localCodigoA && <FlagImg codigo={localCodigoA} />}
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{localTimeA}</span>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 8, padding: '4px 12px' }}>
-                  <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: '#4ade80', minWidth: 14, textAlign: 'center' }}>{savedA}</span>
-                  <span style={{ fontSize: 11, color: 'rgba(74,222,128,0.4)', fontWeight: 300 }}>–</span>
-                  <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: '#4ade80', minWidth: 14, textAlign: 'center' }}>{savedB}</span>
-                </div>
-                {savedPenA != null && savedPenB != null && (
-                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', letterSpacing: 0.3 }}>pen {savedPenA}–{savedPenB}</span>
-                )}
-              </div>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{localTimeB}</span>
-              {localCodigoB && <FlagImg codigo={localCodigoB} />}
-            </div>
-          ) : (
-            /* Pendente / editando: inputs na mesma linha */
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
-                  {fmtTime(jogo.horario)} · {FASE_LABEL[jogo.fase] ?? jogo.fase}{jogo.grupo ? ` · Gr.${jogo.grupo}` : ''}
-                  {isKO && <span style={{ color: 'rgba(255,200,80,0.6)', marginLeft: 6, fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.3 }}>· inclui prorrogação</span>}
-                </span>
-                {localCodigoA && <FlagImg codigo={localCodigoA} />}
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{localTimeA}</span>
+
+            {/* Input A or score */}
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              {teamsUnknown ? (
+                <span style={{ fontSize: 11, color: 'rgba(255,200,80,0.5)' }}>—</span>
+              ) : isSent && !editing ? (
+                <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: '#4ade80', textAlign: 'center' }}>{savedA}</span>
+              ) : (
                 <input type="number" min={0} value={placarA} onChange={e => setPlacarA(e.target.value)}
-                  style={{ width: 38, height: 32, textAlign: 'center', borderRadius: 6, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.4)', color: '#4A90D9', fontSize: 14, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
-                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>×</span>
-                <input type="number" min={0} value={placarB} onChange={e => setPlacarB(e.target.value)}
-                  style={{ width: 38, height: 32, textAlign: 'center', borderRadius: 6, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.4)', color: '#4A90D9', fontSize: 14, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>{localTimeB}</span>
-                {localCodigoB && <FlagImg codigo={localCodigoB} />}
-              </div>
-              {/* Pênaltis — linha separada abaixo, ainda centralizada */}
-              {isDraw && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.8)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>Pênaltis</span>
-                    <input type="number" min={0} value={penaltiA} onChange={e => setPenaltiA(e.target.value)}
-                      style={{ width: 38, height: 28, textAlign: 'center', borderRadius: 5, background: 'rgba(255,200,80,0.08)', border: `1px solid ${penaltiBlocked ? 'rgba(255,80,80,0.5)' : 'rgba(255,200,80,0.35)'}`, color: '#ffc850', fontSize: 13, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
-                    <span style={{ color: 'rgba(255,200,80,0.4)', fontSize: 11 }}>×</span>
-                    <input type="number" min={0} value={penaltiB} onChange={e => setPenaltiB(e.target.value)}
-                      style={{ width: 38, height: 28, textAlign: 'center', borderRadius: 5, background: 'rgba(255,200,80,0.08)', border: `1px solid ${penaltiBlocked ? 'rgba(255,80,80,0.5)' : 'rgba(255,200,80,0.35)'}`, color: '#ffc850', fontSize: 13, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
-                  </div>
-                  {penaltiBlocked && (
-                    <span style={{ fontSize: 9, color: 'rgba(255,120,120,0.9)', fontWeight: 600 }}>⚠️ Preencha os pênaltis</span>
-                  )}
-                </div>
+                  style={{ width: 30, height: 28, textAlign: 'center', borderRadius: 5, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.4)', color: '#4A90D9', fontSize: 13, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif', padding: 0 }} />
               )}
-            </>
+            </div>
+
+            {/* × separator */}
+            <div style={{ textAlign: 'center', fontSize: 11, color: isSent && !editing ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.3)' }}>
+              {isSent && !editing ? '–' : '×'}
+            </div>
+
+            {/* Input B or score */}
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              {teamsUnknown ? (
+                <span style={{ fontSize: 11, color: 'rgba(255,200,80,0.5)' }}>—</span>
+              ) : isSent && !editing ? (
+                <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: '#4ade80', textAlign: 'center' }}>{savedB}</span>
+              ) : (
+                <input type="number" min={0} value={placarB} onChange={e => setPlacarB(e.target.value)}
+                  style={{ width: 30, height: 28, textAlign: 'center', borderRadius: 5, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.4)', color: '#4A90D9', fontSize: 13, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif', padding: 0 }} />
+              )}
+            </div>
+
+            {/* Team B — left-aligned */}
+            <div className="res-team-b" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 5, minWidth: 0, width: 160 }}>
+              {teamsUnknown
+                ? <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{localTimeB}</span>
+                : <>
+                    {localCodigoB && <FlagImg codigo={localCodigoB} />}
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{localTimeB}</span>
+                  </>
+              }
+            </div>
+          </div>
+
+          {/* Avisos e pênaltis abaixo do grid */}
+          {teamsUnknown && (
+            <span style={{ fontSize: 10, color: 'rgba(255,200,80,0.7)', fontWeight: 600 }}>🔒 Preencha os times primeiro</span>
+          )}
+          {isSent && !editing && savedPenA != null && savedPenB != null && (
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 0.3 }}>pen {savedPenA}–{savedPenB}</span>
+          )}
+          {!teamsUnknown && !(isSent && !editing) && isDraw && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.8)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>Pênaltis</span>
+                <input type="number" min={0} value={penaltiA} onChange={e => setPenaltiA(e.target.value)}
+                  style={{ width: 30, height: 26, textAlign: 'center', borderRadius: 5, background: 'rgba(255,200,80,0.08)', border: `1px solid ${penaltiBlocked ? 'rgba(255,80,80,0.5)' : 'rgba(255,200,80,0.35)'}`, color: '#ffc850', fontSize: 12, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif', padding: 0 }} />
+                <span style={{ color: 'rgba(255,200,80,0.4)', fontSize: 11 }}>×</span>
+                <input type="number" min={0} value={penaltiB} onChange={e => setPenaltiB(e.target.value)}
+                  style={{ width: 30, height: 26, textAlign: 'center', borderRadius: 5, background: 'rgba(255,200,80,0.08)', border: `1px solid ${penaltiBlocked ? 'rgba(255,80,80,0.5)' : 'rgba(255,200,80,0.35)'}`, color: '#ffc850', fontSize: 12, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif', padding: 0 }} />
+              </div>
+              {penaltiBlocked && (
+                <span style={{ fontSize: 9, color: 'rgba(255,120,120,0.9)', fontWeight: 600 }}>⚠️ Preencha os pênaltis</span>
+              )}
+            </div>
           )}
         </div>
 
