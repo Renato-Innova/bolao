@@ -19,12 +19,16 @@ export default async function MeuDiaPage() {
     { data: jogosOntemData },
     { data: jogosHojeData },
     ranking,
+    { data: sysConfig },
   ] = await Promise.all([
     supabase.from('palpites').select('id, nome').eq('usuario_id', currentUser.id).eq('status', 'ativo').order('criado_em'),
     supabase.from('jogos_copa').select('id, time_a, time_b, resultado:resultados(placar_real_a, placar_real_b)').eq('data', ontem).order('horario'),
     supabase.from('jogos_copa').select('id, time_a, time_b, horario, resultado:resultados(placar_real_a, placar_real_b)').eq('data', hoje).order('horario'),
     getRanking(),
+    supabase.from('configuracoes_sistema').select('minutos_lock_jogo').eq('id', 1).single(),
   ])
+
+  const minutosLock = (sysConfig as { minutos_lock_jogo?: number } | null)?.minutos_lock_jogo ?? 60
 
   const palpiteIds   = (meusPalpites ?? []).map((p: { id: number }) => p.id)
   const jogoIdsOntem = (jogosOntemData ?? []).map((j: { id: number }) => j.id)
@@ -61,12 +65,13 @@ export default async function MeuDiaPage() {
         .in('palpite_id', uniqueRivalIds).in('jogo_id', jogoIdsHoje)
     : { data: [] }
 
-  // Minutos até cada jogo de hoje (para controle do blur)
+  // Minutos até cada jogo de hoje — usa Date.now() (UTC real) para comparar corretamente
+  const agoraMs = Date.now()
   const minutosAteJogoMap: Record<number, number> = {}
   for (const j of (jogosHojeData ?? []) as { id: number; horario: string }[]) {
     const [hh, mm] = j.horario.split(':').map(Number)
-    const jogoMs   = new Date(brtNow.toISOString().split('T')[0] + `T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:00-03:00`).getTime()
-    minutosAteJogoMap[j.id] = Math.round((jogoMs - brtNow.getTime()) / 60000)
+    const jogoMs   = new Date(`${hoje}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:00-03:00`).getTime()
+    minutosAteJogoMap[j.id] = Math.round((jogoMs - agoraMs) / 60000)
   }
 
   type PJ = { palpite_id: number; jogo_id: number; placar_palpite_a: number | null; placar_palpite_b: number | null; pontos: number }
@@ -277,6 +282,7 @@ export default async function MeuDiaPage() {
                             jogosHoje={jogosHoje}
                             pjRivais={pjRivaisTyped}
                             minutosAteJogoMap={minutosAteJogoMap}
+                            minutosLock={minutosLock}
                           />
                         )
                       }) : (
@@ -317,6 +323,7 @@ export default async function MeuDiaPage() {
                           jogosHoje={jogosHoje}
                           pjRivais={pjRivaisTyped}
                           minutosAteJogoMap={minutosAteJogoMap}
+                          minutosLock={minutosLock}
                         />
                       )) : (
                         <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr' }}>
@@ -343,7 +350,7 @@ export default async function MeuDiaPage() {
 
 /* ── componente de rival — timeline paleta A ── */
 function RivalCard({
-  rival, direcao, diff, opacidadePonto, opacidadeDiff, isLast, jogosHoje, pjRivais, minutosAteJogoMap,
+  rival, direcao, diff, opacidadePonto, opacidadeDiff, isLast, jogosHoje, pjRivais, minutosAteJogoMap, minutosLock,
 }: {
   rival: { palpite_id: number; nome: string; posicao: number; total_pontos: number }
   direcao: 'acima' | 'abaixo'
@@ -354,6 +361,7 @@ function RivalCard({
   jogosHoje: { id: number; time_a: string; time_b: string; horario?: string; resultado: { placar_real_a: number; placar_real_b: number } | null }[]
   pjRivais: { palpite_id: number; jogo_id: number; placar_palpite_a: number | null; placar_palpite_b: number | null; pontos: number }[]
   minutosAteJogoMap: Record<number, number>
+  minutosLock: number
 }) {
   const acima    = direcao === 'acima'
   const baseRgb  = acima ? '251,191,36' : '34,211,238'
@@ -384,8 +392,8 @@ function RivalCard({
             const pj           = pjRivais.find(x => x.palpite_id === rival.palpite_id && x.jogo_id === j.id)
             const apostou      = pj?.placar_palpite_a != null ? `${pj.placar_palpite_a}×${pj.placar_palpite_b}` : '—'
             const minutosAte   = minutosAteJogoMap[j.id] ?? -999
-            // blur se jogo ainda não começou E faltam mais de 60min
-            const blurred      = !j.resultado && minutosAte > 60
+            // blur se jogo ainda não começou E faltam mais de minutosLock min (config do admin)
+            const blurred      = !j.resultado && minutosAte > minutosLock
             const pts          = pj?.pontos ?? 0
             const realStr      = j.resultado ? `${j.resultado.placar_real_a}×${j.resultado.placar_real_b}` : null
             return (
