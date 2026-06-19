@@ -183,8 +183,8 @@ export default async function DashboardPage() {
               {(ultimosResultados as JogoCopa[]).map((j) => (
                 <div key={j.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', padding: '7px 8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 7 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5 }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'white', textAlign: 'right' }}>{j.time_a}</span>
                     {j.codigo_pais_a && <FlagImg codigo={j.codigo_pais_a} size={16} />}
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'white', textAlign: 'right' }}>{j.time_a}</span>
                   </div>
                   <div style={{ textAlign: 'center', padding: '0 10px' }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: '#4A90D9', letterSpacing: 1 }}>
@@ -198,8 +198,8 @@ export default async function DashboardPage() {
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 1 }}>{formatDate(j.data)}</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 5 }}>
-                    {j.codigo_pais_b && <FlagImg codigo={j.codigo_pais_b} size={16} />}
                     <span style={{ fontSize: 11, fontWeight: 600, color: 'white' }}>{j.time_b}</span>
+                    {j.codigo_pais_b && <FlagImg codigo={j.codigo_pais_b} size={16} />}
                   </div>
                 </div>
               ))}
@@ -312,8 +312,8 @@ export default async function DashboardPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600 }}>
-                        <span style={{ textAlign: 'right' }}>{j.time_a}</span>
                         {j.codigo_pais_a && <FlagImg codigo={j.codigo_pais_a} size={16} />}
+                        <span style={{ textAlign: 'right' }}>{j.time_a}</span>
                       </div>
                       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)' }}>{formatDate(j.data)}</div>
                     </div>
@@ -331,8 +331,8 @@ export default async function DashboardPage() {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600 }}>
-                        {j.codigo_pais_b && <FlagImg codigo={j.codigo_pais_b} size={16} />}
                         <span>{j.time_b}</span>
+                        {j.codigo_pais_b && <FlagImg codigo={j.codigo_pais_b} size={16} />}
                       </div>
                       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)' }}>{j.cidade}</div>
                     </div>
