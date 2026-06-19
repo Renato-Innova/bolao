@@ -146,16 +146,42 @@ function GameRow({ jogo }: { jogo: JogoCopa }) {
   )
 }
 
+// normaliza texto removendo acentos para busca tolerante
+function normalize(s: string) {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+}
+
 function JogosTab({ todosJogos }: { todosJogos: JogoCopa[] }) {
+  const [busca, setBusca] = useState('')
+
+  const termNorm = normalize(busca.trim())
+
+  // filtra jogos por time quando há busca ativa
+  const jogosFiltrados = termNorm
+    ? todosJogos.filter(j =>
+        normalize(j.time_a).includes(termNorm) ||
+        normalize(j.time_b).includes(termNorm)
+      )
+    : todosJogos
+
   // Determine the default open day: first day that has any game without result
-  const days = groupByDay(todosJogos)
-  const defaultOpenDate = days.find(d => d.games.some(g => !g.resultado))?.date ?? null
+  const days = groupByDay(jogosFiltrados)
+  const defaultOpenDate = groupByDay(todosJogos).find(d => d.games.some(g => !g.resultado))?.date ?? null
 
   const [accOpen, setAccOpen] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {}
     if (defaultOpenDate) init[defaultOpenDate] = true
     return init
   })
+
+  // ao buscar, expande todos os dias encontrados automaticamente
+  useEffect(() => {
+    if (termNorm) {
+      const all: Record<string, boolean> = {}
+      days.forEach(d => { all[d.date] = true })
+      setAccOpen(all)
+    }
+  }, [termNorm]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function toggleAcc(date: string) {
     setAccOpen(prev => ({ ...prev, [date]: !prev[date] }))
@@ -171,17 +197,52 @@ function JogosTab({ todosJogos }: { todosJogos: JogoCopa[] }) {
 
   return (
     <div>
-      {/* Controls */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginBottom: 12 }}>
-        <button onClick={expandAll}
-          style={{ background: 'rgba(74,144,217,0.1)', border: '1px solid rgba(74,144,217,0.25)', color: '#7BB8F0', padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.4, whiteSpace: 'nowrap' }}>
-          Expandir todos
-        </button>
-        <button onClick={collapseAll}
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.4, whiteSpace: 'nowrap' }}>
-          Recolher todos
-        </button>
+      {/* Buscador */}
+      <div style={{ position: 'relative', marginBottom: 14 }}>
+        <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: 'rgba(255,255,255,0.30)', pointerEvents: 'none' }}>🔍</span>
+        <input
+          type="text"
+          placeholder="Buscar por time… ex: Brasil, Suíça"
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          style={{
+            width: '100%', boxSizing: 'border-box',
+            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(74,144,217,0.25)',
+            borderRadius: 8, padding: '9px 36px 9px 36px',
+            color: 'white', fontSize: 13, fontFamily: 'Inter,sans-serif', outline: 'none',
+          }}
+        />
+        {busca && (
+          <button
+            onClick={() => setBusca('')}
+            style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.40)', fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: '0 2px' }}
+            aria-label="Limpar busca"
+          >×</button>
+        )}
       </div>
+
+      {/* Resultado da busca */}
+      {termNorm && (
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', marginBottom: 10 }}>
+          {jogosFiltrados.length === 0
+            ? 'Nenhum jogo encontrado.'
+            : `${jogosFiltrados.length} jogo${jogosFiltrados.length > 1 ? 's' : ''} encontrado${jogosFiltrados.length > 1 ? 's' : ''}`}
+        </div>
+      )}
+
+      {/* Controls */}
+      {!termNorm && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginBottom: 12 }}>
+          <button onClick={expandAll}
+            style={{ background: 'rgba(74,144,217,0.1)', border: '1px solid rgba(74,144,217,0.25)', color: '#7BB8F0', padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.4, whiteSpace: 'nowrap' }}>
+            Expandir todos
+          </button>
+          <button onClick={collapseAll}
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.4, whiteSpace: 'nowrap' }}>
+            Recolher todos
+          </button>
+        </div>
+      )}
 
       {/* Day accordions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -192,7 +253,6 @@ function JogosTab({ todosJogos }: { todosJogos: JogoCopa[] }) {
           const allDone  = played === total
           const hasNext  = day.date === defaultOpenDate
 
-          // Color hint: all done → green; has next game → blue; future → muted
           const accentColor = allDone
             ? 'rgba(74,222,128,0.8)'
             : hasNext
@@ -201,7 +261,6 @@ function JogosTab({ todosJogos }: { todosJogos: JogoCopa[] }) {
 
           return (
             <div key={day.date} style={{ background: '#0D1E3D', border: `1px solid ${hasNext && !allDone ? 'rgba(74,144,217,0.35)' : 'rgba(74,144,217,0.12)'}`, borderRadius: 10, overflow: 'hidden' }}>
-              {/* Accordion header */}
               <div onClick={() => toggleAcc(day.date)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', cursor: 'pointer', userSelect: 'none', background: 'rgba(255,255,255,0.02)' }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: accentColor, flexShrink: 0 }}>
                   {allDone ? '✓' : hasNext ? '▶' : '○'}
@@ -214,7 +273,6 @@ function JogosTab({ todosJogos }: { todosJogos: JogoCopa[] }) {
                 <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', transition: 'transform 0.22s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}>▼</span>
               </div>
 
-              {/* Games */}
               {isOpen && (
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                   {day.games.map(jogo => <GameRow key={jogo.id} jogo={jogo} />)}
