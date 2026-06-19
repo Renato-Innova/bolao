@@ -85,6 +85,11 @@ export default async function MeuDiaPage() {
     pontosOntemPorPalpite[pj.palpite_id] = (pontosOntemPorPalpite[pj.palpite_id] ?? 0) + pj.pontos
   }
 
+  const pontosHojePorPalpite: Record<number, number> = {}
+  for (const pj of (pjHoje ?? []) as PJ[]) {
+    pontosHojePorPalpite[pj.palpite_id] = (pontosHojePorPalpite[pj.palpite_id] ?? 0) + pj.pontos
+  }
+
   const temOntem = jogosOntem.some(j => j.resultado)
   const temHoje  = jogosHoje.length > 0
 
@@ -180,9 +185,16 @@ export default async function MeuDiaPage() {
             <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.20)', borderRadius: 10, padding: '16px 18px' }}>
               <div style={subLabel}>Hoje · {fmt(hoje)}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {(meusPalpites as { id: number; nome: string }[]).map(p => (
+                  {(meusPalpites as { id: number; nome: string }[]).map(p => {
+                    const ptsTotaisHoje = pontosHojePorPalpite[p.id] ?? 0
+                    return (
                     <div key={p.id} style={{ ...card, border: '1px solid rgba(74,144,217,0.10)' }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 8 }}>{p.nome}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{p.nome}</span>
+                        {ptsTotaisHoje > 0 && (
+                          <span style={{ fontSize: 14, fontWeight: 700, color: '#4ade80' }}>+{ptsTotaisHoje} pts</span>
+                        )}
+                      </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         {jogosHoje.map(j => {
                           const pj      = (pjHoje as PJ[]).find(x => x.palpite_id === p.id && x.jogo_id === j.id)
@@ -217,7 +229,7 @@ export default async function MeuDiaPage() {
                         })}
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
             </div>
           )}
