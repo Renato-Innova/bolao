@@ -182,11 +182,11 @@ export default async function DashboardPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {(ultimosResultados as JogoCopa[]).map((j) => (
                 <div key={j.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', padding: '7px 8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 7 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5 }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'white', textAlign: 'right' }}>{j.time_a}</span>
                     {j.codigo_pais_a && <FlagImg codigo={j.codigo_pais_a} size={16} />}
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'white' }}>{j.time_a}</span>
                   </div>
-                  <div style={{ textAlign: 'center', padding: '0 8px' }}>
+                  <div style={{ textAlign: 'center', padding: '0 10px' }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: '#4A90D9', letterSpacing: 1 }}>
                       {j.resultado!.placar_real_a} – {j.resultado!.placar_real_b}
                     </div>
@@ -197,9 +197,9 @@ export default async function DashboardPage() {
                     )}
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 1 }}>{formatDate(j.data)}</div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end' }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'white' }}>{j.time_b}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 5 }}>
                     {j.codigo_pais_b && <FlagImg codigo={j.codigo_pais_b} size={16} />}
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'white' }}>{j.time_b}</span>
                   </div>
                 </div>
               ))}
@@ -310,12 +310,12 @@ export default async function DashboardPage() {
                 }}>
                   {/* times + placar */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
-                    <div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600 }}>
+                        <span style={{ textAlign: 'right' }}>{j.time_a}</span>
                         {j.codigo_pais_a && <FlagImg codigo={j.codigo_pais_a} size={16} />}
-                        {j.time_a}
                       </div>
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)', marginTop: 2 }}>{formatDate(j.data)}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)' }}>{formatDate(j.data)}</div>
                     </div>
                     <div style={{ textAlign: 'center', padding: '0 10px' }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9' }}>
@@ -329,12 +329,12 @@ export default async function DashboardPage() {
                         {hasPlacar ? 'Encerrado' : isToday ? `Hoje ${formatTime(j.horario)}h` : `Amanhã ${formatTime(j.horario)}h`}
                       </span>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, justifyContent: 'flex-end' }}>
-                        {j.time_b}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600 }}>
                         {j.codigo_pais_b && <FlagImg codigo={j.codigo_pais_b} size={16} />}
+                        <span>{j.time_b}</span>
                       </div>
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)', marginTop: 2 }}>{j.cidade}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)' }}>{j.cidade}</div>
                     </div>
                   </div>
                   {/* barras de % palpites */}
