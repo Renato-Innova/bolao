@@ -256,9 +256,9 @@ export default async function DashboardPage() {
                     </div>
                     <div style={{ textAlign: 'right', minWidth: 52 }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: 5 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9' }}>{entry.total_pontos} pts</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: '#4A90D9' }}>{entry.total_pontos} pts</span>
                         {entry.variacao !== 0 && (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: entry.variacao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: entry.variacao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
                             {entry.variacao > 0 ? `▲ +${entry.variacao}` : `▼ ${entry.variacao}`}
                           </span>
                         )}
