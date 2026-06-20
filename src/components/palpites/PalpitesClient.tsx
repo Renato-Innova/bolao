@@ -986,7 +986,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                   borderBottom: `2px solid ${active ? '#4A90D9' : 'transparent'}`,
                   marginBottom: -1, transition: 'color 0.15s, border-color 0.15s',
                 }}>
-                  {label}
+                  {i === 1 && (especiaisLocked ? '🔒 ' : '🔓 ')}{label}
                 </div>
               )
             })}
@@ -1161,7 +1161,13 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                 </div>
               ) : (
                 <div style={{ background: 'rgba(255,200,80,0.07)', border: '1px solid rgba(255,200,80,0.25)', borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 11, color: 'rgba(255,200,80,0.85)', lineHeight: 1.5 }}>
-                  ⚠️ Os palpites especiais devem ser preenchidos até <strong style={{ color: 'rgba(255,220,100,1)' }}>1 hora antes da primeira partida da Copa (11 jun · 16h00)</strong> e não poderão ser editados após esse prazo.
+                  ⚠️ Os palpites especiais devem ser preenchidos até{' '}
+                  <strong style={{ color: 'rgba(255,220,100,1)' }}>
+                    {especiaisDeadline
+                      ? new Date(especiaisDeadline).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+                      : 'data a definir'}
+                  </strong>{' '}
+                  e não poderão ser editados após esse prazo.
                 </div>
               )}
               <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, overflow: 'hidden' }}>
