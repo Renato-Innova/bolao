@@ -161,32 +161,35 @@ export function EnquetePopup() {
                   Resultado da votação
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 10 }}>
-                  {OPCOES.map(({ letra, texto }) => {
-                    const pct     = getPct(letra)
-                    const meuVoto = estado?.meuVoto === letra
-                    return (
-                      <div key={letra}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5 }}>
-                          <span style={{ fontSize: 11, fontWeight: 800, color: meuVoto ? '#4ade80' : '#7BB8F0', minWidth: 18, flexShrink: 0 }}>
-                            {letra}
-                          </span>
-                          <span style={{ fontSize: 12, color: meuVoto ? 'white' : 'rgba(255,255,255,0.7)', fontWeight: meuVoto ? 600 : 400, lineHeight: 1.4, flex: 1 }}>
-                            {texto}
-                          </span>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: meuVoto ? '#4ade80' : 'rgba(255,255,255,0.5)', minWidth: 36, textAlign: 'right', flexShrink: 0 }}>
-                            {pct}%
-                          </span>
+                  {(() => {
+                    const maxVotos = Math.max(...OPCOES.map(o => totais[o.letra as keyof typeof totais]))
+                    return OPCOES.map(({ letra, texto }) => {
+                      const pct      = getPct(letra)
+                      const vencedora = maxVotos > 0 && totais[letra as keyof typeof totais] === maxVotos
+                      return (
+                        <div key={letra}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5 }}>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: vencedora ? '#4ade80' : '#7BB8F0', minWidth: 18, flexShrink: 0 }}>
+                              {letra}
+                            </span>
+                            <span style={{ fontSize: 12, color: vencedora ? 'white' : 'rgba(255,255,255,0.7)', fontWeight: vencedora ? 600 : 400, lineHeight: 1.4, flex: 1 }}>
+                              {texto}
+                            </span>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: vencedora ? '#4ade80' : 'rgba(255,255,255,0.5)', minWidth: 36, textAlign: 'right', flexShrink: 0 }}>
+                              {pct}%
+                            </span>
+                          </div>
+                          <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 99, overflow: 'hidden' }}>
+                            <div style={{
+                              height: '100%', width: `${pct}%`,
+                              background: vencedora ? 'linear-gradient(90deg,#4ade80,#22c55e)' : 'rgba(74,144,217,0.5)',
+                              borderRadius: 99,
+                            }} />
+                          </div>
                         </div>
-                        <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 99, overflow: 'hidden' }}>
-                          <div style={{
-                            height: '100%', width: `${pct}%`,
-                            background: meuVoto ? 'linear-gradient(90deg,#4ade80,#22c55e)' : 'rgba(74,144,217,0.5)',
-                            borderRadius: 99,
-                          }} />
-                        </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })
+                  })()}
                 </div>
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
                   {total} {total === 1 ? 'voto' : 'votos'} de {estado.totalUsuariosAtivos} participantes
