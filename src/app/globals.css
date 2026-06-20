@@ -308,6 +308,9 @@ input[type='number'] { -moz-appearance: textfield; }
 
   /* ── instrucoes ── */
   .instr-two    { grid-template-columns: 1fr !important; }
+
+  /* ── palpites: aba pontuação — mobile mantém 1 coluna ── */
+  .pontuacao-grid { grid-template-columns: 1fr !important; }
   .instr-score-wrap {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;

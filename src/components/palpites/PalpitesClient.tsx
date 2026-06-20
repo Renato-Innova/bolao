@@ -2308,12 +2308,13 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
     byFase[fase].pts += pj.pontos ?? 0
   }
 
-  // Max possible per phase = submitted games × placar_exato for that phase
+  // Max possible per phase = TODOS os jogos da fase × placar_exato (não só os já enviados)
   const maxPtsByFase = (fase: string): number =>
-    (byFase[fase]?.submitted ?? 0) * configPts(fase, 'placar_exato')
+    (totalJogosByFase[fase] ?? 0) * configPts(fase, 'placar_exato')
 
   const ptsJogos    = Object.values(byFase).reduce((s, v) => s + v.pts, 0)
-  const maxJogos    = Object.keys(byFase).reduce((s, f) => s + maxPtsByFase(f), 0)
+  // Máximo real do bolão — todos os 104 jogos, não só os já enviados
+  const maxJogosTotal = FASE_ORDER.reduce((s, fase) => s + maxPtsByFase(fase), 0)
   const pontosPorClassif = configPts('GS', 'classificacao') || PONTOS_CLASSIFICACAO_GRUPO
   const ptsClassif  = palpite.pontos_classificacao ?? 0
   const maxClassif  = 32 * pontosPorClassif   // 32 qualifiers × pontos configurados pelo admin
@@ -2322,7 +2323,7 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
   const maxEspeciais = (['campeao', 'vice_campeao', 'artilheiro', 'melhor_jogador', 'melhor_goleiro'] as const)
     .reduce((s, tipo) => s + especiaisPts(tipo), 0)  // 320 pts total por padrão, admin-configurável
   const ptsTotal    = ptsJogos + ptsClassif + ptsEspeciais
-  const maxTotal    = maxJogos + maxClassif + maxEspeciais
+  const maxTotal    = maxJogosTotal + maxClassif + maxEspeciais
 
   // Percentage bar component
   function ProgressBar({ earned, max, color = '#4A90D9' }: { earned: number; max: number; color?: string }) {
@@ -2338,17 +2339,22 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
   }
 
   return (
-    <div style={{ maxWidth: 500 }}>
+    <div style={{ maxWidth: 760, margin: '0 auto' }}>
+
+      <div className="pontuacao-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+
+      {/* Left column */}
+      <div>
 
       {/* Per-phase game points */}
       <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
         <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>
           ⚽ Pontos por fase
         </div>
-        {FASE_ORDER.filter(f => byFase[f]).map((fase, idx, arr) => {
-          const earned = byFase[fase].pts
+        {FASE_ORDER.filter(f => (totalJogosByFase[f] ?? 0) > 0).map((fase, idx, arr) => {
+          const earned = byFase[fase]?.pts ?? 0
           const max    = maxPtsByFase(fase)
-          const sub    = byFase[fase].submitted
+          const sub    = byFase[fase]?.submitted ?? 0
           const total  = totalJogosByFase[fase] ?? 0
           const pct    = max > 0 ? Math.min(100, Math.round((earned / max) * 100)) : 0
           return (
@@ -2378,20 +2384,19 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
             </div>
           )
         })}
-        {Object.keys(byFase).length === 0 && (
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '8px 0' }}>Nenhum palpite enviado ainda</div>
-        )}
         {/* Subtotal */}
-        {Object.keys(byFase).length > 0 && (
-          <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subtotal jogos</span>
-              <span style={{ fontSize: 12, fontWeight: 800, color: '#4A90D9' }}>{ptsJogos} / {maxJogos} pts</span>
-            </div>
-            <ProgressBar earned={ptsJogos} max={maxJogos} />
+        <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subtotal jogos</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: '#4A90D9' }}>{ptsJogos} / {maxJogosTotal} pts</span>
           </div>
-        )}
+          <ProgressBar earned={ptsJogos} max={maxJogosTotal} />
+        </div>
       </div>
+
+      </div>
+      {/* Right column */}
+      <div>
 
       {/* Classification bonus */}
       <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
@@ -2448,8 +2453,11 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
         </div>
       </div>
 
-      {/* Grand total */}
-      <div style={{ background: 'rgba(74,144,217,0.08)', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 10, padding: '16px 18px' }}>
+      </div>
+      </div>
+
+      {/* Grand total — ocupa as duas colunas */}
+      <div style={{ background: 'rgba(74,144,217,0.08)', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 10, padding: '16px 18px', marginTop: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.5 }}>Total Geral</span>
           <div style={{ textAlign: 'right' }}>
