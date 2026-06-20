@@ -2333,7 +2333,7 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
         <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3, transition: 'width 0.4s ease' }} />
         </div>
-        <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', minWidth: 32, textAlign: 'right' }}>{pct}%</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)', minWidth: 32, textAlign: 'right' }}>{pct}%</span>
       </div>
     )
   }
@@ -2348,7 +2348,7 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
 
       {/* Per-phase game points */}
       <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>
           ⚽ Pontos por fase
         </div>
         {FASE_ORDER.filter(f => (totalJogosByFase[f] ?? 0) > 0).map((fase, idx, arr) => {
@@ -2362,14 +2362,14 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
               {/* Row header */}
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
                 <div>
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>{FASE_NAMES[fase]}</span>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginLeft: 8 }}>{sub}/{total} jogos</span>
+                  <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>{FASE_NAMES[fase]}</span>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginLeft: 8 }}>{sub}/{total} jogos</span>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: earned > 0 ? '#4A90D9' : 'rgba(255,255,255,0.25)' }}>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: earned > 0 ? '#4A90D9' : 'rgba(255,255,255,0.25)' }}>
                     {earned}
                   </span>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)', marginLeft: 3 }}>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.50)', marginLeft: 3 }}>
                     / {max} pts
                   </span>
                 </div>
@@ -2379,7 +2379,7 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
                 <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${pct}%`, background: pct >= 70 ? '#4ade80' : pct >= 40 ? '#4A90D9' : '#f97316', borderRadius: 3, transition: 'width 0.4s ease' }} />
                 </div>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.55)', minWidth: 32, textAlign: 'right' }}>{pct}%</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.55)', minWidth: 32, textAlign: 'right' }}>{pct}%</span>
               </div>
             </div>
           )
@@ -2387,8 +2387,8 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
         {/* Subtotal */}
         <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subtotal jogos</span>
-            <span style={{ fontSize: 12, fontWeight: 800, color: '#4A90D9' }}>{ptsJogos} / {maxJogosTotal} pts</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subtotal jogos</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: '#4A90D9' }}>{ptsJogos} / {maxJogosTotal} pts</span>
           </div>
           <ProgressBar earned={ptsJogos} max={maxJogosTotal} />
         </div>
@@ -2400,17 +2400,17 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
 
       {/* Classification bonus */}
       <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
           🏅 Bônus de classificação de grupos
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
           <div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Seleções classificadas corretas</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Seleções classificadas corretas</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
               {ptsClassif > 0 ? `${ptsClassif / pontosPorClassif} de 32 · ${pontosPorClassif} pts cada` : 'Calculado pelo admin ao final da fase de grupos'}
             </div>
           </div>
-          <span style={{ fontSize: 12, fontWeight: 800, color: ptsClassif > 0 ? '#4A90D9' : 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap', marginLeft: 12 }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: ptsClassif > 0 ? '#4A90D9' : 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap', marginLeft: 12 }}>
             {ptsClassif} / {maxClassif} pts
           </span>
         </div>
@@ -2419,7 +2419,7 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
 
       {/* Special predictions */}
       <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
           🌟 Palpites especiais
         </div>
         {[
@@ -2431,21 +2431,21 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
         ].map((item, idx, arr) => (
           <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderBottom: idx < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 14 }}>{item.emoji}</span>
+              <span style={{ fontSize: 16 }}>{item.emoji}</span>
               <div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}>{item.label}</div>
-                <div style={{ fontSize: 11, color: item.value ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)', fontStyle: item.value ? 'normal' : 'italic' }}>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}>{item.label}</div>
+                <div style={{ fontSize: 13, color: item.value ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)', fontStyle: item.value ? 'normal' : 'italic' }}>
                   {item.value || '— não preenchido'}
                 </div>
               </div>
             </div>
-            <span style={{ fontSize: 10, color: 'rgba(255,200,80,0.6)', fontWeight: 700, whiteSpace: 'nowrap' }}>até {item.maxPts} pts</span>
+            <span style={{ fontSize: 12, color: 'rgba(255,200,80,0.6)', fontWeight: 700, whiteSpace: 'nowrap' }}>até {item.maxPts} pts</span>
           </div>
         ))}
         <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subtotal especiais</span>
-            <span style={{ fontSize: 12, fontWeight: 800, color: ptsEspeciais > 0 ? '#4A90D9' : 'rgba(255,255,255,0.25)' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subtotal especiais</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: ptsEspeciais > 0 ? '#4A90D9' : 'rgba(255,255,255,0.25)' }}>
               {ptsEspeciais} / {maxEspeciais} pts
             </span>
           </div>
