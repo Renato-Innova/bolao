@@ -270,7 +270,12 @@ export function RankingBarChart({ ranking, myIds }: Props) {
     const top10   = ranking.slice(0, 10)
     const myExtra = ranking.filter(e => myIds.includes(e.palpite_id) && e.posicao > 10)
     const entries = [...new Map([...top10, ...myExtra].map(e => [e.palpite_id, e])).values()]
-    const ordered = [...entries].sort((a, b) => a.total_pontos - b.total_pontos)
+    // Mesmo critério de desempate do getRanking(), em ordem inversa (ascendente para o gráfico)
+    const ordered = [...entries].sort((a, b) =>
+      a.total_pontos - b.total_pontos ||
+      a.acertos_exatos - b.acertos_exatos ||
+      b.palpite_id - a.palpite_id
+    )
     const maxPts  = Math.max(...entries.map(e => e.total_pontos), 10) + 12
 
     loadImages(entries).then(imgMap => {

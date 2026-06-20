@@ -69,6 +69,9 @@ input[type='number'] { -moz-appearance: textfield; }
 .meu-dia-row > * { flex: 1; min-width: 0; }
 .tabela-palpite-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 
+/* acertos exatos — duplicado dentro da coluna de pontos, só aparece no mobile (ver media query) */
+.rank-acertos-mobile { display: none; }
+
 /* ── chave bracket (desktop: all columns, mobile: 2 columns sliding) ── */
 .chave-pills-bar { display: none; }
 .chave-col { width: 200px; }
@@ -280,6 +283,7 @@ input[type='number'] { -moz-appearance: textfield; }
   .rank-right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
   .rank-pts   { font-size: 14px !important; font-weight: 800 !important; color: var(--accent); }
   .rank-var   { font-size: 10px !important; font-weight: 700 !important; }
+  .rank-acertos-mobile { display: block !important; font-size: 9px !important; color: var(--td) !important; margin-top: 1px !important; white-space: nowrap !important; }
 
   /* ranking table wrapper to flex column */
   .rank-table-body { display: flex !important; flex-direction: column !important; gap: 6px !important; }

@@ -316,6 +316,10 @@ export default async function RankingPage() {
                           {entry.variacao > 0 ? `▲ +${entry.variacao} pts` : `▼ ${entry.variacao} pts`}
                         </div>
                       )}
+                      {/* acertos exatos — só mobile, onde a coluna dedicada fica oculta */}
+                      <div className="rank-acertos-mobile">
+                        {entry.acertos_exatos} exato{entry.acertos_exatos !== 1 ? 's' : ''}
+                      </div>
                     </div>
 
                     {/* barra de desempenho — borda inferior da linha */}
