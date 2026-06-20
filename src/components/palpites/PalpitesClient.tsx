@@ -2406,9 +2406,11 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
           <div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Seleções classificadas corretas</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
-              {ptsClassif > 0 ? `${ptsClassif / pontosPorClassif} de 32 · ${pontosPorClassif} pts cada` : 'Calculado pelo admin ao final da fase de grupos'}
-            </div>
+            {ptsClassif > 0 && (
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+                {ptsClassif / pontosPorClassif} de 32 · {pontosPorClassif} pts cada
+              </div>
+            )}
           </div>
           <span style={{ fontSize: 13, fontWeight: 800, color: ptsClassif > 0 ? '#4A90D9' : 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap', marginLeft: 12 }}>
             {ptsClassif} / {maxClassif} pts
