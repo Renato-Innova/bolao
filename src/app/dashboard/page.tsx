@@ -255,12 +255,17 @@ export default async function DashboardPage() {
                       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)', whiteSpace: 'nowrap' }}>{trunc(entry.usuario_nome, 30)}</div>
                     </div>
                     <div style={{ textAlign: 'right', minWidth: 52 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9' }}>{entry.total_pontos} pts</div>
-                      {entry.variacao !== 0 && (
-                        <div style={{ fontSize: 11, fontWeight: 700, marginTop: 1, color: entry.variacao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
-                          {entry.variacao > 0 ? `▲ +${entry.variacao}` : `▼ ${entry.variacao}`}
-                        </div>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: 5 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#4A90D9' }}>{entry.total_pontos} pts</span>
+                        {entry.variacao !== 0 && (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: entry.variacao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
+                            {entry.variacao > 0 ? `▲ +${entry.variacao}` : `▼ ${entry.variacao}`}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.40)', marginTop: 1, whiteSpace: 'nowrap' }}>
+                        {entry.acertos_exatos} {entry.acertos_exatos === 1 ? 'acerto' : 'acertos'}
+                      </div>
                     </div>
                     {/* barra de desempenho — borda inferior do card, sem track */}
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2 }}>
