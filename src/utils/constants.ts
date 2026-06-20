@@ -77,7 +77,7 @@ export const TEAMS: Record<string, { nome: string; codigo: string }> = {
   'Panamá':     { nome: 'Panamá',     codigo: 'pa' },
 }
 
-export const ALL_TEAMS = Object.keys(TEAMS)
+export const ALL_TEAMS = Object.keys(TEAMS).sort((a, b) => a.localeCompare(b, 'pt-BR'))
 
 export const TEAM_ABBR: Record<string, string> = {
   // Grupo A
@@ -203,14 +203,22 @@ export function getConfrontoHistorico(timeA: string, timeB: string): ConfrontoHi
 
 export const ARTILHEIRO_OPTIONS = [
   { value: 'Cristiano Ronaldo',    label: 'Cristiano Ronaldo (Portugal)'        },
+  { value: 'Cyle Larin',           label: 'Cyle Larin (Canadá)'                 },
   { value: 'Dembélé',              label: 'Dembélé (França)'                    },
+  { value: 'Elijah Just',          label: 'Elijah Just (Nova Zelândia)'         },
   { value: 'Endrick',              label: 'Endrick (Brasil)'                     },
   { value: 'Erling Haaland',       label: 'Erling Haaland (Noruega)'            },
+  { value: 'Folarin Balogun',      label: 'Folarin Balogun (EUA)'               },
   { value: 'Harry Kane',           label: 'Harry Kane (Inglaterra)'             },
+  { value: 'Ismael Saibari',       label: 'Ismael Saibari (Marrocos)'           },
+  { value: 'Johan Manzambi',       label: 'Johan Manzambi (Suíça)'              },
+  { value: 'Jonathan David',       label: 'Jonathan David (Canadá)'             },
   { value: 'Julian Alvarez',       label: 'Julian Alvarez (Argentina)'          },
+  { value: 'Kai Havertz',          label: 'Kai Havertz (Alemanha)'              },
   { value: 'Kylian Mbappé',        label: 'Kylian Mbappé (França)'              },
   { value: 'Lamine Yamal',         label: 'Lamine Yamal (Espanha)'              },
   { value: 'Lionel Messi',         label: 'Lionel Messi (Argentina)'            },
+  { value: 'Matheus Cunha',        label: 'Matheus Cunha (Brasil)'              },
   { value: 'Memphis Depay',        label: 'Memphis Depay (Holanda)'             },
   { value: 'Michael Olise',        label: 'Michael Olise (França)'              },
   { value: 'Jamal Musiala',        label: 'Jamal Musiala (Alemanha)'            },
@@ -219,7 +227,8 @@ export const ARTILHEIRO_OPTIONS = [
   { value: 'Raphinha',             label: 'Raphinha (Brasil)'                   },
   { value: 'Rodri',                label: 'Rodri (Espanha)'                     },
   { value: 'Vinicius Junior',      label: 'Vinicius Junior (Brasil)'            },
-]
+  { value: 'Yasin Ayari',          label: 'Yasin Ayari (Suécia)'                },
+].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
 
 export const GOLEIRO_OPTIONS = [
   { value: 'Mike Maignan',        label: 'Mike Maignan (França)'                },
@@ -230,7 +239,8 @@ export const GOLEIRO_OPTIONS = [
   { value: 'Manuel Neuer',        label: 'Manuel Neuer (Alemanha)'              },
   { value: 'Thibaut Courtois',    label: 'Thibaut Courtois (Bélgica)'           },
   { value: 'Gregor Kobel',        label: 'Gregor Kobel (Suíça)'                 },
-]
+  { value: 'Vozinha',             label: 'Vozinha (Cabo Verde)'                 },
+].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
 
 /* ─── Qualifying info ─────────────────────────────────────────────────────────
  * Static data for all 48 teams. Sources:
