@@ -1493,10 +1493,10 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
     }}>
       {/* Team A */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-        <TeamFlag hasTeam={hasTeamA} codigo={displayCodigoA} />
         <span style={{ fontSize: 14, fontWeight: hasTeamA ? 600 : 400, color: hasTeamA ? 'white' : 'rgba(255,255,255,0.3)', fontStyle: hasTeamA ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {displayNameA}
         </span>
+        <TeamFlag hasTeam={hasTeamA} codigo={displayCodigoA} />
       </div>
 
       {/* Score */}
@@ -1530,10 +1530,10 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
 
       {/* Team B */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, justifyContent: 'flex-end' }}>
+        <TeamFlag hasTeam={hasTeamB} codigo={displayCodigoB} />
         <span style={{ fontSize: 14, fontWeight: hasTeamB ? 600 : 400, color: hasTeamB ? 'white' : 'rgba(255,255,255,0.3)', fontStyle: hasTeamB ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>
           {displayNameB}
         </span>
-        <TeamFlag hasTeam={hasTeamB} codigo={displayCodigoB} />
       </div>
 
       {/* Action */}
