@@ -10,7 +10,7 @@ export async function GET() {
   // Configuração da enquete
   const { data: config } = await supabase
     .from('enquete_config')
-    .select('aberta, resultado_visivel')
+    .select('aberta, resultado_visivel, decisao_titulo, decisao_texto, decisao_visivel')
     .eq('id', 1)
     .single()
 
@@ -52,6 +52,11 @@ export async function GET() {
     totalUsuariosAtivos = uniqueUserIds.length
   }
 
+  // Decisão final — só vai para o front se decisao_visivel = true ou se admin (modo preview)
+  const decisaoVisivelParaMim = !!config?.decisao_visivel || !!isAdmin
+  const decisaoTexto  = decisaoVisivelParaMim ? (config?.decisao_texto ?? null) : null
+  const decisaoTitulo = decisaoVisivelParaMim ? (config?.decisao_titulo ?? null) : null
+
   return NextResponse.json({
     aberta: config?.aberta ?? false,
     resultado_visivel: config?.resultado_visivel ?? false,
@@ -59,5 +64,10 @@ export async function GET() {
     totais,
     totalVotaram,
     totalUsuariosAtivos,
+    isAdmin: !!isAdmin,
+    decisao_titulo: decisaoTitulo,
+    decisao_texto: decisaoTexto,
+    decisao_visivel: !!config?.decisao_visivel,
+    decisao_preview: !config?.decisao_visivel && !!isAdmin, // sinaliza que só o admin está vendo
   })
 }

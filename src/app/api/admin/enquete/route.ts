@@ -11,9 +11,12 @@ export async function POST(req: NextRequest) {
   if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
-  const updates: Record<string, boolean> = {}
+  const updates: Record<string, boolean | string | null> = {}
   if (typeof body.aberta === 'boolean') updates.aberta = body.aberta
   if (typeof body.resultado_visivel === 'boolean') updates.resultado_visivel = body.resultado_visivel
+  if (typeof body.decisao_visivel === 'boolean') updates.decisao_visivel = body.decisao_visivel
+  if (typeof body.decisao_titulo === 'string') updates.decisao_titulo = body.decisao_titulo
+  if (typeof body.decisao_texto === 'string') updates.decisao_texto = body.decisao_texto
 
   const admin = createAdminClient()
   const { error } = await admin

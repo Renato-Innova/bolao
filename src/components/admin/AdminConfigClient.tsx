@@ -1141,6 +1141,12 @@ function EnqueteAdminCard() {
   const [saving,   setSaving]   = useState(false)
   const [msg,      setMsg]      = useState('')
 
+  const [decisaoTitulo,  setDecisaoTitulo]  = useState('')
+  const [decisaoTexto,   setDecisaoTexto]   = useState('')
+  const [decisaoVisivel, setDecisaoVisivel] = useState(false)
+  const [savingDecisao,  setSavingDecisao]  = useState(false)
+  const [msgDecisao,     setMsgDecisao]     = useState('')
+
   useEffect(() => {
     fetch('/api/enquete/resultado')
       .then(r => r.json())
@@ -1149,6 +1155,9 @@ function EnqueteAdminCard() {
         setTotais(d.totais)
         setVotaram(d.totalVotaram)
         setAtivos(d.totalUsuariosAtivos)
+        setDecisaoTitulo(d.decisao_titulo ?? '')
+        setDecisaoTexto(d.decisao_texto ?? '')
+        setDecisaoVisivel(d.decisao_visivel ?? false)
       })
       .catch(() => {})
   }, [])
@@ -1173,6 +1182,32 @@ function EnqueteAdminCard() {
       setMsg('❌ Erro de rede.')
     }
     setSaving(false)
+  }
+
+  async function salvarDecisao(extra?: Record<string, boolean>) {
+    setSavingDecisao(true)
+    setMsgDecisao('')
+    try {
+      const res = await fetch('/api/admin/enquete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          decisao_titulo: decisaoTitulo,
+          decisao_texto: decisaoTexto,
+          ...extra,
+        }),
+      })
+      const json = await res.json()
+      if (json.ok) {
+        if (extra && 'decisao_visivel' in extra) setDecisaoVisivel(!!extra.decisao_visivel)
+        setMsgDecisao('✅ Salvo.')
+      } else {
+        setMsgDecisao(`❌ ${json.error}`)
+      }
+    } catch {
+      setMsgDecisao('❌ Erro de rede.')
+    }
+    setSavingDecisao(false)
   }
 
   const total = Object.values(totais).reduce((s, v) => s + v, 0)
@@ -1254,6 +1289,54 @@ function EnqueteAdminCard() {
           </div>
 
           {msg && <div style={{ fontSize: 11, color: msg.startsWith('✅') ? '#4ade80' : 'rgba(255,100,100,0.9)' }}>{msg}</div>}
+
+          {/* Comunicação da decisão */}
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid rgba(74,144,217,0.12)' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'white', marginBottom: 4 }}>📢 Comunicar decisão</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 12, lineHeight: 1.6 }}>
+              Mostra um popup com a decisão final, mesmo após a enquete ser encerrada. Enquanto &quot;visível para todos&quot; estiver desligado, só o admin vê (modo preview).
+            </div>
+
+            <input
+              type="text"
+              placeholder="Título — ex: Decisão sobre Palpites Especiais"
+              value={decisaoTitulo}
+              onChange={e => setDecisaoTitulo(e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 8, padding: '9px 12px', color: 'white', fontSize: 13, marginBottom: 8, outline: 'none' }}
+            />
+            <textarea
+              placeholder="Texto da decisão..."
+              value={decisaoTexto}
+              onChange={e => setDecisaoTexto(e.target.value)}
+              rows={4}
+              style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 8, padding: '9px 12px', color: 'white', fontSize: 13, marginBottom: 10, outline: 'none', resize: 'vertical', fontFamily: 'Inter,sans-serif' }}
+            />
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+              <button
+                onClick={() => salvarDecisao()}
+                disabled={savingDecisao}
+                style={{ padding: '8px 16px', borderRadius: 7, fontSize: 12, fontWeight: 700, border: 'none', cursor: savingDecisao ? 'not-allowed' : 'pointer', background: 'rgba(74,144,217,0.18)', color: '#7BB8F0' }}
+              >
+                💾 Salvar texto
+              </button>
+              <button
+                onClick={() => salvarDecisao({ decisao_visivel: !decisaoVisivel })}
+                disabled={savingDecisao}
+                style={{
+                  padding: '8px 16px', borderRadius: 7, fontSize: 12, fontWeight: 700,
+                  border: 'none', cursor: savingDecisao ? 'not-allowed' : 'pointer',
+                  background: decisaoVisivel ? 'rgba(74,222,128,0.18)' : 'rgba(255,255,255,0.07)',
+                  color: decisaoVisivel ? '#4ade80' : 'rgba(255,255,255,0.5)',
+                  outline: decisaoVisivel ? '1px solid rgba(74,222,128,0.35)' : '1px solid transparent',
+                }}
+              >
+                {decisaoVisivel ? '👁 Visível para todos' : '🔒 Visível só para admin (preview)'}
+              </button>
+            </div>
+
+            {msgDecisao && <div style={{ fontSize: 11, color: msgDecisao.startsWith('✅') ? '#4ade80' : 'rgba(255,100,100,0.9)' }}>{msgDecisao}</div>}
+          </div>
         </>
       )}
       {!config && (

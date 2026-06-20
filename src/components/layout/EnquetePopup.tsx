@@ -8,7 +8,7 @@ const OPCOES = [
   { letra: 'C', texto: 'Sim. Todos os palpites especiais.' },
 ]
 
-type Fase = 'carregando' | 'votacao' | 'resultado' | 'oculto'
+type Fase = 'carregando' | 'votacao' | 'resultado' | 'decisao' | 'oculto'
 
 type Estado = {
   aberta: boolean
@@ -17,7 +17,14 @@ type Estado = {
   totais: { A: number; B: number; C: number }
   totalVotaram: number
   totalUsuariosAtivos: number
+  isAdmin: boolean
+  decisao_titulo: string | null
+  decisao_texto: string | null
+  decisao_visivel: boolean
+  decisao_preview: boolean
 }
+
+const DECISAO_DISMISS_KEY = 'enquete_decisao_dismissed'
 
 export function EnquetePopup() {
   const [fase,    setFase]    = useState<Fase>('carregando')
@@ -30,13 +37,20 @@ export function EnquetePopup() {
       .then(r => r.json())
       .then((data: Estado) => {
         setEstado(data)
-        if (!data.aberta) {
-          setFase('oculto')
-        } else if (data.meuVoto) {
-          // Já votou — só mostra resultado se resultado_visivel
-          setFase(data.resultado_visivel ? 'resultado' : 'oculto')
+        if (data.aberta) {
+          if (data.meuVoto) {
+            setFase(data.resultado_visivel ? 'resultado' : 'oculto')
+          } else {
+            setFase('votacao')
+          }
+          return
+        }
+        // Enquete encerrada — verifica se há uma decisão para comunicar
+        const jaViu = typeof window !== 'undefined' && localStorage.getItem(DECISAO_DISMISS_KEY) === 'true'
+        if (data.decisao_texto && !jaViu) {
+          setFase('decisao')
         } else {
-          setFase('votacao')
+          setFase('oculto')
         }
       })
       .catch(() => setFase('oculto'))
@@ -58,7 +72,6 @@ export function EnquetePopup() {
         setVotando(null)
         return
       }
-      // Recarrega estado para pegar totais atualizados
       const res2 = await fetch('/api/enquete/resultado')
       const data2: Estado = await res2.json()
       setEstado(data2)
@@ -67,6 +80,11 @@ export function EnquetePopup() {
       setErro('Erro de conexão.')
     }
     setVotando(null)
+  }
+
+  function fecharDecisao() {
+    if (typeof window !== 'undefined') localStorage.setItem(DECISAO_DISMISS_KEY, 'true')
+    setFase('oculto')
   }
 
   if (fase === 'carregando' || fase === 'oculto' || !estado) return null
@@ -80,7 +98,7 @@ export function EnquetePopup() {
 
   return (
     <>
-      {/* Overlay — não clicável (voto obrigatório) */}
+      {/* Overlay */}
       <div style={{
         position: 'fixed', inset: 0,
         background: 'rgba(0,0,0,0.65)',
@@ -102,6 +120,54 @@ export function EnquetePopup() {
         boxShadow: '0 8px 40px rgba(0,0,0,0.7)',
       }}>
 
+        {/* ── FASE: decisão comunicada ── */}
+        {fase === 'decisao' ? (
+          <div>
+            {estado.decisao_preview && (
+              <div style={{
+                display: 'inline-block', fontSize: 9, fontWeight: 700,
+                background: 'rgba(255,200,80,0.18)', color: '#FFD050',
+                borderRadius: 20, padding: '3px 10px', marginBottom: 12,
+                letterSpacing: 0.4, textTransform: 'uppercase',
+              }}>
+                ⚠ Preview — visível só para admin
+              </div>
+            )}
+
+            <div style={{
+              display: 'inline-block',
+              fontSize: 10, fontWeight: 600,
+              background: 'rgba(74,144,217,0.15)',
+              color: '#7BB8F0',
+              borderRadius: 20, padding: '3px 10px',
+              marginBottom: 14, letterSpacing: 0.4,
+              textTransform: 'uppercase',
+            }}>
+              Decisão do bolão
+            </div>
+
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'white', lineHeight: 1.5, marginBottom: 12 }}>
+              {estado.decisao_titulo}
+            </div>
+
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)', lineHeight: 1.6, marginBottom: 20, whiteSpace: 'pre-line' }}>
+              {estado.decisao_texto}
+            </div>
+
+            <button
+              onClick={fecharDecisao}
+              style={{
+                width: '100%', padding: '11px 0',
+                background: '#4A90D9', border: 'none',
+                borderRadius: 9, color: 'white',
+                fontSize: 13, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              Entendi
+            </button>
+          </div>
+        ) : (
+        <>
         {/* Badge */}
         <div style={{
           display: 'inline-block',
@@ -260,6 +326,8 @@ export function EnquetePopup() {
               Fechar
             </button>
           </div>
+        )}
+        </>
         )}
       </div>
     </>
