@@ -318,7 +318,7 @@ export default async function RankingPage() {
                       )}
                       {/* acertos exatos — só mobile, onde a coluna dedicada fica oculta */}
                       <div className="rank-acertos-mobile">
-                        {entry.acertos_exatos} exato{entry.acertos_exatos !== 1 ? 's' : ''}
+                        {entry.acertos_exatos} acerto{entry.acertos_exatos !== 1 ? 's' : ''}
                       </div>
                     </div>
 
