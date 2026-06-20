@@ -6,6 +6,7 @@ import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
 import { AvatarPicker } from '@/components/ui/AvatarPicker'
 import { createClient } from '@/lib/supabase/client'
 import { PIX_VALOR, PIX_CHAVE, GRUPOS, TEAM_ABBR, FASES, TEAM_QUAL, ALL_TEAMS, ARTILHEIRO_OPTIONS, GOLEIRO_OPTIONS, getConfrontoHistorico } from '@/utils/constants'
+import { SPECIAL_POINTS, PONTOS_CLASSIFICACAO_GRUPO } from '@/utils/scoring'
 import type { Palpite, JogoCopa, PalpiteJogo } from '@/types'
 
 /* ─── helpers ──────────────────────────────────────────────── */
@@ -119,6 +120,10 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
   /* ─── deadline flags (recalculated on each render — lightweight) ─── */
   const especiaisLocked    = especiaisDeadline    ? new Date() >= new Date(especiaisDeadline)    : false
   const novoPalpiteLocked  = novoPalpiteDeadline  ? new Date() >= new Date(novoPalpiteDeadline)  : false
+
+  /* pontos de palpites especiais — admin-configurável via configuracoes_pontuacao (fase='ESP') */
+  const espPts = (tipo: keyof typeof SPECIAL_POINTS) =>
+    scoringConfigs.find(c => c.fase === 'ESP' && c.tipo_acerto === tipo)?.pontos ?? SPECIAL_POINTS[tipo]
 
   /* core */
   const [palpites, setPalpites] = useState<Palpite[]>(palpitesIniciais)
@@ -1182,35 +1187,35 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
               <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, overflow: 'hidden' }}>
                 {([
                   {
-                    emoji: '🏆', label: 'Campeão',        pts: 100,
+                    emoji: '🏆', label: 'Campeão',        pts: espPts('campeao'),
                     value: campeao,
                     error: campeao && viceCampeao && campeao === viceCampeao,
                     options: ALL_TEAMS.map(t => ({ value: t, label: t })),
                     onChange: (v: string) => { if (especiaisLocked) return; setCampeao(v);       saveSpecialPalpites(v, viceCampeao, artilheiro, melhorJogador, melhorGoleiro) },
                   },
                   {
-                    emoji: '🥈', label: 'Vice-Campeão',   pts: 70,
+                    emoji: '🥈', label: 'Vice-Campeão',   pts: espPts('vice_campeao'),
                     value: viceCampeao,
                     error: campeao && viceCampeao && campeao === viceCampeao,
                     options: ALL_TEAMS.map(t => ({ value: t, label: t })),
                     onChange: (v: string) => { if (especiaisLocked) return; setViceCampeao(v);   saveSpecialPalpites(campeao, v, artilheiro, melhorJogador, melhorGoleiro) },
                   },
                   {
-                    emoji: '⚽', label: 'Artilheiro',     pts: 50,
+                    emoji: '⚽', label: 'Artilheiro',     pts: espPts('artilheiro'),
                     value: artilheiro,
                     error: false,
                     options: ARTILHEIRO_OPTIONS,
                     onChange: (v: string) => { if (especiaisLocked) return; setArtilheiro(v);    saveSpecialPalpites(campeao, viceCampeao, v, melhorJogador, melhorGoleiro) },
                   },
                   {
-                    emoji: '🌟', label: 'Melhor Jogador', pts: 50,
+                    emoji: '🌟', label: 'Melhor Jogador', pts: espPts('melhor_jogador'),
                     value: melhorJogador,
                     error: false,
                     options: ARTILHEIRO_OPTIONS,
                     onChange: (v: string) => { if (especiaisLocked) return; setMelhorJogador(v); saveSpecialPalpites(campeao, viceCampeao, artilheiro, v, melhorGoleiro) },
                   },
                   {
-                    emoji: '🧤', label: 'Melhor Goleiro', pts: 50,
+                    emoji: '🧤', label: 'Melhor Goleiro', pts: espPts('melhor_goleiro'),
                     value: melhorGoleiro,
                     error: false,
                     options: GOLEIRO_OPTIONS,
@@ -2309,10 +2314,13 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
 
   const ptsJogos    = Object.values(byFase).reduce((s, v) => s + v.pts, 0)
   const maxJogos    = Object.keys(byFase).reduce((s, f) => s + maxPtsByFase(f), 0)
+  const pontosPorClassif = configPts('GS', 'classificacao') || PONTOS_CLASSIFICACAO_GRUPO
   const ptsClassif  = palpite.pontos_classificacao ?? 0
-  const maxClassif  = 32 * 20   // 32 qualifiers × 20 pts
+  const maxClassif  = 32 * pontosPorClassif   // 32 qualifiers × pontos configurados pelo admin
   const ptsEspeciais= palpite.pontos_especiais ?? 0
-  const maxEspeciais= 100 + 70 + 50 + 50 + 50  // 320 pts total
+  const especiaisPts = (tipo: keyof typeof SPECIAL_POINTS) => configPts('ESP', tipo) || SPECIAL_POINTS[tipo]
+  const maxEspeciais = (['campeao', 'vice_campeao', 'artilheiro', 'melhor_jogador', 'melhor_goleiro'] as const)
+    .reduce((s, tipo) => s + especiaisPts(tipo), 0)  // 320 pts total por padrão, admin-configurável
   const ptsTotal    = ptsJogos + ptsClassif + ptsEspeciais
   const maxTotal    = maxJogos + maxClassif + maxEspeciais
 
@@ -2394,7 +2402,7 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
           <div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Seleções classificadas corretas</div>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
-              {ptsClassif > 0 ? `${ptsClassif / 20} de 32 · 20 pts cada` : 'Calculado pelo admin ao final da fase de grupos'}
+              {ptsClassif > 0 ? `${ptsClassif / pontosPorClassif} de 32 · ${pontosPorClassif} pts cada` : 'Calculado pelo admin ao final da fase de grupos'}
             </div>
           </div>
           <span style={{ fontSize: 12, fontWeight: 800, color: ptsClassif > 0 ? '#4A90D9' : 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap', marginLeft: 12 }}>
@@ -2410,11 +2418,11 @@ function PontuacaoTab({ palpite, todosJogos, scoringConfigs }: {
           🌟 Palpites especiais
         </div>
         {[
-          { emoji: '🏆', label: 'Campeão',        value: palpite.campeao,        maxPts: 100 },
-          { emoji: '🥈', label: 'Vice-Campeão',   value: palpite.vice_campeao,   maxPts: 70  },
-          { emoji: '⚽', label: 'Artilheiro',     value: palpite.artilheiro,     maxPts: 50  },
-          { emoji: '🌟', label: 'Melhor Jogador', value: palpite.melhor_jogador, maxPts: 50  },
-          { emoji: '🧤', label: 'Melhor Goleiro', value: palpite.melhor_goleiro, maxPts: 50  },
+          { emoji: '🏆', label: 'Campeão',        value: palpite.campeao,        maxPts: especiaisPts('campeao')        },
+          { emoji: '🥈', label: 'Vice-Campeão',   value: palpite.vice_campeao,   maxPts: especiaisPts('vice_campeao')   },
+          { emoji: '⚽', label: 'Artilheiro',     value: palpite.artilheiro,     maxPts: especiaisPts('artilheiro')     },
+          { emoji: '🌟', label: 'Melhor Jogador', value: palpite.melhor_jogador, maxPts: especiaisPts('melhor_jogador') },
+          { emoji: '🧤', label: 'Melhor Goleiro', value: palpite.melhor_goleiro, maxPts: especiaisPts('melhor_goleiro') },
         ].map((item, idx, arr) => (
           <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderBottom: idx < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

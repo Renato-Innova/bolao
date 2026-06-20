@@ -17,13 +17,14 @@ const FASES_LABEL: Record<string, string> = {
 
 // Official regulation defaults (fallback if DB is empty)
 const DEFAULTS: Record<string, Record<string, number>> = {
-  GS:  { placar_exato: 20, empate: 15, vencedor: 10, gols_equipe:  5, penalti:  5 },
+  GS:  { placar_exato: 20, empate: 15, vencedor: 10, gols_equipe:  5, penalti:  5, classificacao: 20 },
   R32: { placar_exato: 30, empate: 22, vencedor: 15, gols_equipe:  8, penalti:  8 },
   R16: { placar_exato: 40, empate: 30, vencedor: 20, gols_equipe: 10, penalti: 10 },
   QF:  { placar_exato: 60, empate: 40, vencedor: 30, gols_equipe: 15, penalti: 15 },
   SF:  { placar_exato: 80, empate: 60, vencedor: 40, gols_equipe: 20, penalti: 20 },
   TPL: { placar_exato:100, empate: 75, vencedor: 50, gols_equipe: 25, penalti: 25 },
   F:   { placar_exato:120, empate: 75, vencedor: 60, gols_equipe: 30, penalti: 30 },
+  ESP: { campeao: 100, vice_campeao: 70, artilheiro: 50, melhor_jogador: 50, melhor_goleiro: 50 },
 }
 
 const card: React.CSSProperties = {
@@ -49,16 +50,25 @@ const tip = (children: React.ReactNode) => (
   </div>
 )
 
+type PontuacaoResumoRow = {
+  fase: string
+  fase_label: string
+  tipo: 'jogos' | 'classificacao'
+  quantidade: number
+  pontos_unitario: number
+  pontos_max: number
+}
+
 export default async function InstrucoesPage() {
   const supabase = await createClient()
-  const { data: configs } = await supabase
-    .from('configuracoes_pontuacao')
-    .select('*')
-    .order('fase')
+  const [{ data: configs }, { data: resumo }] = await Promise.all([
+    supabase.from('configuracoes_pontuacao').select('*').order('fase'),
+    supabase.from('pontuacao_resumo').select('*'),
+  ])
 
   // Build config map with official regulation defaults as fallback
   const configMap: Record<string, Record<string, number>> = {}
-  for (const fase of FASES_ORDER) configMap[fase] = { ...DEFAULTS[fase] }
+  for (const fase of [...FASES_ORDER, 'ESP']) configMap[fase] = { ...DEFAULTS[fase] }
   for (const c of (configs ?? []) as ConfiguracaoPontuacao[]) {
     if (!configMap[c.fase]) configMap[c.fase] = {}
     configMap[c.fase][c.tipo_acerto] = c.pontos
@@ -67,6 +77,28 @@ export default async function InstrucoesPage() {
   function pts(fase: string, tipo: string) {
     return configMap[fase]?.[tipo] ?? 0
   }
+
+  // General points table — sourced from the pontuacao_resumo view (DB), with
+  // a JS-computed fallback in case the view hasn't been created yet (migration 20).
+  const resumoRows = (resumo ?? []) as PontuacaoResumoRow[]
+  const jogosRows = FASES_ORDER.map(fase => {
+    const row = resumoRows.find(r => r.fase === fase && r.tipo === 'jogos')
+    const qtdFallback: Record<string, number> = { GS: 72, R32: 16, R16: 8, QF: 4, SF: 2, TPL: 1, F: 1 }
+    return row ?? {
+      fase, fase_label: FASES_LABEL[fase], tipo: 'jogos' as const,
+      quantidade: qtdFallback[fase] ?? 0,
+      pontos_unitario: pts(fase, 'placar_exato'),
+      pontos_max: (qtdFallback[fase] ?? 0) * pts(fase, 'placar_exato'),
+    }
+  })
+  const classifRow = resumoRows.find(r => r.tipo === 'classificacao') ?? {
+    fase: 'GS', fase_label: 'Bônus de Classificação', tipo: 'classificacao' as const,
+    quantidade: 32, pontos_unitario: pts('GS', 'classificacao'),
+    pontos_max: 32 * pts('GS', 'classificacao'),
+  }
+  const especiaisMax = pts('ESP', 'campeao') + pts('ESP', 'vice_campeao') + pts('ESP', 'artilheiro') + pts('ESP', 'melhor_jogador') + pts('ESP', 'melhor_goleiro')
+  const maxJogos = jogosRows.reduce((s, r) => s + r.pontos_max, 0)
+  const maxGeral = maxJogos + classifRow.pontos_max + especiaisMax
 
   return (
     <div className="page-main" style={{ maxWidth: 1000, margin: '0 auto', padding: '20px 24px 48px', position: 'relative', zIndex: 1 }}>
@@ -235,6 +267,53 @@ export default async function InstrucoesPage() {
           Vencedor correto (+{pts('GS', 'vencedor')} pts) + gols do México corretos (+{pts('GS', 'gols_equipe')} pts) = <strong style={{ color: 'white' }}>{pts('GS', 'vencedor') + pts('GS', 'gols_equipe')} pts</strong>.
           Placar exato valeria <strong style={{ color: 'white' }}>{pts('GS', 'placar_exato')} pts</strong>.
         </>)}
+
+        {/* General points table — max points per phase, sourced from pontuacao_resumo */}
+        <div style={{ marginTop: 18 }}>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Pontuação máxima geral
+          </div>
+          <div className="instr-score-wrap">
+            <table className="instr-score-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  {['Fase', 'Jogos', 'Pts/Jogo', 'Pts Máx.'].map((h, i) => (
+                    <th key={h} style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.50)', textTransform: 'uppercase', letterSpacing: 0.5, padding: '6px 10px', textAlign: i === 0 ? 'left' : 'center', borderBottom: '1px solid rgba(255,255,255,0.06)', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {jogosRows.map((r, idx) => (
+                  <tr key={r.fase} style={{ background: idx % 2 === 1 ? 'rgba(74,144,217,0.07)' : 'transparent' }}>
+                    <td style={{ fontSize: 12, color: 'white', fontWeight: 600, padding: '8px 10px', borderBottom: '1px solid rgba(255,255,255,0.04)', whiteSpace: 'nowrap' }}>{r.fase_label}</td>
+                    <td style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', padding: '8px 10px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{r.quantidade}</td>
+                    <td style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', padding: '8px 10px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{r.pontos_unitario}</td>
+                    <td style={{ fontSize: 12, fontWeight: 700, color: '#4A90D9', padding: '8px 10px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{r.pontos_max}</td>
+                  </tr>
+                ))}
+                <tr style={{ background: 'rgba(74,144,217,0.07)' }}>
+                  <td style={{ fontSize: 12, color: 'white', fontWeight: 600, padding: '8px 10px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{classifRow.fase_label}</td>
+                  <td style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', padding: '8px 10px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{classifRow.quantidade}</td>
+                  <td style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', padding: '8px 10px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{classifRow.pontos_unitario}</td>
+                  <td style={{ fontSize: 12, fontWeight: 700, color: '#4A90D9', padding: '8px 10px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{classifRow.pontos_max}</td>
+                </tr>
+                <tr>
+                  <td style={{ fontSize: 12, color: 'white', fontWeight: 600, padding: '8px 10px' }}>Palpites Especiais</td>
+                  <td style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', padding: '8px 10px', textAlign: 'center' }}>5</td>
+                  <td style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', padding: '8px 10px', textAlign: 'center' }}>—</td>
+                  <td style={{ fontSize: 12, fontWeight: 700, color: '#4A90D9', padding: '8px 10px', textAlign: 'center' }}>{especiaisMax}</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr style={{ borderTop: '1px solid rgba(255,255,255,0.12)' }}>
+                  <td style={{ fontSize: 13, color: 'white', fontWeight: 800, padding: '10px 10px' }}>Total geral</td>
+                  <td colSpan={2}></td>
+                  <td style={{ fontSize: 14, fontWeight: 800, color: '#4ade80', padding: '10px 10px', textAlign: 'center' }}>{maxGeral} pts</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
       </div>
 
       {/* Special predictions + group bonus */}
@@ -243,11 +322,11 @@ export default async function InstrucoesPage() {
         {cardTitle('🌟', 'Palpites especiais')}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8, marginBottom: 12 }}>
           {[
-            { icon: '🏆', label: 'Campeão',        pts: 100 },
-            { icon: '🥈', label: 'Vice-campeão',   pts: 70  },
-            { icon: '⚽', label: 'Artilheiro',     pts: 50  },
-            { icon: '🌟', label: 'Melhor Jogador', pts: 50  },
-            { icon: '🧤', label: 'Melhor Goleiro', pts: 50  },
+            { icon: '🏆', label: 'Campeão',        pts: pts('ESP', 'campeao')        },
+            { icon: '🥈', label: 'Vice-campeão',   pts: pts('ESP', 'vice_campeao')   },
+            { icon: '⚽', label: 'Artilheiro',     pts: pts('ESP', 'artilheiro')     },
+            { icon: '🌟', label: 'Melhor Jogador', pts: pts('ESP', 'melhor_jogador') },
+            { icon: '🧤', label: 'Melhor Goleiro', pts: pts('ESP', 'melhor_goleiro') },
           ].map(s => (
             <div key={s.label} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '12px 14px', textAlign: 'center' }}>
               <div style={{ fontSize: 22, marginBottom: 4 }}>{s.icon}</div>
@@ -263,9 +342,9 @@ export default async function InstrucoesPage() {
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 3 }}>Bônus de classificação de grupos</div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>
-              Ao término da fase de grupos: <strong style={{ color: '#4ade80' }}>20 pontos</strong> para cada seleção que você previu corretamente como classificada para a fase eliminatória,
+              Ao término da fase de grupos: <strong style={{ color: '#4ade80' }}>{classifRow.pontos_unitario} pontos</strong> para cada seleção que você previu corretamente como classificada para a fase eliminatória,
               dentro do respectivo grupo (top 2 de cada grupo + 8 melhores 3ºs colocados).
-              Máximo de <strong style={{ color: '#4ade80' }}>640 pts</strong> neste critério (32 classificados × 20 pts).
+              Máximo de <strong style={{ color: '#4ade80' }}>{classifRow.pontos_max} pts</strong> neste critério (32 classificados × {classifRow.pontos_unitario} pts).
             </div>
           </div>
         </div>
@@ -283,7 +362,7 @@ export default async function InstrucoesPage() {
             {[
               { n: '48', text: <><strong style={{ color: 'white' }}>seleções</strong> divididas em 12 grupos de 4 times cada (grupos A a L)</> },
               { n: '32', text: <><strong style={{ color: 'white' }}>classificados</strong> — os 2 primeiros de cada grupo + os 8 melhores 3ºs colocados</> },
-              { n: '104', text: <><strong style={{ color: 'white' }}>jogos no total</strong> — 48 na fase de grupos + 56 no mata-mata</> },
+              { n: '104', text: <><strong style={{ color: 'white' }}>jogos no total</strong> — 72 na fase de grupos + 32 no mata-mata</> },
             ].map(r => (
               <div key={r.n} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 7, borderLeft: '2px solid rgba(74,144,217,0.4)' }}>
                 <span style={{ fontSize: 10, fontWeight: 800, color: '#4A90D9', minWidth: 18, marginTop: 1 }}>{r.n}</span>

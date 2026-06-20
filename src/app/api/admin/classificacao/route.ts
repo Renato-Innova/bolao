@@ -27,6 +27,14 @@ export async function POST() {
   // All DB reads/writes use admin client (service role) to bypass RLS
   const admin = createAdminClient()
 
+  // ── 0. Fetch the configured points-per-qualifier (admin-editable) ─────────
+  const { data: pontosConfig } = await admin
+    .from('configuracoes_pontuacao')
+    .select('pontos')
+    .eq('fase', 'GS').eq('tipo_acerto', 'classificacao')
+    .maybeSingle()
+  const pontosPorAcerto = pontosConfig?.pontos ?? 20
+
   // ── 1. Fetch all group-stage games ────────────────────────────────────────
   const { data: gsJogos, error: jogosErr } = await admin
     .from('jogos_copa')
@@ -99,7 +107,7 @@ export async function POST() {
       }
     }
 
-    const pontos_classificacao = calcularBonusClassificacao(gsJogos, predicoes, oficiais)
+    const pontos_classificacao = calcularBonusClassificacao(gsJogos, predicoes, oficiais, pontosPorAcerto)
     await admin.from('palpites').update({ pontos_classificacao }).eq('id', palpite.id)
     updatedCount++
   }

@@ -82,7 +82,8 @@ export interface PalpiteJogo {
 export interface ConfiguracaoPontuacao {
   id: number           // SERIAL
   fase: string
-  tipo_acerto: 'placar_exato' | 'empate' | 'vencedor' | 'gols_equipe' | 'penalti'
+  tipo_acerto: 'placar_exato' | 'empate' | 'vencedor' | 'gols_equipe' | 'penalti' | 'classificacao'
+    | 'campeao' | 'vice_campeao' | 'artilheiro' | 'melhor_jogador' | 'melhor_goleiro'
   pontos: number
   atualizado_em: string
 }

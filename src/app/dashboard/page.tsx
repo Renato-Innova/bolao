@@ -45,6 +45,8 @@ export default async function DashboardPage() {
     { data: boletins },
     { count: totalBoletins },
     { data: artilheiros },
+    { data: pontuacaoResumo },
+    { data: jogosPorFase },
   ] = await Promise.all([
     supabase.from('palpites').select('*', { count: 'exact', head: true }).eq('status', 'ativo'),
     supabase.from('users').select('*', { count: 'exact', head: true }),
@@ -57,6 +59,8 @@ export default async function DashboardPage() {
     supabase.from('boletim_copa').select('*').order('gerado_em', { ascending: false }).limit(10),
     supabase.from('boletim_copa').select('*', { count: 'exact', head: true }),
     supabase.from('artilheiros_copa').select('*').order('gols', { ascending: false }).order('assistencias', { ascending: false }).limit(10),
+    supabase.from('pontuacao_resumo').select('fase, tipo, pontos_unitario, pontos_max'),
+    supabase.from('jogos_copa').select('fase, resultado:resultados(id)'),
   ])
 
   // Contagem de palpites para próximos jogos (vitória A / empate / vitória B)
@@ -86,6 +90,26 @@ export default async function DashboardPage() {
 
   function pct(n: number, total: number) { return total ? Math.round((n / total) * 100) : 0 }
   const progressPct = (totalJogos ?? 104) > 0 ? Math.round(((jogosRealizados ?? 0) / (totalJogos ?? 104)) * 100) : 0
+
+  // Pontos em disputa = soma, por fase, de (jogos já com resultado × pts placar exato da fase)
+  // Sourced from pontuacao_resumo (admin-configurable) — fallback à tabela oficial se a view não existir ainda.
+  const PONTOS_EXATO_FALLBACK: Record<string, number> = { GS: 20, R32: 30, R16: 40, QF: 60, SF: 80, TPL: 100, F: 120 }
+  const resumoRows = (pontuacaoResumo ?? []) as { fase: string; tipo: string; pontos_unitario: number; pontos_max: number }[]
+  const resumoJogos = resumoRows.filter(r => r.tipo === 'jogos')
+  const completadosPorFase: Record<string, number> = {}
+  for (const j of (jogosPorFase ?? []) as { fase: string; resultado: unknown }[]) {
+    if (!j.resultado) continue
+    completadosPorFase[j.fase] = (completadosPorFase[j.fase] ?? 0) + 1
+  }
+  const fasesUsadas = resumoJogos.length > 0
+    ? resumoJogos.map(r => ({ fase: r.fase, ptsExato: r.pontos_unitario }))
+    : Object.entries(PONTOS_EXATO_FALLBACK).map(([fase, ptsExato]) => ({ fase, ptsExato }))
+  const pontosEmDisputa = fasesUsadas.reduce((s, f) => s + (completadosPorFase[f.fase] ?? 0) * f.ptsExato, 0)
+  // Máximo possível = total geral do bolão (jogos + classificação + especiais), direto da view
+  const pontosMaxJogos = resumoRows.length > 0
+    ? resumoRows.reduce((s, r) => s + r.pontos_max, 0)
+    : 3820
+  const disputaPct = pontosMaxJogos > 0 ? Math.round((pontosEmDisputa / pontosMaxJogos) * 100) : 0
 
   // Pega somente o boletim mais recente (independente de tipo)
   type Boletim = { id: number; tipo: string; titulo: string; conteudo: string; gerado_em: string }
@@ -161,15 +185,30 @@ export default async function DashboardPage() {
         {/* R1C2 — Progresso do torneio */}
         <div className="dash-card-jogos" style={card}>
           <div style={bar} />
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.60)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>Jogos realizados</div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 10 }}>
-            <span style={{ fontSize: 32, fontWeight: 700, color: 'white', lineHeight: 1 }}>{jogosRealizados ?? 0}</span>
-            <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)' }}>/ {totalJogos ?? 104}</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.60)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>Jogos realizados</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 10 }}>
+                <span style={{ fontSize: 32, fontWeight: 700, color: 'white', lineHeight: 1 }}>{jogosRealizados ?? 0}</span>
+                <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)' }}>/ {totalJogos ?? 104}</span>
+              </div>
+              <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
+                <div style={{ height: '100%', width: `${progressPct}%`, background: 'linear-gradient(90deg, #4A90D9, #7BB8F0)', borderRadius: 3 }} />
+              </div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>{faseAtual}</div>
+            </div>
+            <div style={{ borderLeft: '1px solid rgba(255,255,255,0.08)', paddingLeft: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.60)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>Pontos em disputa</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 10 }}>
+                <span style={{ fontSize: 32, fontWeight: 700, color: 'white', lineHeight: 1 }}>{pontosEmDisputa.toLocaleString('pt-BR')}</span>
+                <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)' }}>/ {pontosMaxJogos.toLocaleString('pt-BR')}</span>
+              </div>
+              <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
+                <div style={{ height: '100%', width: `${disputaPct}%`, background: 'linear-gradient(90deg, #4A90D9, #7BB8F0)', borderRadius: 3 }} />
+              </div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap' }}>Placares exatos. Sem pontos de pênaltis</div>
+            </div>
           </div>
-          <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
-            <div style={{ height: '100%', width: `${progressPct}%`, background: 'linear-gradient(90deg, #4A90D9, #7BB8F0)', borderRadius: 3 }} />
-          </div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>{faseAtual}</div>
         </div>
 
         {/* R1C3 — Últimas Partidas */}

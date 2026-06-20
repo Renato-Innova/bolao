@@ -8,12 +8,21 @@ import type { ConfiguracaoPontuacao, Palpite, User, ResultadoEspecial, ActivityL
 
 // Human-readable labels for each scoring type
 const TIPO_LABEL: Record<string, string> = {
-  placar_exato: 'Placar exato',
-  empate:       'Empate (placar diferente)',
-  vencedor:     'Vencedor (placar diferente)',
-  gols_equipe:  'Gols de uma equipe (cumulativo)',
-  penalti:      'Classificado nos pênaltis (cumulativo)',
+  placar_exato:  'Placar exato',
+  empate:        'Empate (placar diferente)',
+  vencedor:      'Vencedor (placar diferente)',
+  gols_equipe:   'Gols de uma equipe (cumulativo)',
+  penalti:       'Classificado nos pênaltis (cumulativo)',
+  classificacao:    'Bônus de classificação correta para fase 16Avos (por time)',
+  campeao:          'Campeão',
+  vice_campeao:     'Vice-Campeão',
+  artilheiro:       'Artilheiro',
+  melhor_jogador:   'Melhor Jogador',
+  melhor_goleiro:   'Melhor Goleiro',
 }
+
+// Display order for the Palpites Especiais points card
+const ESPECIAIS_ORDER = ['campeao', 'vice_campeao', 'artilheiro', 'melhor_jogador', 'melhor_goleiro']
 
 // Display order for scoring types within each phase card
 const TIPO_ORDER = ['placar_exato', 'empate', 'vencedor', 'gols_equipe', 'penalti']
@@ -356,10 +365,76 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais, acti
                         </div>
                       </div>
                     ))}
+                    {fase === 'GS' && (() => {
+                      const c = configsState.find(cfg => cfg.fase === 'GS' && cfg.tipo_acerto === 'classificacao')
+                      if (!c) return (
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', paddingTop: 4, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                          Execute o SQL 20_classificacao_pontos_config.sql para liberar este campo.
+                        </div>
+                      )
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', flex: 1 }}>
+                            {TIPO_LABEL[c.tipo_acerto] ?? c.tipo_acerto}
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <input type="number" min={0} value={c.pontos}
+                              onChange={e => setConfigsState(prev => prev.map(cfg => cfg.id === c.id ? { ...cfg, pontos: parseInt(e.target.value) || 0 } : cfg))}
+                              style={{ width: 60, height: 32, textAlign: 'center', borderRadius: 6, background: 'rgba(74,144,217,0.1)', border: '1px solid rgba(74,144,217,0.3)', color: '#4A90D9', fontSize: 14, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>pts</span>
+                            <button onClick={() => salvarConfig(c.id, c.pontos)} disabled={saving === c.id}
+                              style={{ padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none', fontFamily: 'Inter,sans-serif', background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white' }}>
+                              {saving === c.id ? '...' : 'Salvar'}
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
                 </div>
               )
             })}
+
+            {/* Palpites Especiais — pontos por categoria */}
+            <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '14px 18px', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)' }} />
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'white', marginBottom: 12 }}>
+                🌟 Palpites Especiais
+              </div>
+              {(() => {
+                const especiaisConfigs = ESPECIAIS_ORDER
+                  .map(tipo => configsState.find(c => c.fase === 'ESP' && c.tipo_acerto === tipo))
+                  .filter(Boolean) as ConfiguracaoPontuacao[]
+                if (especiaisConfigs.length === 0) {
+                  return (
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+                      Execute o SQL 21_especiais_pontos_config.sql para criar as configs.
+                    </div>
+                  )
+                }
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {especiaisConfigs.map(c => (
+                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', flex: 1 }}>
+                          {TIPO_LABEL[c.tipo_acerto] ?? c.tipo_acerto}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <input type="number" min={0} value={c.pontos}
+                            onChange={e => setConfigsState(prev => prev.map(cfg => cfg.id === c.id ? { ...cfg, pontos: parseInt(e.target.value) || 0 } : cfg))}
+                            style={{ width: 60, height: 32, textAlign: 'center', borderRadius: 6, background: 'rgba(74,144,217,0.1)', border: '1px solid rgba(74,144,217,0.3)', color: '#4A90D9', fontSize: 14, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif' }} />
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>pts</span>
+                          <button onClick={() => salvarConfig(c.id, c.pontos)} disabled={saving === c.id}
+                            style={{ padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none', fontFamily: 'Inter,sans-serif', background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white' }}>
+                            {saving === c.id ? '...' : 'Salvar'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
           </div>
         </div>
       )}
@@ -373,11 +448,11 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais, acti
 
           <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, overflow: 'hidden', marginBottom: 16 }}>
             {([
-              { key: 'campeao'       as const, emoji: '🏆', label: 'Campeão',        pts: SPECIAL_POINTS.campeao,       options: ALL_TEAMS.map(t => ({ value: t, label: t })) },
-              { key: 'vice_campeao'  as const, emoji: '🥈', label: 'Vice-Campeão',   pts: SPECIAL_POINTS.vice_campeao,  options: ALL_TEAMS.map(t => ({ value: t, label: t })) },
-              { key: 'artilheiro'    as const, emoji: '⚽', label: 'Artilheiro',     pts: SPECIAL_POINTS.artilheiro,    options: ARTILHEIRO_OPTIONS },
-              { key: 'melhor_jogador'as const, emoji: '🌟', label: 'Melhor Jogador', pts: SPECIAL_POINTS.melhor_jogador,options: ARTILHEIRO_OPTIONS },
-              { key: 'melhor_goleiro'as const, emoji: '🧤', label: 'Melhor Goleiro', pts: SPECIAL_POINTS.melhor_goleiro, options: GOLEIRO_OPTIONS },
+              { key: 'campeao'       as const, emoji: '🏆', label: 'Campeão',        pts: configsState.find(c => c.fase === 'ESP' && c.tipo_acerto === 'campeao')?.pontos        ?? SPECIAL_POINTS.campeao,        options: ALL_TEAMS.map(t => ({ value: t, label: t })) },
+              { key: 'vice_campeao'  as const, emoji: '🥈', label: 'Vice-Campeão',   pts: configsState.find(c => c.fase === 'ESP' && c.tipo_acerto === 'vice_campeao')?.pontos   ?? SPECIAL_POINTS.vice_campeao,   options: ALL_TEAMS.map(t => ({ value: t, label: t })) },
+              { key: 'artilheiro'    as const, emoji: '⚽', label: 'Artilheiro',     pts: configsState.find(c => c.fase === 'ESP' && c.tipo_acerto === 'artilheiro')?.pontos     ?? SPECIAL_POINTS.artilheiro,     options: ARTILHEIRO_OPTIONS },
+              { key: 'melhor_jogador'as const, emoji: '🌟', label: 'Melhor Jogador', pts: configsState.find(c => c.fase === 'ESP' && c.tipo_acerto === 'melhor_jogador')?.pontos ?? SPECIAL_POINTS.melhor_jogador, options: ARTILHEIRO_OPTIONS },
+              { key: 'melhor_goleiro'as const, emoji: '🧤', label: 'Melhor Goleiro', pts: configsState.find(c => c.fase === 'ESP' && c.tipo_acerto === 'melhor_goleiro')?.pontos ?? SPECIAL_POINTS.melhor_goleiro, options: GOLEIRO_OPTIONS },
             ]).map((item, idx, arr) => (
               <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: idx < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
                 <span style={{ fontSize: 16, flexShrink: 0 }}>{item.emoji}</span>

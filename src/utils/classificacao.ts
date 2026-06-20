@@ -195,21 +195,25 @@ export function getPrevisaoClassificados(
 
 /**
  * Compares the palpite's predicted qualifiers with the official qualifiers.
- * Returns the total bonus points (20 × number of correct predictions).
+ * Returns the total bonus points (pontosPorAcerto × number of correct predictions).
  *
- * @param gsJogos       - all group-stage jogos_copa rows
- * @param predicoes     - submitted predictions for this palpite (jogoId → {a,b})
- * @param oficiais      - set of officially qualified team names
+ * @param gsJogos          - all group-stage jogos_copa rows
+ * @param predicoes        - submitted predictions for this palpite (jogoId → {a,b})
+ * @param oficiais         - set of officially qualified team names
+ * @param pontosPorAcerto  - points awarded per correct qualifier, admin-configurable
+ *                           (configuracoes_pontuacao: fase='GS', tipo_acerto='classificacao').
+ *                           Defaults to PONTOS_CLASSIFICACAO_GRUPO if not provided.
  */
 export function calcularBonusClassificacao(
   gsJogos: Parameters<typeof computeGroupStandings>[0],
   predicoes: Record<number, { a: number; b: number }>,
   oficiais: Set<string>,
+  pontosPorAcerto: number = PONTOS_CLASSIFICACAO_GRUPO,
 ): number {
   const previstos = getPrevisaoClassificados(gsJogos, predicoes)
   let acertos = 0
   for (const team of previstos) {
     if (oficiais.has(team)) acertos++
   }
-  return acertos * PONTOS_CLASSIFICACAO_GRUPO
+  return acertos * pontosPorAcerto
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { calcularPontosEspeciais } from '@/utils/scoring'
+import { calcularPontosEspeciais, SPECIAL_POINTS } from '@/utils/scoring'
 import type { SpecialResults } from '@/utils/scoring'
 
 // POST /api/admin/especiais
@@ -60,14 +60,26 @@ export async function POST(req: NextRequest) {
     melhor_goleiro: especiais.melhor_goleiro ?? null,
   }
 
-  // 3 — Recalculate pontos_especiais for all palpites
+  // 3 — Fetch admin-configured points per special category (fallback to SPECIAL_POINTS)
+  const { data: pontosRows } = await admin
+    .from('configuracoes_pontuacao')
+    .select('tipo_acerto, pontos')
+    .eq('fase', 'ESP')
+  const pontosConfig = { ...SPECIAL_POINTS }
+  for (const row of pontosRows ?? []) {
+    if (row.tipo_acerto in pontosConfig) {
+      (pontosConfig as Record<string, number>)[row.tipo_acerto] = row.pontos
+    }
+  }
+
+  // 4 — Recalculate pontos_especiais for all palpites
   const { data: palpites } = await admin
     .from('palpites')
     .select('id, campeao, vice_campeao, artilheiro, melhor_jogador, melhor_goleiro')
 
   let updatedCount = 0
   for (const p of palpites ?? []) {
-    const pontos_especiais = calcularPontosEspeciais(p, resultados)
+    const pontos_especiais = calcularPontosEspeciais(p, resultados, pontosConfig)
     await admin.from('palpites').update({ pontos_especiais }).eq('id', p.id)
     updatedCount++
   }

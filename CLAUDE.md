@@ -66,7 +66,7 @@ src/
       admin/
         resultado/route.ts          ← saves result + recalculates all palpites for that game
         especiais/route.ts          ← saves official special results + recalcs pontos_especiais
-        classificacao/route.ts      ← calculates group classification bonus (20pts/qualifier)
+        classificacao/route.ts      ← calculates group classification bonus (pts/qualifier from configuracoes_pontuacao)
         recalcular/route.ts         ← bulk recalculation of all points for all games
         reset-resultados/route.ts   ← clears all results and zeroes all points (testing only)
         advance-bracket/route.ts
@@ -132,6 +132,10 @@ src/
 | `15_scoring_overhaul.sql` | **5-criteria scoring** per official regulation. Adds `pontos_especiais` to palpites, creates `resultados_especiais` table |
 | `16_classificacao_grupos.sql` | Adds `pontos_classificacao` to palpites |
 | `17_unique_palpite_nome.sql` | Global UNIQUE constraint on `palpites.nome` |
+| `18_enquete.sql` | `enquete_config` + `enquete_votos` tables (one vote per user) |
+| `19_enquete_decisao.sql` | Adds `decisao_titulo/texto/visivel` to `enquete_config` |
+| `20_classificacao_pontos_config.sql` | Makes the group-classification bonus admin-configurable (`configuracoes_pontuacao`, tipo_acerto='classificacao'). Creates the **`pontuacao_resumo`** view — single source of truth for max points per phase (qtd_jogos × placar_exato) + classification bonus (32 × pontos configurados). Always live — never needs manual recalculation. |
+| `21_especiais_pontos_config.sql` | Makes the 5 special-prediction point values admin-configurable (`configuracoes_pontuacao`, fase='ESP', tipo_acerto∈{campeao,vice_campeao,artilheiro,melhor_jogador,melhor_goleiro}). Updates `pontuacao_resumo` to add the especiais total row. |
 
 ---
 
@@ -277,12 +281,15 @@ Single-row table (id = 1). Stores official special award results.
 | Field | Type | Notes |
 |---|---|---|
 | id | serial | PK |
-| fase | text | `GS \| R32 \| R16 \| QF \| SF \| TPL \| F` |
-| tipo_acerto | text | `placar_exato \| empate \| vencedor \| gols_equipe \| penalti` |
+| fase | text | `GS \| R32 \| R16 \| QF \| SF \| TPL \| F` (game phases) or `ESP` (special predictions, not a real game phase) |
+| tipo_acerto | text | `placar_exato \| empate \| vencedor \| gols_equipe \| penalti \| classificacao \| campeao \| vice_campeao \| artilheiro \| melhor_jogador \| melhor_goleiro` |
 | pontos | integer | |
 | atualizado_em | timestamp | |
 
-Unique constraint on `(fase, tipo_acerto)`. 35 rows total (7 phases × 5 types).
+Unique constraint on `(fase, tipo_acerto)`. 41 rows total: 7 phases × 5 types + 1 `classificacao` row (`fase='GS'`) + 5 special-prediction rows (`fase='ESP'`).
+
+### pontuacao_resumo (view)
+Single source of truth for maximum points, always live — computed from `configuracoes_pontuacao` + `jogos_copa` counts, never hardcoded. Rows: one per game phase (`tipo='jogos'`, `pontos_max` = qtd_jogos × placar_exato), one for the classification bonus (`tipo='classificacao'`, `fase='GS'`, `pontos_max` = 32 × pontos configurados), and one for special predictions (`tipo='especiais'`, `fase='ESP'`, `pontos_max` = sum of the 5 configured values). Query this instead of hardcoding totals anywhere in the app. Created in `20_classificacao_pontos_config.sql`, extended in `21_especiais_pontos_config.sql`.
 
 ---
 
@@ -334,17 +341,19 @@ Unique constraint on `(fase, tipo_acerto)`. 35 rows total (7 phases × 5 types).
 | TPL | 100 | 75 | 50 | 25 | 25 |
 | F | 120 | 75 | 60 | 30 | 30 |
 
-**Maximum possible points for a perfect palpite: 3.340 pts**
-- Jogos (all exact scores): 2.380 pts
-- Bônus classificação de grupos: 640 pts (32 × 20)
-- Palpites especiais: 320 pts (100+70+50+50+50)
+**Maximum possible points for a perfect palpite (default config): 3.820 pts**
+- Jogos (all exact scores): 2.860 pts — 72×20 + 16×30 + 8×40 + 4×60 + 2×80 + 1×100 + 1×120
+- Bônus classificação de grupos: 640 pts by default (32 × 20) — **admin-configurable** via `configuracoes_pontuacao` (fase='GS', tipo_acerto='classificacao'); changes propagate automatically through the `pontuacao_resumo` view
+- Palpites especiais: 320 pts by default (100+70+50+50+50) — **admin-configurable** via `configuracoes_pontuacao` (fase='ESP', tipo_acerto∈{campeao,vice_campeao,artilheiro,melhor_jogador,melhor_goleiro}); `SPECIAL_POINTS` in `scoring.ts` is only the fallback default
+
+⚠️ Never hardcode these totals anywhere in code or docs — they depend on live `configuracoes_pontuacao` values, which admins can change in Admin → Configurações → Pontuação. Always query `pontuacao_resumo` (view, migration 20) for per-phase and grand totals instead of recomputing or hardcoding.
 
 **KO rules:**
 - Result = 90 min + extra time (admin enters ET score — label shown in admin form)
 - Penalty shootout scores are NOT counted as match goals (regulation note 4)
 - KO draws that go to penalties: can score empate + penalti, or gols + penalti
 
-**Special predictions (from `resultados_especiais`):**
+**Special predictions (from `resultados_especiais`):** default points shown below, **admin-configurable** via Admin → Configurações → Pontuação → "Palpites Especiais" card (`configuracoes_pontuacao`, fase='ESP').
 | Prediction | Points |
 |---|---|
 | Campeão | 100 |
@@ -353,7 +362,7 @@ Unique constraint on `(fase, tipo_acerto)`. 35 rows total (7 phases × 5 types).
 | Melhor Jogador | 50 |
 | Melhor Goleiro | 50 |
 
-**Group classification bonus:** 20 pts per team correctly predicted to qualify (top 2 per group + 8 best 3rd-place = 32 qualifiers max). Triggered by admin after all group results are confirmed. Logic in `src/utils/classificacao.ts`.
+**Group classification bonus:** admin-configurable pts (default 20) per team correctly predicted to qualify (top 2 per group + 8 best 3rd-place = 32 qualifiers max). Editable in Admin → Configurações → Pontuação, inside the "Fase de Grupos" card. Triggered by admin after all group results are confirmed. Logic in `src/utils/classificacao.ts`.
 
 **Implementation files:**
 - `src/utils/scoring.ts` — `calcularPontos()`, `calcularPontosEspeciais()`, `SPECIAL_POINTS`, `PONTOS_CLASSIFICACAO_GRUPO`

@@ -154,10 +154,15 @@ export const SPECIAL_POINTS = {
 /**
  * Calculates total points earned from special predictions.
  * Only counts fields where the official result has been set (non-null).
+ *
+ * @param pontosConfig  - points per category, admin-configurable via
+ *                        configuracoes_pontuacao (fase='ESP'). Defaults to
+ *                        SPECIAL_POINTS if not provided.
  */
 export function calcularPontosEspeciais(
   palpite: SpecialPredictions,
   resultados: SpecialResults,
+  pontosConfig: typeof SPECIAL_POINTS = SPECIAL_POINTS,
 ): number {
   let total = 0
   for (const key of Object.keys(SPECIAL_POINTS) as (keyof typeof SPECIAL_POINTS)[]) {
@@ -165,12 +170,14 @@ export function calcularPontosEspeciais(
     const predito = palpite[key]
     // Only score if the official result has been entered
     if (oficial && predito && oficial.trim().toLowerCase() === predito.trim().toLowerCase()) {
-      total += SPECIAL_POINTS[key]
+      total += pontosConfig[key]
     }
   }
   return total
 }
 
 // ── Group classification bonus ────────────────────────────────────────────────
-// 20 points for each team correctly predicted to qualify from the group stage.
+// Default points per team correctly predicted to qualify from the group stage.
+// Admin-configurable via configuracoes_pontuacao (fase='GS', tipo_acerto='classificacao') —
+// this constant is only the fallback when that row hasn't been read from the DB yet.
 export const PONTOS_CLASSIFICACAO_GRUPO = 20
