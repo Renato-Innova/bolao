@@ -108,7 +108,7 @@ interface Props {
   especiaisDeadline?: string | null
   novoPalpiteDeadline?: string | null
   minutosLockJogo?: number
-  variacaoMap?: Record<number, { variacao: number; variacao_posicao: number; posicao: number }>
+  variacaoMap?: Record<number, { variacao: number; variacao_posicao: number; posicao: number; acertos_exatos: number }>
 }
 
 const VISIBLE = 3
@@ -662,6 +662,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
     const varInfo  = variacaoMap[p.id]
     const preenchi = p.palpites_jogos?.filter(pj => pj.submitted_at).length ?? 0
     const pct = totalJogos > 0 ? Math.round((preenchi / totalJogos) * 100) : 0
+    const jogosComResultado = todosJogos.filter(j => j.resultado).length
 
     // Checklist counts
     const gsTotal   = todosJogos.filter(j => j.fase === 'GS').length
@@ -784,32 +785,40 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
             )}
           </div>
         )}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          {/* Pontos + variação de pontos abaixo */}
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: isInativo ? 'rgba(255,255,255,0.2)' : '#4A90D9', lineHeight: 1 }}>
-              {isInativo ? '—' : pts} <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}>pts</span>
-            </div>
-            {!isInativo && varInfo?.variacao !== 0 && varInfo && (
-              <div style={{ fontSize: 10, fontWeight: 700, marginTop: 3, color: varInfo.variacao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
-                {varInfo.variacao > 0 ? `▲ +${varInfo.variacao} pts` : `▼ ${varInfo.variacao} pts`}
+        {!isInativo && varInfo ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {/* Pontos */}
+            <div style={{ background: 'rgba(74,144,217,0.08)', borderRadius: 8, padding: '8px 6px', textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#4A90D9', lineHeight: 1 }}>{pts}</div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.50)', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.3 }}>pontos</div>
+              <div style={{ fontSize: 9, fontWeight: 700, marginTop: 2, color: varInfo.variacao === 0 ? 'rgba(255,255,255,0.25)' : varInfo.variacao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
+                {varInfo.variacao === 0 ? '—' : varInfo.variacao > 0 ? `▲ +${varInfo.variacao}` : `▼ ${varInfo.variacao}`}
               </div>
-            )}
+            </div>
+            {/* Posição */}
+            <div style={{ background: 'rgba(74,144,217,0.08)', borderRadius: 8, padding: '8px 6px', textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#4A90D9', lineHeight: 1 }}>#{varInfo.posicao}</div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.50)', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.3 }}>posição</div>
+              <div style={{ fontSize: 9, fontWeight: 700, marginTop: 2, color: varInfo.variacao_posicao === 0 ? 'rgba(255,255,255,0.25)' : varInfo.variacao_posicao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
+                {varInfo.variacao_posicao === 0 ? '—' : varInfo.variacao_posicao > 0 ? `▲ +${varInfo.variacao_posicao}` : `▼ ${Math.abs(varInfo.variacao_posicao)}`}
+              </div>
+            </div>
+            {/* Acertos exatos */}
+            <div style={{ background: 'rgba(74,144,217,0.08)', borderRadius: 8, padding: '8px 6px', textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#7BB8F0', lineHeight: 1 }}>{varInfo.acertos_exatos}</div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.50)', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                {varInfo.acertos_exatos === 1 ? 'acerto' : 'acertos'}
+              </div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>
+                de {jogosComResultado}
+              </div>
+            </div>
           </div>
-          {/* Posição + variação de posição */}
-          {!isInativo && varInfo && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#4A90D9', lineHeight: 1 }}>
-                #{varInfo.posicao} <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}>pos</span>
-              </div>
-              {varInfo.variacao_posicao !== 0 && (
-                <div style={{ fontSize: 10, fontWeight: 700, color: varInfo.variacao_posicao > 0 ? '#4ade80' : 'rgba(255,100,100,0.85)' }}>
-                  {varInfo.variacao_posicao > 0 ? `▲ +${varInfo.variacao_posicao} pos` : `▼ ${Math.abs(varInfo.variacao_posicao)} pos`}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        ) : (
+          <div style={{ fontSize: 22, fontWeight: 800, color: 'rgba(255,255,255,0.2)', lineHeight: 1 }}>
+            — <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}>pts</span>
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
           <div style={{ flex: 1, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2 }}>
             <div style={{ height: 3, background: isInativo ? 'rgba(255,255,255,0.15)' : 'linear-gradient(90deg,#4A90D9,#7BB8F0)', borderRadius: 2, width: `${pct}%` }} />

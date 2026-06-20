@@ -59,9 +59,9 @@ export default async function PalpitesPage() {
   ])
 
   // Build variacao map for user's palpites only
-  const variacaoMap: Record<number, { variacao: number; variacao_posicao: number; posicao: number }> = {}
+  const variacaoMap: Record<number, { variacao: number; variacao_posicao: number; posicao: number; acertos_exatos: number }> = {}
   for (const r of ranking) {
-    variacaoMap[r.palpite_id] = { variacao: r.variacao, variacao_posicao: r.variacao_posicao, posicao: r.posicao }
+    variacaoMap[r.palpite_id] = { variacao: r.variacao, variacao_posicao: r.variacao_posicao, posicao: r.posicao, acertos_exatos: r.acertos_exatos }
   }
 
   return (
