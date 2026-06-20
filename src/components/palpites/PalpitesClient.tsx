@@ -805,7 +805,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
             </div>
             {/* Acertos exatos */}
             <div style={{ background: 'rgba(74,144,217,0.08)', borderRadius: 8, padding: '8px 6px', textAlign: 'center' }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#7BB8F0', lineHeight: 1 }}>{varInfo.acertos_exatos}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#4A90D9', lineHeight: 1 }}>{varInfo.acertos_exatos}</div>
               <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.50)', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.3 }}>
                 {varInfo.acertos_exatos === 1 ? 'acerto' : 'acertos'}
               </div>
