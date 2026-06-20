@@ -269,7 +269,7 @@ export default async function InstrucoesPage() {
         </>)}
 
         {/* General points table — max points per phase, sourced from pontuacao_resumo */}
-        <div style={{ marginTop: 18 }}>
+        <div id="pontuacao-maxima-geral" style={{ marginTop: 18 }}>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Pontuação máxima geral
           </div>

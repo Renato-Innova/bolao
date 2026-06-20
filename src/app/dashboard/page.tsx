@@ -185,8 +185,8 @@ export default async function DashboardPage() {
         {/* R1C2 — Progresso do torneio */}
         <div className="dash-card-jogos" style={card}>
           <div style={bar} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-            <div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+            <div style={{ paddingRight: 16 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.60)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>Jogos realizados</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 10 }}>
                 <span style={{ fontSize: 32, fontWeight: 700, color: 'white', lineHeight: 1 }}>{jogosRealizados ?? 0}</span>
@@ -197,16 +197,18 @@ export default async function DashboardPage() {
               </div>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>{faseAtual}</div>
             </div>
-            <div style={{ borderLeft: '1px solid rgba(255,255,255,0.08)', paddingLeft: 20 }}>
+            <div style={{ borderLeft: '1px solid rgba(255,255,255,0.08)', paddingLeft: 16 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.60)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>Pontos em disputa</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 10 }}>
                 <span style={{ fontSize: 32, fontWeight: 700, color: 'white', lineHeight: 1 }}>{pontosEmDisputa.toLocaleString('pt-BR')}</span>
-                <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)' }}>/ {pontosMaxJogos.toLocaleString('pt-BR')}</span>
+                <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)' }}>/ {pontosMaxJogos.toLocaleString('pt-BR')} *</span>
               </div>
               <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
                 <div style={{ height: '100%', width: `${disputaPct}%`, background: 'linear-gradient(90deg, #4A90D9, #7BB8F0)', borderRadius: 3 }} />
               </div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap' }}>Placares exatos. Sem pontos de pênaltis</div>
+              <Link href="/instrucoes#pontuacao-maxima-geral" style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap', textDecoration: 'underline' }}>
+                * veja em instruções o calculo
+              </Link>
             </div>
           </div>
         </div>
