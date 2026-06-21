@@ -187,9 +187,9 @@ export default async function RankingPage() {
       chartDatas = [ontem, ...chartDatas]
     }
 
-    /* top 10 + palpites do usuário logado (sem duplicar) */
-    const top10Ids  = ranking.slice(0, 10).map(r => r.palpite_id)
-    const chartIds  = [...new Set([...top10Ids, ...myPalpiteIds])]
+    /* top 20 + palpites do usuário logado (sem duplicar) */
+    const top20Ids  = ranking.slice(0, 20).map(r => r.palpite_id)
+    const chartIds  = [...new Set([...top20Ids, ...myPalpiteIds])]
     const chartRank = ranking.filter(r => chartIds.includes(r.palpite_id))
 
     chartSeries = chartRank.map(r => ({
@@ -287,7 +287,12 @@ export default async function RankingPage() {
 
                     {/* nome + usuário */}
                     <div className="rank-info" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <PalpiteAvatar nome={entry.nome} avatarType={entry.avatar_type} avatarValue={entry.avatar_value} size={28} />
+                      <span className="rank-avatar-mobile" style={{ display: 'none' }}>
+                        <PalpiteAvatar nome={entry.nome} avatarType={entry.avatar_type} avatarValue={entry.avatar_value} size={28} />
+                      </span>
+                      <span className="rank-avatar-desktop" style={{ display: 'inline-flex' }}>
+                        <PalpiteAvatar nome={entry.nome} avatarType={entry.avatar_type} avatarValue={entry.avatar_value} size={36} />
+                      </span>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                           <span className="rank-nome" style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>

@@ -134,7 +134,7 @@ function draw(
   const NAVY  = '#0D1E3D'
   const WHITE = '#ffffff'
   const MUTED = 'rgba(255,255,255,0.35)'
-  const AR    = isMobile ? 11 : 14
+  const AR    = isMobile ? 11 : 18
   const FS    = isMobile ? 9  : 10
 
   ctx.fillStyle = NAVY

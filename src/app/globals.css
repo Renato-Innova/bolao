@@ -277,6 +277,8 @@ input[type='number'] { -moz-appearance: textfield; }
   }
   .rank-pos   { font-size: 14px !important; font-weight: 800 !important; min-width: 22px !important; text-align: center; }
   .rank-info  { flex: 1; }
+  .rank-avatar-mobile  { display: inline-flex !important; }
+  .rank-avatar-desktop { display: none !important; }
   /* Mobile: trunca nome do palpite e do usuário */
   .rank-nome    { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
   .rank-usuario { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 270px; }
