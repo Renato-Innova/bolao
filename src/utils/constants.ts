@@ -240,6 +240,12 @@ export const GOLEIRO_OPTIONS = [
   { value: 'Thibaut Courtois',    label: 'Thibaut Courtois (Bélgica)'           },
   { value: 'Gregor Kobel',        label: 'Gregor Kobel (Suíça)'                 },
   { value: 'Vozinha',             label: 'Vozinha (Cabo Verde)'                 },
+  { value: 'Diogo Costa',         label: 'Diogo Costa (Portugal)'               },
+  { value: 'Bart Verbruggen',     label: 'Bart Verbruggen (Holanda)'            },
+  { value: 'Sergio Rochet',       label: 'Sergio Rochet (Uruguai)'              },
+  { value: 'Raúl Rangel',         label: 'Raúl Rangel (México)'                 },
+  { value: 'Matthew Freese',      label: 'Matthew Freese (EUA)'                 },
+  { value: 'Zion Suzuki',         label: 'Zion Suzuki (Japão)'                  },
 ].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
 
 /* ─── Qualifying info ─────────────────────────────────────────────────────────
