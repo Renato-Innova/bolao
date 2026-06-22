@@ -197,10 +197,8 @@ export default async function RankingPage() {
       chartDatas = [ontem, ...chartDatas]
     }
 
-    /* top 20 + palpites do usuário logado (sem duplicar) */
-    const top20Ids  = ranking.slice(0, 20).map(r => r.palpite_id)
-    const chartIds  = [...new Set([...top20Ids, ...myPalpiteIds])]
-    const chartRank = ranking.filter(r => chartIds.includes(r.palpite_id))
+    /* todos os palpites ativos — o componente decide quanto exibir por visão (Top 15/25/Tudo) */
+    const chartRank = ranking
 
     chartSeries = chartRank.map(r => ({
       palpite_id:     r.palpite_id,

@@ -21,6 +21,8 @@ interface Props {
   datas: string[]
 }
 
+type Visao = 'top15' | 'top25' | 'meio' | 'ultimos25'
+
 /* Paleta de cores para as linhas (exceto "você") */
 const LINE_COLORS = [
   '#7BB8F0', '#f97316', '#a78bfa', '#4ade80',
@@ -72,18 +74,24 @@ async function loadImages(series: ChartSeries[]): Promise<Map<number, HTMLImageE
   return map
 }
 
+const ROW_H_DESKTOP = 22
+const ROW_H_MOBILE  = 18
+const PAD_TOP = 16
+const PAD_BOTTOM = 30
+
 export function RankingEvolutionChart({ series: allSeries, datas }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const boxRef = useRef<HTMLDivElement>(null)
   const [canvasW, setCanvasW] = useState(560)
   const [hoveredId, setHoveredId] = useState<number | null>(null)
+  const [pinnedId, setPinnedId] = useState<number | null>(null)
   const [imgMap, setImgMap] = useState<Map<number, HTMLImageElement>>(new Map())
   const [isMobile, setIsMobile] = useState(false)
+  const [visao, setVisao] = useState<Visao>('top15')
 
-  /* responsividade — largura + breakpoint mobile */
   useEffect(() => {
     function update() {
-      if (containerRef.current) setCanvasW(containerRef.current.clientWidth)
+      if (boxRef.current) setCanvasW(boxRef.current.clientWidth)
       setIsMobile(window.innerWidth < 768)
     }
     update()
@@ -91,33 +99,34 @@ export function RankingEvolutionChart({ series: allSeries, datas }: Props) {
     return () => window.removeEventListener('resize', update)
   }, [])
 
-  /* no mobile, reduz para os 10 melhores (do dia mais recente) + você, pra não poluir */
-  const series = (() => {
-    if (!isMobile || allSeries.length <= 10) return allSeries
-    const last = datas[datas.length - 1]
-    const ordenado = [...allSeries].sort((a, b) => {
-      const va = a.historico.find(h => h.data === last)?.total_pontos ?? 0
-      const vb = b.historico.find(h => h.data === last)?.total_pontos ?? 0
-      return vb - va
-    })
-    const top10 = ordenado.slice(0, 10)
-    const eu = allSeries.filter(s => s.isMe && !top10.some(t => t.palpite_id === s.palpite_id))
-    return [...top10, ...eu]
-  })()
-
-  /* carrega avatares (upload/camisa) uma vez */
   useEffect(() => {
     loadImages(allSeries).then(setImgMap)
   }, [allSeries])
 
-  /* atribui cor a cada série */
+  /* ordena por posição oficial atual (líder primeiro) */
+  const ordenado = [...allSeries].sort((a, b) => (a.posicaoOficial ?? 999) - (b.posicaoOficial ?? 999))
+
+  const ROW_H = isMobile ? ROW_H_MOBILE : ROW_H_DESKTOP
+  const nDays = datas.length
+
+  const total = ordenado.length
+  const top15Count     = Math.min(15, total)
+  const top25Count     = Math.min(25, total)
+  const meioCount      = Math.min(25, total)
+  const ultimos25Count = Math.min(25, total)
+  // janela "Meio" centralizada: início = floor((total-25)/2)+1
+  const meioInicio = Math.max(1, Math.floor((total - meioCount) / 2) + 1)
+
+  const series = visao === 'top15' ? ordenado.slice(0, top15Count)
+    : visao === 'top25' ? ordenado.slice(0, top25Count)
+    : visao === 'meio'  ? ordenado.slice(meioInicio - 1, meioInicio - 1 + meioCount)
+    : ordenado.slice(-ultimos25Count)
+
   const seriesWithColor = series.map((s, i) => ({
     ...s,
     cor: s.isMe ? '#4A90D9' : LINE_COLORS[i % LINE_COLORS.length],
   }))
-
   const N = seriesWithColor.length
-  const nDays = datas.length
 
   /* valor acumulado por dia, com gaps preenchidos pelo último valor conhecido */
   const valoresPorDia = seriesWithColor.map(s => {
@@ -129,11 +138,7 @@ export function RankingEvolutionChart({ series: allSeries, datas }: Props) {
     })
   })
 
-  /* posição (1 = melhor) por dia.
-     Quando ranking_historico_completo tem o snapshot do dia para todos os palpites
-     exibidos, usamos a posição oficial já desempatada (pontos → acertos exatos →
-     palpite_id). Sem esse snapshot (dias anteriores à migration, ou dados faltando),
-     caímos no melhor critério disponível: pontos desc, depois palpite_id asc. */
+  /* posição (1 = melhor, dentro do subconjunto exibido) por dia */
   const lastDayIdx = datas.length - 1
   const posicaoPorDia: number[][] = seriesWithColor.map(() => [])
   datas.forEach((data, i) => {
@@ -153,9 +158,9 @@ export function RankingEvolutionChart({ series: allSeries, datas }: Props) {
     ranked.forEach((r, pos) => { posicaoPorDia[r.idx][i] = pos + 1 })
   })
 
-  const PAD_L = isMobile ? 20 : 26
-  const PAD_R = isMobile ? 28 : 40
-  const AR    = isMobile ? 8 : 9
+  // Altura do conteúdo do gráfico atual (cresce com N)
+  const contentH = Math.max(140, N * ROW_H + PAD_TOP + PAD_BOTTOM)
+  const boxH = contentH
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -164,25 +169,32 @@ export function RankingEvolutionChart({ series: allSeries, datas }: Props) {
     if (!ctx) return
 
     const dpr = window.devicePixelRatio || 1
-    const W   = canvasW
-    const H   = Math.max(180, Math.min(480, N * (isMobile ? 22 : 26) + 60))
+    const W = canvasW
+    const H = contentH
     canvas.width  = W * dpr
     canvas.height = H * dpr
     canvas.style.width  = W + 'px'
     canvas.style.height = H + 'px'
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
     ctx.scale(dpr, dpr)
 
-    const PAD  = { t: 16, r: PAD_R, b: 30, l: PAD_L }
-    const cw   = W - PAD.l - PAD.r
-    const ch   = H - PAD.t - PAD.b
+    const AR = isMobile ? 8 : 9
+    const PAD = { t: PAD_TOP, r: isMobile ? 28 : 36, b: PAD_BOTTOM, l: isMobile ? 22 : 28 }
+    const cw = W - PAD.l - PAD.r
+    const ch = H - PAD.t - PAD.b
 
     function xOf(i: number) { return PAD.l + (i / (nDays - 1)) * cw }
     function yOf(pos: number) { return N > 1 ? PAD.t + ((pos - 1) / (N - 1)) * ch : PAD.t + ch / 2 }
 
     ctx.clearRect(0, 0, W, H)
 
-    /* grid horizontal + número da posição à esquerda */
-    ctx.strokeStyle = 'rgba(255,255,255,0.04)'
+    /* grid + número da posição real no ranking geral à esquerda
+       (linhas continuam plotadas pela posição relativa ao subconjunto, mas o
+       rótulo mostra o número real — ex: "Últimos 25" mostra 34-58, não 1-25) */
+    const labelOffset = visao === 'ultimos25' ? ordenado.length - N
+      : visao === 'meio' ? meioInicio - 1
+      : 0
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)'
     ctx.lineWidth = 1
     ctx.font = `${isMobile ? 8 : 9}px Inter`
     ctx.fillStyle = 'rgba(255,255,255,0.30)'
@@ -191,7 +203,7 @@ export function RankingEvolutionChart({ series: allSeries, datas }: Props) {
     for (let p = 1; p <= N; p++) {
       const y = yOf(p)
       ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(PAD.l + cw, y); ctx.stroke()
-      ctx.fillText(String(p), PAD.l - 6, y)
+      ctx.fillText(String(p + labelOffset), PAD.l - 6, y)
     }
 
     /* x labels */
@@ -206,17 +218,19 @@ export function RankingEvolutionChart({ series: allSeries, datas }: Props) {
         ctx.fillText(fmtData(d), xOf(i), H - PAD.b + 16)
     })
 
-    /* desenha linhas — não-hover primeiro, hover por cima */
+    const activeId = pinnedId ?? hoveredId
+
+    /* desenha linhas — destaca quem está "fixado/hover" e sempre realça "você" */
     const order = [...seriesWithColor.keys()].sort((a, b) => {
-      const aHover = seriesWithColor[a].palpite_id === hoveredId ? 1 : 0
-      const bHover = seriesWithColor[b].palpite_id === hoveredId ? 1 : 0
-      return aHover - bHover
+      const aTop = (seriesWithColor[a].palpite_id === activeId || seriesWithColor[a].isMe) ? 1 : 0
+      const bTop = (seriesWithColor[b].palpite_id === activeId || seriesWithColor[b].isMe) ? 1 : 0
+      return aTop - bTop
     })
 
     order.forEach(idx => {
       const s = seriesWithColor[idx]
-      const isHover = hoveredId === s.palpite_id
-      const dim = hoveredId !== null && !isHover
+      const isActive = activeId === s.palpite_id || (activeId === null && s.isMe)
+      const dim = activeId !== null && !isActive && !s.isMe
 
       ctx.beginPath()
       posicaoPorDia[idx].forEach((pos, i) => {
@@ -224,18 +238,18 @@ export function RankingEvolutionChart({ series: allSeries, datas }: Props) {
         i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
       })
       ctx.strokeStyle = dim ? s.cor + '20' : s.cor
-      ctx.lineWidth   = isHover ? 3.5 : (s.isMe ? 2.2 : 1.4)
+      ctx.lineWidth   = isActive ? 3.5 : (s.isMe ? 2.2 : 1.4)
       ctx.stroke()
     })
 
     /* avatares no último dia */
     order.forEach(idx => {
       const s = seriesWithColor[idx]
-      const isHover = hoveredId === s.palpite_id
-      const dim = hoveredId !== null && !isHover
+      const isActive = activeId === s.palpite_id || (activeId === null && s.isMe)
+      const dim = activeId !== null && !isActive && !s.isMe
       const x = xOf(nDays - 1)
       const y = yOf(posicaoPorDia[idx][nDays - 1])
-      const r = isHover ? AR + 2 : AR
+      const r = isActive ? AR + 2 : AR
       const img = imgMap.get(s.palpite_id) ?? null
 
       ctx.save()
@@ -247,7 +261,7 @@ export function RankingEvolutionChart({ series: allSeries, datas }: Props) {
         : (s.avatar_type ? 'rgba(74,144,217,0.10)' : nameToColor(s.nome) + 'cc')
       ctx.fill()
       ctx.strokeStyle = s.cor
-      ctx.lineWidth = isHover || s.isMe ? 2 : 1
+      ctx.lineWidth = isActive || s.isMe ? 2 : 1
       ctx.stroke()
 
       if (img) {
@@ -272,18 +286,18 @@ export function RankingEvolutionChart({ series: allSeries, datas }: Props) {
       ctx.restore()
     })
 
-  }, [canvasW, series, datas, hoveredId, imgMap, N, nDays, posicaoPorDia, seriesWithColor, isMobile, PAD_L, PAD_R, AR])
+  }, [canvasW, series, datas, hoveredId, pinnedId, imgMap, N, nDays, posicaoPorDia, seriesWithColor, isMobile, contentH, visao, ordenado.length, meioInicio])
 
-  /* testa linhas (proximidade no x mais próximo) + avatares (último ponto) a partir de coordenadas relativas ao canvas */
   function hitTest(mx: number, my: number) {
-    const H  = canvasRef.current!.getBoundingClientRect().height
-    const cw = canvasW - PAD_L - PAD_R
-    const ch = H - 16 - 30
+    const PAD = { t: PAD_TOP, r: isMobile ? 28 : 36, b: PAD_BOTTOM, l: isMobile ? 22 : 28 }
+    const cw = canvasW - PAD.l - PAD.r
+    const ch = contentH - PAD.t - PAD.b
+    const AR = isMobile ? 8 : 9
 
-    function xOf(i: number) { return PAD_L + (i / (nDays - 1)) * cw }
-    function yOf(pos: number) { return N > 1 ? 16 + ((pos - 1) / (N - 1)) * ch : 16 + ch / 2 }
+    function xOf(i: number) { return PAD.l + (i / (nDays - 1)) * cw }
+    function yOf(pos: number) { return N > 1 ? PAD.t + ((pos - 1) / (N - 1)) * ch : PAD.t + ch / 2 }
 
-    const idx = Math.round(((mx - PAD_L) / cw) * (nDays - 1))
+    const idx = Math.round(((mx - PAD.l) / cw) * (nDays - 1))
     const dayIdx = Math.max(0, Math.min(nDays - 1, idx))
 
     let bestId: number | null = null
@@ -295,7 +309,6 @@ export function RankingEvolutionChart({ series: allSeries, datas }: Props) {
       if (d < bestDist) { bestDist = d; bestId = s.palpite_id }
     })
 
-    /* checa avatares no último ponto com prioridade */
     seriesWithColor.forEach((s, sIdx) => {
       const x = xOf(nDays - 1)
       const y = yOf(posicaoPorDia[sIdx][nDays - 1])
@@ -313,23 +326,39 @@ export function RankingEvolutionChart({ series: allSeries, datas }: Props) {
     setHoveredId(hitTest(e.clientX - rect.left, e.clientY - rect.top))
   }
 
+  function handleClick(e: React.MouseEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current
+    if (!canvas || nDays < 2) return
+    const rect = canvas.getBoundingClientRect()
+    const id = hitTest(e.clientX - rect.left, e.clientY - rect.top)
+    setPinnedId(prev => (id !== null && prev === id) ? null : id)
+  }
+
   function handleTouch(e: React.TouchEvent<HTMLCanvasElement>) {
     const canvas = canvasRef.current
     if (!canvas || nDays < 2) return
     const rect = canvas.getBoundingClientRect()
     const t = e.touches[0]
     if (!t) return
-    setHoveredId(hitTest(t.clientX - rect.left, t.clientY - rect.top))
+    const id = hitTest(t.clientX - rect.left, t.clientY - rect.top)
+    setPinnedId(prev => (id !== null && prev === id) ? null : id)
   }
 
   if (nDays < 2) return null
 
-  const selecionado = seriesWithColor.find(s => s.palpite_id === hoveredId) ?? null
+  const activeId = pinnedId ?? hoveredId
+  const selecionado = seriesWithColor.find(s => s.palpite_id === activeId) ?? null
   const ultimoValor = selecionado ? valoresPorDia[seriesWithColor.indexOf(selecionado)][nDays - 1] : null
+
+  const VISOES: { key: Visao; label: string }[] = [
+    { key: 'top15',     label: 'Top 15' },
+    { key: 'top25',     label: 'Top 25' },
+    { key: 'meio',      label: 'Meio' },
+    { key: 'ultimos25', label: 'Últimos 25' },
+  ]
 
   return (
     <div
-      ref={containerRef}
       style={{
         background: '#0D1E3D',
         border: '1px solid rgba(74,144,217,0.15)',
@@ -339,9 +368,9 @@ export function RankingEvolutionChart({ series: allSeries, datas }: Props) {
       }}
     >
       {/* cabeçalho */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, minHeight: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, minHeight: 16, flexWrap: 'wrap', gap: 6 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          Evolução diária da pontuação para os líderes + você
+          Evolução diária da pontuação
         </div>
         {selecionado && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'white', whiteSpace: 'nowrap' }}>
@@ -352,16 +381,43 @@ export function RankingEvolutionChart({ series: allSeries, datas }: Props) {
         )}
       </div>
 
-      {/* canvas */}
-      <canvas
-        ref={canvasRef}
-        style={{ cursor: hoveredId !== null ? 'pointer' : 'crosshair', display: 'block', width: '100%', touchAction: 'none' }}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={() => setHoveredId(null)}
-        onTouchStart={handleTouch}
-        onTouchMove={handleTouch}
-        onTouchEnd={() => setHoveredId(null)}
-      />
+      {/* toggle de visão */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+        {VISOES.map(v => (
+          <button
+            key={v.key}
+            onClick={() => { setVisao(v.key); setPinnedId(null) }}
+            style={{
+              padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+              border: `1px solid ${visao === v.key ? '#4A90D9' : 'rgba(255,255,255,0.15)'}`,
+              background: visao === v.key ? '#4A90D9' : 'rgba(255,255,255,0.05)',
+              color: visao === v.key ? 'white' : 'rgba(255,255,255,0.55)',
+              cursor: 'pointer', fontFamily: 'Inter,sans-serif',
+            }}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+
+      {/* caixa do gráfico */}
+      <div
+        ref={boxRef}
+        style={{
+          position: 'relative', width: '100%', height: boxH,
+          overflowY: 'hidden',
+          transition: 'height 0.25s ease',
+        }}
+      >
+        <canvas
+          ref={canvasRef}
+          style={{ cursor: 'pointer', display: 'block', width: '100%', touchAction: 'none' }}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={() => setHoveredId(null)}
+          onClick={handleClick}
+          onTouchStart={handleTouch}
+        />
+      </div>
     </div>
   )
 }
