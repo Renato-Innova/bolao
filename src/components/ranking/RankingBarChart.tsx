@@ -37,13 +37,6 @@ function getColors(posicao: number, isMe: boolean): [string, string] {
   return PALETA[Math.min(posicao, 11)] ?? PALETA[11]
 }
 
-function centerOrder(entries: RankingEntry[]): RankingEntry[] {
-  const first = entries.find(e => e.posicao === 1)
-  const left  = entries.filter(e => e.posicao % 2 !== 0 && e.posicao !== 1).reverse()
-  const right = entries.filter(e => e.posicao % 2 === 0)
-  return first ? [...left, first, ...right] : [...left, ...right]
-}
-
 function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   r = Math.min(r, w / 2, h / 2)
   ctx.beginPath()
@@ -133,7 +126,6 @@ function draw(
 
   const NAVY  = '#0D1E3D'
   const WHITE = '#ffffff'
-  const MUTED = 'rgba(255,255,255,0.35)'
   const AR    = isMobile ? 11 : 18
   const FS    = isMobile ? 9  : 10
 

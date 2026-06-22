@@ -1,6 +1,6 @@
 // v2
 import { createClient } from '@/lib/supabase/server'
-import { getRanking } from '@/services/ranking'
+import { getRankingCached } from '@/services/ranking'
 import type { RankingEntry } from '@/types'
 
 import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
@@ -136,7 +136,7 @@ function Podium({ top3, myIds }: { top3: RankingEntry[]; myIds: number[] }) {
 export default async function RankingPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const ranking = await getRanking()
+  const ranking = await getRankingCached()
 
   let myPalpiteIds: number[] = []
   if (user) {

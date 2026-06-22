@@ -2589,6 +2589,43 @@ function TeamInfoPanel({ nome }: { nome: string }) {
   )
 }
 
+function ScoreControl({ value, onChange, submitted, locked, scoreColor, scoreBorder }: {
+  value: number
+  onChange: (v: number) => void
+  submitted: boolean
+  locked: boolean
+  scoreColor: string
+  scoreBorder: string
+}) {
+  const safe = Number.isFinite(value) ? value : -1
+  const displayVal = safe === -1 ? '—' : safe
+  const numColor = safe === -1 ? 'rgba(255,255,255,0.2)' : scoreColor
+  const numBorder = safe === -1 ? '2px solid transparent' : scoreBorder
+  // Hide +/− buttons when submitted — score is read-only until user clicks Edit
+  if (submitted) {
+    return (
+      <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: safe === -1 ? 15 : 17, fontWeight: 800, color: numColor, borderRadius: 6, border: numBorder, userSelect: 'none' }}>
+        {displayVal}
+      </div>
+    )
+  }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+      <button className="sc-btn"
+        onClick={() => onChange(safe <= 0 ? (safe === -1 ? -1 : 0) : safe - 1)}
+        disabled={locked}
+        style={{ width: 24, height: 24, border: '1px solid rgba(74,144,217,0.35)', borderRadius: 5, background: 'rgba(74,144,217,0.1)', color: '#4A90D9', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0, padding: 0 }}>−</button>
+      <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: safe === -1 ? 15 : 17, fontWeight: 800, color: numColor, borderRadius: 6, border: numBorder, transition: 'border-color 0.3s, color 0.3s', userSelect: 'none' }}>
+        {displayVal}
+      </div>
+      <button className="sc-btn"
+        onClick={() => onChange(safe < 0 ? 0 : safe + 1)}
+        disabled={locked}
+        style={{ width: 24, height: 24, border: '1px solid rgba(74,144,217,0.35)', borderRadius: 5, background: 'rgba(74,144,217,0.1)', color: '#4A90D9', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0, padding: 0 }}>+</button>
+    </div>
+  )
+}
+
 function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos, minutosLock = 60, isPerdido = false }: MatchCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -2614,36 +2651,6 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos, minut
 
   // -1 means "not entered yet" — displayed as '—'
   const notEntered = state.scoreA === -1 || state.scoreB === -1
-
-  function ScoreControl({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-    const safe = Number.isFinite(value) ? value : -1
-    const displayVal = safe === -1 ? '—' : safe
-    const numColor = safe === -1 ? 'rgba(255,255,255,0.2)' : scoreColor
-    const numBorder = safe === -1 ? '2px solid transparent' : scoreBorder
-    // Hide +/− buttons when submitted — score is read-only until user clicks Edit
-    if (state.submitted) {
-      return (
-        <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: safe === -1 ? 15 : 17, fontWeight: 800, color: numColor, borderRadius: 6, border: numBorder, userSelect: 'none' }}>
-          {displayVal}
-        </div>
-      )
-    }
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-        <button className="sc-btn"
-          onClick={() => onChange(safe <= 0 ? (safe === -1 ? -1 : 0) : safe - 1)}
-          disabled={locked}
-          style={{ width: 24, height: 24, border: '1px solid rgba(74,144,217,0.35)', borderRadius: 5, background: 'rgba(74,144,217,0.1)', color: '#4A90D9', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0, padding: 0 }}>−</button>
-        <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: safe === -1 ? 15 : 17, fontWeight: 800, color: numColor, borderRadius: 6, border: numBorder, transition: 'border-color 0.3s, color 0.3s', userSelect: 'none' }}>
-          {displayVal}
-        </div>
-        <button className="sc-btn"
-          onClick={() => onChange(safe < 0 ? 0 : safe + 1)}
-          disabled={locked}
-          style={{ width: 24, height: 24, border: '1px solid rgba(74,144,217,0.35)', borderRadius: 5, background: 'rgba(74,144,217,0.1)', color: '#4A90D9', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0, padding: 0 }}>+</button>
-      </div>
-    )
-  }
 
   return (
     <div style={{ background: '#0D1E3D', border: `1px solid ${borderColor}`, borderRadius: 10, padding: '1px 14px 12px', position: 'relative', opacity: locked ? 0.75 : 1, pointerEvents: locked ? 'none' : 'auto' }}>
@@ -2693,9 +2700,9 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos, minut
           <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{abbr(jogo.time_a)}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <ScoreControl value={state.scoreA} onChange={v => onScoreChange('A', v)} />
+          <ScoreControl value={state.scoreA} onChange={v => onScoreChange('A', v)} submitted={state.submitted} locked={locked} scoreColor={scoreColor} scoreBorder={scoreBorder} />
           <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.50)', padding: '0 2px', fontWeight: 300 }}>×</span>
-          <ScoreControl value={state.scoreB} onChange={v => onScoreChange('B', v)} />
+          <ScoreControl value={state.scoreB} onChange={v => onScoreChange('B', v)} submitted={state.submitted} locked={locked} scoreColor={scoreColor} scoreBorder={scoreBorder} />
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
           <FlagImg codigo={jogo.codigo_pais_b ?? ''} size={24} />

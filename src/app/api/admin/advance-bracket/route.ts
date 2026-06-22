@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -68,35 +68,40 @@ function resolveGroupPosition(
 
 // ── Auth helper ───────────────────────────────────────────────────────────────
 
-type SupabaseClient = Awaited<ReturnType<typeof createClient>>
+type SupabaseClient = ReturnType<typeof createAdminClient>
 
-async function getAdminClient(): Promise<{ client: SupabaseClient; error: string | null }> {
+async function checkAdmin(): Promise<string | null> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { client: supabase, error: 'Não autenticado.' }
+  if (!user) return 'Não autenticado.'
 
   const { data } = await supabase
     .from('users')
     .select('is_admin')
     .eq('id', user.id)
     .single()
-  if (!data?.is_admin) return { client: supabase, error: 'Sem permissão.' }
+  if (!data?.is_admin) return 'Sem permissão.'
 
-  return { client: supabase, error: null }
+  return null
 }
 
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  const { client, error: authError } = await getAdminClient()
+  const authError = await checkAdmin()
   if (authError) {
     return NextResponse.json({ error: authError }, { status: authError === 'Não autenticado.' ? 401 : 403 })
   }
 
+  // Escritas em jogos_copa usam o client admin (service role) em vez do client
+  // da sessão do usuário — a checagem de admin já foi feita acima, e isso
+  // evita depender de uma policy de RLS para impedir escrita por não-admins.
+  const admin = createAdminClient()
+
   const { fase } = await req.json() as { fase: string }
 
-  if (fase === 'R32') return handleR32(client)
-  if (['R16', 'QF', 'SF', 'TPL', 'F'].includes(fase)) return handleKoPhase(client, fase)
+  if (fase === 'R32') return handleR32(admin)
+  if (['R16', 'QF', 'SF', 'TPL', 'F'].includes(fase)) return handleKoPhase(admin, fase)
   return NextResponse.json({ error: 'Fase inválida.' }, { status: 400 })
 }
 

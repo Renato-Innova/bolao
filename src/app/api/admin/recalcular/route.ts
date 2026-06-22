@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { calcularPontos, type PontuacaoConfig } from '@/utils/scoring'
 
@@ -62,6 +63,8 @@ export async function POST() {
       .select('id, placar_palpite_a, placar_palpite_b, placar_penalti_a, placar_penalti_b, submitted_at')
       .eq('jogo_id', jogo.id)
 
+    const updates: Array<{ id: number; pontos: number }> = []
+
     for (const pj of palpitesJogos ?? []) {
       if (!pj.submitted_at || pj.placar_palpite_a == null || pj.placar_palpite_b == null) continue
 
@@ -82,10 +85,21 @@ export async function POST() {
         configs,
       )
 
-      await admin.from('palpites_jogos').update({ pontos }).eq('id', pj.id)
-      updatedCount++
+      updates.push({ id: pj.id, pontos })
+    }
+
+    if (updates.length > 0) {
+      const { error: upsertErr } = await admin
+        .from('palpites_jogos')
+        .upsert(updates, { onConflict: 'id' })
+      if (upsertErr) {
+        return NextResponse.json({ error: `Erro ao atualizar jogo ${jogo.id}: ${upsertErr.message}` }, { status: 500 })
+      }
+      updatedCount += updates.length
     }
   }
+
+  revalidateTag('ranking', 'max')
 
   return NextResponse.json({
     ok: true,

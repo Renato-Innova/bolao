@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { calcularBonusClassificacao } from '@/utils/classificacao'
 
@@ -82,14 +83,16 @@ export async function POST() {
   // ── 3. Fetch all palpites with their GS predictions ───────────────────────
   const { data: palpites } = await admin
     .from('palpites')
-    .select('id, palpites_jogos(jogo_id, placar_palpite_a, placar_palpite_b, submitted_at)')
+    .select('id, nome, palpites_jogos(jogo_id, placar_palpite_a, placar_palpite_b, submitted_at)')
 
   if (!palpites) return NextResponse.json({ error: 'Erro ao buscar palpites.' }, { status: 500 })
 
   const gsJogoIds = new Set(gsJogos.map(j => j.id))
 
   // ── 4. Calculate and save bonus for each palpite ──────────────────────────
-  let updatedCount = 0
+  // nome é incluído pois a tabela exige NOT NULL — o upsert reenvia o valor
+  // existente apenas para satisfazer a constraint, o valor não é alterado.
+  const updates: Array<{ id: number; nome: string; pontos_classificacao: number }> = []
 
   for (const palpite of palpites) {
     // Build predictions map: jogoId → { a, b } — only submitted GS predictions
@@ -108,9 +111,19 @@ export async function POST() {
     }
 
     const pontos_classificacao = calcularBonusClassificacao(gsJogos, predicoes, oficiais, pontosPorAcerto)
-    await admin.from('palpites').update({ pontos_classificacao }).eq('id', palpite.id)
-    updatedCount++
+    updates.push({ id: palpite.id, nome: palpite.nome, pontos_classificacao })
   }
+
+  let updatedCount = 0
+  if (updates.length > 0) {
+    const { error: upsertErr } = await admin
+      .from('palpites')
+      .upsert(updates, { onConflict: 'id' })
+    if (upsertErr) return NextResponse.json({ error: upsertErr.message }, { status: 500 })
+    updatedCount = updates.length
+  }
+
+  revalidateTag('ranking', 'max')
 
   return NextResponse.json({
     ok: true,

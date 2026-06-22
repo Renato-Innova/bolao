@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { calcularPontosEspeciais, SPECIAL_POINTS } from '@/utils/scoring'
 import type { SpecialResults } from '@/utils/scoring'
@@ -75,14 +76,26 @@ export async function POST(req: NextRequest) {
   // 4 — Recalculate pontos_especiais for all palpites
   const { data: palpites } = await admin
     .from('palpites')
-    .select('id, campeao, vice_campeao, artilheiro, melhor_jogador, melhor_goleiro')
+    .select('id, nome, campeao, vice_campeao, artilheiro, melhor_jogador, melhor_goleiro')
+
+  // nome é incluído pois a tabela exige NOT NULL — o upsert reenvia o valor
+  // existente apenas para satisfazer a constraint, o valor não é alterado.
+  const updates = (palpites ?? []).map(p => ({
+    id: p.id,
+    nome: p.nome,
+    pontos_especiais: calcularPontosEspeciais(p, resultados, pontosConfig),
+  }))
 
   let updatedCount = 0
-  for (const p of palpites ?? []) {
-    const pontos_especiais = calcularPontosEspeciais(p, resultados, pontosConfig)
-    await admin.from('palpites').update({ pontos_especiais }).eq('id', p.id)
-    updatedCount++
+  if (updates.length > 0) {
+    const { error: upsertErr } = await admin
+      .from('palpites')
+      .upsert(updates, { onConflict: 'id' })
+    if (upsertErr) return NextResponse.json({ error: upsertErr.message }, { status: 500 })
+    updatedCount = updates.length
   }
+
+  revalidateTag('ranking', 'max')
 
   return NextResponse.json({ ok: true, updatedCount })
 }

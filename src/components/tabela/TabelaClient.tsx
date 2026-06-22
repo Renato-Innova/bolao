@@ -175,13 +175,19 @@ function JogosTab({ todosJogos }: { todosJogos: JogoCopa[] }) {
   })
 
   // ao buscar, expande todos os dias encontrados automaticamente
-  useEffect(() => {
-    if (termNorm) {
+  function handleBuscaChange(novaBusca: string) {
+    setBusca(novaBusca)
+    const novoTermNorm = normalize(novaBusca.trim())
+    if (novoTermNorm) {
+      const filtrados = todosJogos.filter(j =>
+        normalize(j.time_a).includes(novoTermNorm) ||
+        normalize(j.time_b).includes(novoTermNorm)
+      )
       const all: Record<string, boolean> = {}
-      days.forEach(d => { all[d.date] = true })
+      groupByDay(filtrados).forEach(d => { all[d.date] = true })
       setAccOpen(all)
     }
-  }, [termNorm]) // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   function toggleAcc(date: string) {
     setAccOpen(prev => ({ ...prev, [date]: !prev[date] }))
@@ -204,7 +210,7 @@ function JogosTab({ todosJogos }: { todosJogos: JogoCopa[] }) {
           type="text"
           placeholder="Buscar por time… ex: Brasil, Suíça"
           value={busca}
-          onChange={e => setBusca(e.target.value)}
+          onChange={e => handleBuscaChange(e.target.value)}
           style={{
             width: '100%', boxSizing: 'border-box',
             background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(74,144,217,0.25)',

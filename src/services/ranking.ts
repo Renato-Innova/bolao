@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 import type { RankingEntry } from '@/types'
 
@@ -119,3 +120,12 @@ export async function getRanking(): Promise<RankingEntry[]> {
 
   return entries
 }
+
+// Versão com cache: o ranking é o mesmo para todos os usuários, então não
+// precisa ser recalculado em toda página/navegação. unstable_cache só pode
+// envolver código que não lê cookies — por isso só fica ativo quando a
+// service-role key está configurada (caminho que usa createAdminClient,
+// sem depender da sessão do usuário). Sem a key, cai no cálculo ao vivo.
+export const getRankingCached = process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? unstable_cache(getRanking, ['ranking'], { revalidate: 20, tags: ['ranking'] })
+  : getRanking

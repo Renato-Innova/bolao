@@ -235,7 +235,7 @@ export function RankingEvolutionChart({ series: allSeries, datas }: Props) {
       ctx.beginPath()
       posicaoPorDia[idx].forEach((pos, i) => {
         const x = xOf(i), y = yOf(pos)
-        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
       })
       ctx.strokeStyle = dim ? s.cor + '20' : s.cor
       ctx.lineWidth   = isActive ? 3.5 : (s.isMe ? 2.2 : 1.4)

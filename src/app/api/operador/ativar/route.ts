@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 // PATCH /api/operador/ativar  { palpiteId: number }
@@ -31,6 +32,8 @@ export async function PATCH(req: NextRequest) {
   if (error || !data) {
     return NextResponse.json({ error: error?.message ?? 'Palpite não encontrado ou já ativo.' }, { status: 400 })
   }
+
+  revalidateTag('ranking', 'max')
 
   return NextResponse.json({ ok: true, palpite: data })
 }

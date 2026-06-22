@@ -1,7 +1,7 @@
 // v2
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getRanking } from '@/services/ranking'
+import { getRankingCached } from '@/services/ranking'
 import { FlagImg } from '@/components/ui/FlagImg'
 import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
 import { PalpiteCarousel } from '@/components/dashboard/PalpiteCarousel'
@@ -54,7 +54,7 @@ export default async function DashboardPage() {
     supabase.from('resultados').select('*', { count: 'exact', head: true }),
     supabase.from('jogos_copa').select('*, resultado:resultados(*)').gte('data', hoje).order('data').order('horario').limit(8),
     supabase.from('jogos_copa').select('*, resultado:resultados(*)').eq('data', ontem).not('resultado', 'is', null).order('horario', { ascending: false }),
-    getRanking(),
+    getRankingCached(),
     supabase.from('classificacao_grupos').select('*').order('grupo').order('pts', { ascending: false }).order('dg', { ascending: false }).order('m', { ascending: false }),
     supabase.from('boletim_copa').select('*').order('gerado_em', { ascending: false }).limit(10),
     supabase.from('boletim_copa').select('*', { count: 'exact', head: true }),
