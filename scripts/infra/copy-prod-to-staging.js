@@ -1,8 +1,9 @@
 /**
  * Copia dados da produção para o staging.
- * Tabelas copiadas: users, palpites, palpites_jogos, resultados,
- *                   resultados_especiais, configuracoes_pontuacao,
- *                   classificacao_grupos, configuracoes_sistema
+ * Tabelas copiadas: todas as tabelas de public/ (ver TABLES abaixo) — lista
+ * deve ser mantida em sincronia com o schema real (supabase/00_fresh_install.sql).
+ * Para conferir se a lista está completa, rode scripts/infra/diff-schema.mjs
+ * ou compare com a saída de generate-fresh-install.mjs.
  *
  * Run: node --env-file=.env.scripts scripts/copy-prod-to-staging.js
  * (copie .env.scripts.example para .env.scripts e preencha as connection strings)
@@ -18,18 +19,27 @@ if (!PROD || !STAGING) {
   process.exit(1)
 }
 
-// Tables to copy in order (respecting FK dependencies)
+// Tables to copy in order (respeitando dependências de FK — tabelas pai antes
+// das filhas, já que o TRUNCATE CASCADE de uma tabela pai apaga os dados já
+// copiados de qualquer filha que ainda não tenha sido truncada nesta rodada)
 const TABLES = [
   'configuracoes_pontuacao',
   'classificacao_grupos',
   'configuracoes_sistema',
   'resultados_especiais',
+  'enquete_config',
+  'artilheiros_copa',
+  'boletim_copa',
   // auth.users is managed by Supabase Auth — copy public.users only
   'users',
   'palpites',
   'jogos_copa',       // seed data but may have KO slots filled in prod
   'resultados',
   'palpites_jogos',
+  'ranking_historico',
+  'ranking_historico_completo',
+  'palpites_activity_log',
+  'enquete_votos',
 ]
 
 async function getColumnsInBoth(prod, staging, table) {
