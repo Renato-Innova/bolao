@@ -38,6 +38,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# arquivos locais de trabalho (mockups, previews de prompt, etc.) — nunca versionados
+/_archive
+dev-server.log
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
