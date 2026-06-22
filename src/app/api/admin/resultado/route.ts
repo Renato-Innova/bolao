@@ -151,6 +151,15 @@ export async function POST(req: NextRequest) {
     console.warn('[resultado] snapshot ranking_historico error (non-fatal):', snapErr)
   }
 
+  // 4b — Snapshot completo (posição oficial + acertos exatos), tabela nova e
+  // independente (ranking_historico_completo). Bloco isolado e não-crítico —
+  // qualquer falha aqui nunca afeta o snapshot acima nem o resto do request.
+  try {
+    await admin.rpc('snapshot_ranking_completo_diario')
+  } catch (snapCompletoErr) {
+    console.warn('[resultado] snapshot ranking_historico_completo error (non-fatal):', snapCompletoErr)
+  }
+
   // 5 — Dispara atualização dos artilheiros em background (fire-and-forget)
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
   fetch(`${baseUrl}/api/artilheiros/atualizar`, {

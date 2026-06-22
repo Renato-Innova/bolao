@@ -8,8 +8,11 @@ export interface ChartSeries {
   isMe: boolean
   avatar_type?: string | null
   avatar_value?: string | null
-  // array of { data: 'YYYY-MM-DD', total_pontos: number } sorted ascending
-  historico: { data: string; total_pontos: number }[]
+  // posição oficial atual (getRanking() — já desempata por acertos exatos). Fallback para o último dia.
+  posicaoOficial?: number
+  // array de pontos por dia. `posicao`, quando presente, vem de ranking_historico_completo
+  // (ou do ranking ao vivo p/ hoje) e já reflete o desempate por acertos exatos.
+  historico: { data: string; total_pontos: number; posicao?: number }[]
 }
 
 interface Props {
@@ -126,12 +129,27 @@ export function RankingEvolutionChart({ series: allSeries, datas }: Props) {
     })
   })
 
-  /* posição (1 = melhor) por dia — desempate por pontos desc, depois palpite_id asc */
+  /* posição (1 = melhor) por dia.
+     Quando ranking_historico_completo tem o snapshot do dia para todos os palpites
+     exibidos, usamos a posição oficial já desempatada (pontos → acertos exatos →
+     palpite_id). Sem esse snapshot (dias anteriores à migration, ou dados faltando),
+     caímos no melhor critério disponível: pontos desc, depois palpite_id asc. */
+  const lastDayIdx = datas.length - 1
   const posicaoPorDia: number[][] = seriesWithColor.map(() => [])
-  datas.forEach((_, i) => {
+  datas.forEach((data, i) => {
+    const isLast = i === lastDayIdx
+    const posicoesSalvas = seriesWithColor.map(s => {
+      const h = s.historico.find(h => h.data === data)
+      return h?.posicao ?? (isLast ? s.posicaoOficial : undefined)
+    })
+    const diaCompleto = posicoesSalvas.every(p => p != null)
+
     const ranked = seriesWithColor
-      .map((s, idx) => ({ idx, v: valoresPorDia[idx][i], id: s.palpite_id }))
-      .sort((a, b) => b.v - a.v || a.id - b.id)
+      .map((s, idx) => ({ idx, v: valoresPorDia[idx][i], id: s.palpite_id, salva: posicoesSalvas[idx] }))
+      .sort((a, b) => {
+        if (diaCompleto) return (a.salva as number) - (b.salva as number)
+        return b.v - a.v || a.id - b.id
+      })
     ranked.forEach((r, pos) => { posicaoPorDia[r.idx][i] = pos + 1 })
   })
 

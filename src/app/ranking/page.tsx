@@ -160,6 +160,16 @@ export default async function RankingPage() {
       .in('palpite_id', activeIds)
       .order('data', { ascending: true })
 
+    // posição oficial por dia (desempatada por acertos exatos) — tabela aditiva nova
+    const { data: historicoCompleto } = await supabase
+      .from('ranking_historico_completo')
+      .select('palpite_id, data, posicao')
+      .in('palpite_id', activeIds)
+    const posicaoPorDiaMap: Record<string, number> = {}
+    for (const h of (historicoCompleto ?? []) as { palpite_id: number; data: string; posicao: number }[]) {
+      posicaoPorDiaMap[`${h.palpite_id}|${h.data}`] = h.posicao
+    }
+
     // Monta mapa de pontos ao vivo por palpite_id (do ranking em tempo real)
     const livePontos: Record<number, number> = {}
     for (const r of ranking) livePontos[r.palpite_id] = r.total_pontos
@@ -193,14 +203,21 @@ export default async function RankingPage() {
     const chartRank = ranking.filter(r => chartIds.includes(r.palpite_id))
 
     chartSeries = chartRank.map(r => ({
-      palpite_id:   r.palpite_id,
-      nome:         r.nome,
-      isMe:         myPalpiteIds.includes(r.palpite_id),
-      avatar_type:  r.avatar_type,
-      avatar_value: r.avatar_value,
-      historico:    historicoComHoje
+      palpite_id:     r.palpite_id,
+      nome:           r.nome,
+      isMe:           myPalpiteIds.includes(r.palpite_id),
+      avatar_type:    r.avatar_type,
+      avatar_value:   r.avatar_value,
+      posicaoOficial: r.posicao,
+      historico:      historicoComHoje
         .filter((h: { palpite_id: number }) => h.palpite_id === r.palpite_id)
-        .map((h: { data: string; total_pontos: number }) => ({ data: h.data, total_pontos: h.total_pontos })),
+        .map((h: { data: string; total_pontos: number }) => ({
+          data: h.data,
+          total_pontos: h.total_pontos,
+          // hoje usa a posição ao vivo (sempre atualizada); dias passados usam o
+          // snapshot de ranking_historico_completo quando existir
+          posicao: h.data === todayBRT ? r.posicao : posicaoPorDiaMap[`${r.palpite_id}|${h.data}`],
+        })),
     }))
   }
 
