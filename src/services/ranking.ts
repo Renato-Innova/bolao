@@ -6,8 +6,6 @@ export async function getRanking(): Promise<RankingEntry[]> {
   const hasAdminKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY
   const supabase = hasAdminKey ? createAdminClient() : await createClient()
 
-  console.log('[getRanking] using', hasAdminKey ? 'admin' : 'anon', 'client')
-
   // Step 1 — fetch active palpites (no joins, maximum compatibility)
   const { data: palpites, error: errP } = await supabase
     .from('palpites')
@@ -19,11 +17,8 @@ export async function getRanking(): Promise<RankingEntry[]> {
     return []
   }
   if (!palpites || palpites.length === 0) {
-    console.log('[getRanking] no active palpites found')
     return []
   }
-
-  console.log('[getRanking] found', palpites.length, 'active palpites')
 
   const palpiteIds = palpites.map((p: { id: number }) => p.id)
 
@@ -77,10 +72,6 @@ export async function getRanking(): Promise<RankingEntry[]> {
   for (const h of (historico ?? [])) {
     pontosOntem[h.palpite_id] = h.total_pontos
   }
-
-  console.log('[getRanking] todayStr:', todayStr, '| historico rows:', historico?.length ?? 0, '| sample:', JSON.stringify(historico?.[0]))
-  console.log('[getRanking] pontosOntem sample:', JSON.stringify(Object.entries(pontosOntem).slice(0, 3)))
-  console.log('[getRanking] pontosHoje sample:', JSON.stringify(Object.entries(pontosPorPalpite).slice(0, 3)))
 
   // Calculate yesterday's ranking positions from snapshot
   // Sort by yesterday's points descending → position = index + 1
