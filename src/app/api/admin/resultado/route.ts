@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { calcularPontos } from '@/utils/scoring'
+import { atualizarArtilheiros } from '@/app/api/artilheiros/atualizar/route'
 
 // POST /api/admin/resultado
 // Body: { jogoId, placarA, placarB, penaltiA?, penaltiB? }
@@ -169,12 +170,12 @@ export async function POST(req: NextRequest) {
     console.warn('[resultado] snapshot ranking_historico_completo error (non-fatal):', snapCompletoErr)
   }
 
-  // 5 — Dispara atualização dos artilheiros em background (fire-and-forget)
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-  fetch(`${baseUrl}/api/artilheiros/atualizar`, {
-    method: 'GET',
-    headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET ?? ''}` },
-  }).catch(() => { /* não-crítico */ })
+  // 5 — Dispara atualização dos artilheiros em background (fire-and-forget),
+  // mesma função usada pelo cron e pelo botão admin — chamada direta, sem o
+  // round-trip HTTP que existia antes
+  atualizarArtilheiros().catch(artErr => {
+    console.warn('[resultado] atualizarArtilheiros error (non-fatal):', artErr)
+  })
 
   revalidateTag('ranking', 'max')
 

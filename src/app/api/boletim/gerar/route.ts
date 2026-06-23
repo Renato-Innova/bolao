@@ -117,27 +117,28 @@ function extractPosJogo(text: string): string {
   const preJogoIdx = text.indexOf('Pré-jogo')
   const body = preJogoIdx > 0 ? text.slice(0, preJogoIdx) : text
 
-  // Localiza onde começa o conteúdo real (resultado + lances)
-  const startMarkers = ['Fim de jogo', 'FIM DE JOGO', 'APITA', 'ENCERRADO']
-  let startIdx = body.length
-  for (const m of startMarkers) {
-    const i = body.indexOf(m)
-    if (i > 0 && i < startIdx) startIdx = i
-  }
-  if (startIdx === body.length) {
-    const m = body.search(/\d+' [12]º T/)
-    startIdx = m > 0 ? Math.max(0, m - 200) : Math.max(0, body.length - 3000)
-  }
+  // A página do UOL lista os eventos do mais recente para o mais antigo, então
+  // "FIM DE JOGO" (apito final) aparece ANTES de "0' 1º T" (pontapé inicial)
+  // no texto. Cortamos exatamente entre essas duas marcações para capturar o
+  // jogo todo, do início ao fim, sem depender de um tamanho fixo de janela.
+  const fimMatch    = body.match(/fim de jogo/i)
+  const inicioMatch = body.match(/0' 1º T/i)
 
-  const trecho = body.slice(Math.max(0, startIdx - 100), startIdx + 3000)
+  const trecho = (fimMatch?.index != null && inicioMatch?.index != null && inicioMatch.index > fimMatch.index)
+    ? body.slice(fimMatch.index, inicioMatch.index + inicioMatch[0].length)
+    : body.slice(Math.max(0, body.length - 12000))  // fallback se as marcações não forem encontradas
 
   // Mantém apenas frases com eventos relevantes do jogo
+  // length > 30 descartava os gritos de gol mais curtos e diretos (ex:
+  // "GOOOL!" tem 6 chars) — o filtro de palavra-chave abaixo já garante
+  // relevância, então um corte bem baixo só tira ruído (pontuação solta).
+  // "go+l" (em vez de "gol" fixo) casa "GOOOL"/"GOOOOOOOOL" — a narração ao
+  // vivo estica o "O" do grito de gol, e "gol" sozinho não bate com isso.
   const frases = trecho.split(/(?<=[.!?])\s+|\d+' [12]º T\s*/)
-    .filter(l => l.length > 30)
-    .filter(l => /GOL|FIM|APITA|cartão|substituição|gol|placar|empat|vitória|derrota|defesa|chut|finaliz|escanteio|pênalti/i.test(l))
-    .slice(0, 10)
+    .filter(l => l.length > 4)
+    .filter(l => /go+l|FIM|APITA|cartão|substituição|placar|empat|vitória|derrota|defesa|chut|finaliz|escanteio|pênalti/i.test(l))
 
-  return frases.join(' ').slice(0, 900)
+  return frases.join(' ').slice(0, 4000)
 }
 
 /* ── formatadores de jogo ──────────────────────────────────────────────────── */
@@ -450,20 +451,28 @@ function extractSection(texto: string, header: string): string {
 }
 
 async function getBoletinsRecentes(limit = 3): Promise<string> {
+  // Busca uma margem extra de linhas porque pode haver mais de um boletim no
+  // mesmo dia (regeração manual) — aqui ficamos só com o mais recente de cada
+  // dia, para a IA nunca receber duas versões do mesmo dia como se fossem dias diferentes.
   const { data } = await supabase
     .from('boletim_copa')
     .select('gerado_em, conteudo')
     .eq('tipo', 'manha')
     .order('gerado_em', { ascending: false })
-    .limit(limit)
+    .limit(Math.max(limit * 5, 15))
 
   if (!data || data.length === 0) return ''
 
-  return data.map((b: { gerado_em: string; conteudo: string }) => {
-    const data_ = brtDate(new Date(b.gerado_em))
+  const porDia = new Map<string, { gerado_em: string; conteudo: string }>()
+  for (const b of data as { gerado_em: string; conteudo: string }[]) {
+    const dia = brtDate(new Date(b.gerado_em))
+    if (!porDia.has(dia)) porDia.set(dia, b)  // já vem ordenado desc, então o primeiro de cada dia é o mais recente
+  }
+
+  return [...porDia.entries()].slice(0, limit).map(([dia, b]) => {
     const ranking1 = extractSection(b.conteudo, 'RODADA DE HOJE NO RANKING')
     const ranking5 = extractSection(b.conteudo, 'BRIGA PELO RANKING')
-    return `--- Boletim de ${data_} ---\n[RODADA DE HOJE NO RANKING]\n${ranking1}\n\n[BRIGA PELO RANKING]\n${ranking5}`
+    return `--- Boletim de ${dia} ---\n[RODADA DE HOJE NO RANKING]\n${ranking1}\n\n[BRIGA PELO RANKING]\n${ranking5}`
   }).join('\n\n')
 }
 
