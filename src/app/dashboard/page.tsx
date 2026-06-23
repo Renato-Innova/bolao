@@ -377,7 +377,7 @@ export default async function DashboardPage() {
 
         {/* R2C1 — Próximas Partidas */}
         <div className="dash-card-proximas" style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 14 }}>Próximas Partidas</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 14 }}>Partidas de Hoje</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {(proximosJogos ?? []).slice(0, 5).map((j: JogoCopa) => {
               const isToday   = j.data === hoje
