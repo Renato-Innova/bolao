@@ -163,8 +163,11 @@ function buildPrompt(params: {
   posJogo: string
   preJogo: string
   rodadaInfo: string
+  meioRelevante: string
+  artilharia: string
+  boletinsRecentes: string
 }) {
-  const { hoje, ranking, posJogo, preJogo, rodadaInfo } = params
+  const { hoje, ranking, posJogo, preJogo, rodadaInfo, meioRelevante, artilharia, boletinsRecentes } = params
 
   return `Você é o narrador oficial do Bolão Copa 2026 — um jornalista esportivo com o tom da ESPN Brasil: animado e com pitadas de ironia, mas sempre profissional e com análise técnica de verdade.
 
@@ -183,6 +186,18 @@ DATA: ${hoje} — EDICAO: MANHA — BOLAO NA ${rodadaInfo.toUpperCase()}
 
 ${ranking}
 
+===== DESTAQUES DO MEIO DA TABELA (cite 3-4 destes se forem relevantes — NUNCA force uma mencao sem motivo, e nunca invente nomes fora desta lista) =====
+
+${meioRelevante || 'Nenhum destaque relevante no meio da tabela hoje — não force menção a ninguém do meio.'}
+
+===== RANKING DE ARTILHARIA (top 10 — use para comentar gols de jogos encerrados ou expectativa para jogos pendentes) =====
+
+${artilharia || 'Sem dados de artilharia disponiveis ainda.'}
+
+===== BOLETINS RECENTES (memoria interna — NAO repita as mesmas observacoes ou piadas; use so para dar continuidade narrativa quando fizer sentido, ex: retomar uma historia ja contada) =====
+
+${boletinsRecentes || 'Nenhum boletim anterior disponivel.'}
+
 ===== JOGOS ENCERRADOS DESDE O ULTIMO BOLETIM (analise pos-jogo) =====
 
 ${posJogo || 'Nenhum jogo encerrado desde o ultimo boletim.'}
@@ -197,11 +212,14 @@ Analise mentalmente os dados (NAO escreva essa analise — ela e apenas para voc
 - qual resultado e qual placar sao os mais apostados em cada jogo pendente
 - quem apostou contra a maioria em cada jogo
 - quem fez o palpite mais ousado do dia (placar mais incomum ou resultado improvavel)
-- quem esta sem palpites registrados
+- quem esta sem palpites registrados — lembre-se: o usuario ainda pode registrar ou editar um palpite ate 1 hora antes do horario do jogo, entao trate isso como um alerta de prazo ("ainda da tempo, mas corre"), nao como uma falha ja consumada
 - que impacto os resultados possiveis teriam no ranking
 - quem lidera ha quantos dias consecutivos e se a lideranca e confortavel ou ameacada
 - quem esta em trajetoria ascendente ou descendente: use a posicao historica de cada rodada (coluna "era #X") para narrar saltos e quedas concretos
 - os palpites de hoje dos lideres e dos ultimos colocados: onde concordam, onde divergem
+- os DESTAQUES DO MEIO DA TABELA acima, se houver algum relevante — o boletim nao deve falar so de quem lidera e de quem esta no fundo, o meio da tabela tambem faz parte da historia quando ha algo digno de nota
+- a RANKING DE ARTILHARIA acima: jogadores de times que jogaram ou vao jogar podem subir no ranking de artilharia; conecte isso a expectativa dos jogos pendentes ou ao que aconteceu nos encerrados
+- os BOLETINS RECENTES acima: evite repetir as mesmas piadas ou observacoes ja feitas; se um fato ainda for relevante hoje (ex: uma rivalidade ou trajetoria que comecou ha dias), pode retomar para dar continuidade, mas sem soar repetitivo
 
 Com base nessa analise, escreva DIRETAMENTE o boletim em portugues brasileiro, SEM emojis e SEM icones de nenhum tipo.
 NAO escreva introducoes, pensamentos, analises ou qualquer texto antes da saudacao.
@@ -219,7 +237,7 @@ REGRAS OBRIGATORIAS DE FORMATO:
 Comece diretamente com a saudacao, sem nenhum titulo ou rotulo antes dela. Uma saudacao matinal curta, engracada ou motivante para os participantes do bolao. Pode referenciar um resultado inesperado do dia anterior, uma variacao curiosa do ranking (quem subiu muito, quem caiu), ou simplesmente animar o dia. Tom leve, como um amigo acordando o grupo no WhatsApp. SEM emojis.
 
 1. RODADA DE HOJE NO RANKING — LIMITE RIGIDO: maximo 100 palavras. Nem uma a mais.
-Comente brevemente os resultados ja ocorridos e faca entre 2 e 4 provocacoes leves citando participantes pelo nome. Tom de mesa de bar, nao de tribunal. Se passar de 100 palavras, corte ate caber.
+Comente brevemente os resultados ja ocorridos e faca entre 2 e 4 provocacoes leves citando participantes pelo nome. Nao cite so lideres e ultimos colocados — use os DESTAQUES DO MEIO DA TABELA quando houver algo relevante, para variar quem aparece no boletim. Tom de mesa de bar, nao de tribunal. Se passar de 100 palavras, corte ate caber.
 
 2. ANALISE DOS JOGOS ENCERRADOS — LIMITE RIGIDO: entre 120 e 150 palavras. Nem uma a menos, nem uma a mais.
 Analise tecnica dos jogos encerrados: o que funcionou, o que surpreendeu, destaques individuais. Se houver mais de 3 jogos, priorize os mais impactantes e seja mais breve em cada um. Corte o que ultrapassar 150 palavras.
@@ -232,7 +250,7 @@ Se nao houver jogos pendentes: escreva uma analise de 120 a 150 palavras sobre o
 Destaque o palpite mais ousado: quem fez, qual e, o que aconteceria no ranking se confirmar. Se nao houver jogos pendentes, destaque o palpite mais ousado dentre os jogos encerrados e quem acertou ou errou. Corte o que ultrapassar 70 palavras.
 
 5. BRIGA PELO RANKING — LIMITE RIGIDO: entre 100 e 120 palavras. Nem uma a menos, nem uma a mais.
-Cubra em ate 4 paragrafos curtos: (a) consistencia da lideranca, (b) use as posicoes historicas por rodada para narrar quem subiu ou caiu (ex: "estava em #5 na R1, foi para #3 na R2, agora e #1"), (c) disputa pelo topo — onde lideres concordam ou divergem nos palpites de hoje, (d) fundo do poco — quem ainda pode recuperar. Crie expectativa para o boletim de amanha. Corte o que ultrapassar 120 palavras.`
+Cubra em ate 4 paragrafos curtos: (a) consistencia da lideranca, (b) use as posicoes historicas por rodada para narrar quem subiu ou caiu (ex: "estava em #5 na R1, foi para #3 na R2, agora e #1"), (c) disputa pelo topo — onde lideres concordam ou divergem nos palpites de hoje, (d) use os DESTAQUES DO MEIO DA TABELA se houver algum caso relevante hoje; se nao houver nenhum, cubra o fundo do poco (quem ainda pode recuperar). Crie expectativa para o boletim de amanha. Corte o que ultrapassar 120 palavras.`
 }
 
 /* ── tipos compartilhados ──────────────────────────────────────────────────── */
@@ -240,12 +258,13 @@ type Jogo    = Record<string, unknown>
 type HistRow = { palpite_id: number; total_pontos: number }
 
 type RankingData = {
-  rankingStr: string
-  sorted:     number[]
-  nomeMap:    Record<number, string>
-  ptMap:      Record<number, number>
-  palpiteIds: number[]
-  rodadaInfo: string
+  rankingStr:    string
+  sorted:        number[]
+  nomeMap:       Record<number, string>
+  ptMap:         Record<number, number>
+  palpiteIds:    number[]
+  rodadaInfo:    string
+  meioRelevante: string
 }
 
 /* ── funções de coleta de dados ────────────────────────────────────────────── */
@@ -384,7 +403,154 @@ async function getRankingComVariacao(now: Date): Promise<RankingData> {
     return `#${i + 1}  ${nomeMap[id]}  ${pts} pts${histStr}`
   }).join('\n')
 
-  return { rankingStr, sorted, nomeMap, ptMap, palpiteIds, rodadaInfo }
+  // Destaques do meio de tabela: exclui top 10 e base 10, só entra quem teve
+  // variação real (posição ou pontos na rodada) — nunca força menção sem motivo
+  const posAtual: Record<number, number> = {}
+  sorted.forEach((id, i) => { posAtual[id] = i + 1 })
+  const faixaMeio = sorted.slice(10, Math.max(10, sorted.length - 10))
+  const meioCandidatos = (hasH1 && posH1)
+    ? faixaMeio
+        .map(id => {
+          const posOntem  = posH1![id] ?? posAtual[id]
+          const deltaPos  = posOntem - posAtual[id]              // positivo = subiu
+          const deltaPts  = (ptMap[id] ?? 0) - (h1m[id] ?? 0)    // pontos ganhos na rodada
+          return { id, deltaPos, deltaPts }
+        })
+        .filter(c => Math.abs(c.deltaPos) >= 2 || c.deltaPts >= 15)
+        .sort((a, b) => Math.abs(b.deltaPos) - Math.abs(a.deltaPos) || b.deltaPts - a.deltaPts)
+        .slice(0, 4)
+    : []
+  const meioRelevante = meioCandidatos
+    .map(c => `${nomeMap[c.id]} (#${posAtual[c.id]}, era #${c.id in (posH1 ?? {}) ? (posH1![c.id]) : '?'}, ${c.deltaPts >= 0 ? '+' : ''}${c.deltaPts}pts na rodada)`)
+    .join('\n')
+
+  return { rankingStr, sorted, nomeMap, ptMap, palpiteIds, rodadaInfo, meioRelevante }
+}
+
+// ── Boletins recentes (memória de contexto, não aparece no boletim de hoje) ─
+// Subtítulos literais usados pelo prompt, na ordem em que aparecem no texto final
+const SUBTITULOS = [
+  'RODADA DE HOJE NO RANKING',
+  'ANALISE DOS JOGOS ENCERRADOS',
+  'FIQUE DE OLHO',
+  'APOSTA CORAJOSA',
+  'BRIGA PELO RANKING',
+]
+
+function extractSection(texto: string, header: string): string {
+  const idx = texto.toUpperCase().indexOf(header)
+  if (idx === -1) return ''
+  const startContent = idx + header.length
+  const proximosHeaders = SUBTITULOS
+    .filter(h => h !== header)
+    .map(h => texto.toUpperCase().indexOf(h, startContent))
+    .filter(i => i !== -1)
+  const fim = proximosHeaders.length > 0 ? Math.min(...proximosHeaders) : texto.length
+  return texto.slice(startContent, fim).trim()
+}
+
+async function getBoletinsRecentes(limit = 3): Promise<string> {
+  const { data } = await supabase
+    .from('boletim_copa')
+    .select('gerado_em, conteudo')
+    .eq('tipo', 'manha')
+    .order('gerado_em', { ascending: false })
+    .limit(limit)
+
+  if (!data || data.length === 0) return ''
+
+  return data.map((b: { gerado_em: string; conteudo: string }) => {
+    const data_ = brtDate(new Date(b.gerado_em))
+    const ranking1 = extractSection(b.conteudo, 'RODADA DE HOJE NO RANKING')
+    const ranking5 = extractSection(b.conteudo, 'BRIGA PELO RANKING')
+    return `--- Boletim de ${data_} ---\n[RODADA DE HOJE NO RANKING]\n${ranking1}\n\n[BRIGA PELO RANKING]\n${ranking5}`
+  }).join('\n\n')
+}
+
+// ── Artilharia ───────────────────────────────────────────────────────────────
+// artilheiros_copa.seleção vem da football-data.org em ingles (shortName/name);
+// jogos_copa.time_a/time_b usa nomes em portugues — precisa traduzir para cruzar os dois.
+const SELECAO_EN_PARA_PT: Record<string, string> = {
+  'Germany': 'Alemanha', 'Argentina': 'Argentina', 'Algeria': 'Argélia',
+  'Saudi Arabia': 'Arábia Saudita', 'Australia': 'Austrália', 'Brazil': 'Brasil',
+  'Belgium': 'Bélgica', 'Bosnia-H.': 'Bósnia e Herzegovina', 'Bosnia and Herzegovina': 'Bósnia e Herzegovina',
+  'Cape Verde': 'Cabo Verde', 'Canada': 'Canadá', 'Qatar': 'Catar',
+  'Colombia': 'Colômbia', 'Korea Republic': 'Coreia do Sul', 'South Korea': 'Coreia do Sul',
+  'Ivory Coast': 'Costa do Marfim', "Côte d'Ivoire": 'Costa do Marfim', 'Croatia': 'Croácia',
+  'Curaçao': 'Curaçao', 'Curacao': 'Curaçao', 'USA': 'EUA', 'United States': 'EUA',
+  'Egypt': 'Egito', 'Ecuador': 'Equador', 'Scotland': 'Escócia', 'Spain': 'Espanha',
+  'France': 'França', 'Ghana': 'Gana', 'Haiti': 'Haiti', 'Netherlands': 'Holanda',
+  'England': 'Inglaterra', 'Iraq': 'Iraque', 'IR Iran': 'Irã', 'Iran': 'Irã',
+  'Japan': 'Japão', 'Jordan': 'Jordânia', 'Morocco': 'Marrocos', 'Mexico': 'México',
+  'Norway': 'Noruega', 'New Zealand': 'Nova Zelândia', 'Panama': 'Panamá',
+  'Paraguay': 'Paraguai', 'Portugal': 'Portugal', 'DR Congo': 'Rep. Dem. do Congo',
+  'Senegal': 'Senegal', 'Sweden': 'Suécia', 'Switzerland': 'Suíça', 'Czechia': 'Tchéquia',
+  'Tunisia': 'Tunísia', 'Turkey': 'Turquia', 'Türkiye': 'Turquia', 'Uruguay': 'Uruguai',
+  'Uzbekistan': 'Uzbequistão', 'South Africa': 'África do Sul', 'Austria': 'Áustria',
+}
+function seleçãoParaPt(en: string): string {
+  return SELECAO_EN_PARA_PT[en] ?? en
+}
+
+type Artilheiro = { jogador: string; seleção: string; gols: number; assistencias: number; jogos: number }
+
+async function getArtilheiros(): Promise<{ rankingStr: string; lista: Artilheiro[] }> {
+  const { data } = await supabase
+    .from('artilheiros_copa')
+    .select('jogador, "seleção", gols, assistencias, jogos')
+    .order('gols', { ascending: false })
+    .order('assistencias', { ascending: false })
+
+  const lista = ((data ?? []) as Artilheiro[]).map(a => ({ ...a, seleção: seleçãoParaPt(a.seleção) }))
+  const rankingStr = lista.slice(0, 10)
+    .map((a, i) => `${i + 1}. ${a.jogador} (${a.seleção}) — ${a.gols}G ${a.assistencias}A ${a.jogos}J`)
+    .join('\n')
+
+  return { rankingStr, lista }
+}
+
+function artilheirosDoTime(lista: Artilheiro[], time: string): string {
+  const doTime = lista.filter(a => a.seleção === time)
+  if (doTime.length === 0) return ''
+  return doTime.map(a => `${a.jogador} (${a.gols}G ${a.assistencias}A)`).join(', ')
+}
+
+// ── Forma dos times (retrospecto na própria Copa) ────────────────────────────
+type FormaTime = { jogos: number; vitorias: number; empates: number; derrotas: number; golsPro: number; golsContra: number }
+
+async function getFormaTimes(times: string[]): Promise<Record<string, FormaTime>> {
+  const unicos = [...new Set(times)]
+  if (unicos.length === 0) return {}
+
+  const { data } = await supabase
+    .from('jogos_copa')
+    .select('time_a, time_b, resultado:resultados(placar_real_a, placar_real_b)')
+    .or(`time_a.in.(${unicos.map(t => `"${t}"`).join(',')}),time_b.in.(${unicos.map(t => `"${t}"`).join(',')})`)
+
+  const forma: Record<string, FormaTime> = {}
+  for (const t of unicos) forma[t] = { jogos: 0, vitorias: 0, empates: 0, derrotas: 0, golsPro: 0, golsContra: 0 }
+
+  for (const j of (data ?? []) as Jogo[]) {
+    const r = resolveResultado(j)
+    if (!r) continue
+    const ra = r.placar_real_a as number, rb = r.placar_real_b as number
+    const timeA = j.time_a as string, timeB = j.time_b as string
+
+    if (forma[timeA]) {
+      forma[timeA].jogos++; forma[timeA].golsPro += ra; forma[timeA].golsContra += rb
+      if (ra > rb) forma[timeA].vitorias++; else if (ra === rb) forma[timeA].empates++; else forma[timeA].derrotas++
+    }
+    if (forma[timeB]) {
+      forma[timeB].jogos++; forma[timeB].golsPro += rb; forma[timeB].golsContra += ra
+      if (rb > ra) forma[timeB].vitorias++; else if (rb === ra) forma[timeB].empates++; else forma[timeB].derrotas++
+    }
+  }
+  return forma
+}
+
+function fmtForma(f: FormaTime | undefined): string {
+  if (!f || f.jogos === 0) return 'sem jogos disputados ainda'
+  return `${f.jogos}J ${f.vitorias}V ${f.empates}E ${f.derrotas}D (${f.golsPro}-${f.golsContra})`
 }
 
 async function getTabelaPalpites(
@@ -459,10 +625,23 @@ function buildPosJogo(encerrados: Jogo[], encTexts: string[]): string {
   return out.trim()
 }
 
-function buildPreJogo(pendentes: Jogo[], penTexts: string[], palpitesTabela: string): string {
+function buildPreJogo(
+  pendentes:    Jogo[],
+  penTexts:     string[],
+  palpitesTabela: string,
+  forma:        Record<string, FormaTime>,
+  artilheiros:  Artilheiro[],
+): string {
   let out = ''
   pendentes.forEach((j, i) => {
-    out += `▶ ${j.time_a} x ${j.time_b} | ${j.data} ${(j.horario as string).slice(0, 5)}h\n`
+    const timeA = j.time_a as string, timeB = j.time_b as string
+    out += `▶ ${timeA} x ${timeB} | ${j.data} ${(j.horario as string).slice(0, 5)}h\n`
+    out += `Retrospecto na Copa — ${timeA}: ${fmtForma(forma[timeA])} | ${timeB}: ${fmtForma(forma[timeB])}\n`
+    const artA = artilheirosDoTime(artilheiros, timeA)
+    const artB = artilheirosDoTime(artilheiros, timeB)
+    if (artA || artB) {
+      out += `Artilheiros em campo — ${timeA}: ${artA || 'nenhum no ranking'} | ${timeB}: ${artB || 'nenhum no ranking'}\n`
+    }
     const ctx = extractPreJogo(penTexts[i], 4, 380)
     if (ctx) out += ctx + '\n'
     else out += '(contexto UOL ainda nao disponivel — usar conhecimento proprio)\n'
@@ -487,14 +666,22 @@ export async function GET(req: NextRequest) {
   const encerrados                             = await getJogosEncerrados([ontem, hoje])
   const pendentes                              = await getJogosPendentes([hoje])
   const { rankingStr, sorted, nomeMap, ptMap,
-          palpiteIds, rodadaInfo }              = await getRankingComVariacao(now)
+          palpiteIds, rodadaInfo, meioRelevante } = await getRankingComVariacao(now)
   const palpitesTabela                         = await getTabelaPalpites(pendentes, palpiteIds, sorted, nomeMap)
   const { encTexts, penTexts }                 = await getContextoUol(encerrados, pendentes)
+  const { rankingStr: artilhariaStr, lista: artilheirosLista } = await getArtilheiros()
+  const formaTimes                             = await getFormaTimes(
+    pendentes.flatMap(j => [j.time_a as string, j.time_b as string])
+  )
+  const boletinsRecentes                       = await getBoletinsRecentes(3)
 
   // montagem do prompt
   const posJogo = buildPosJogo(encerrados, encTexts)
-  const preJogo = buildPreJogo(pendentes, penTexts, palpitesTabela)
-  const prompt  = buildPrompt({ hoje, ranking: rankingStr, posJogo, preJogo, rodadaInfo })
+  const preJogo = buildPreJogo(pendentes, penTexts, palpitesTabela, formaTimes, artilheirosLista)
+  const prompt  = buildPrompt({
+    hoje, ranking: rankingStr, posJogo, preJogo, rodadaInfo,
+    meioRelevante, artilharia: artilhariaStr, boletinsRecentes,
+  })
 
   // geração do boletim
   const message  = await anthropic.messages.create({
@@ -509,18 +696,26 @@ export async function GET(req: NextRequest) {
   const titulo   = 'Boletim da Copa 2026 · Edição da Manhã'
 
   // auditoria automática (Haiku) — fatos + português
-  // fatosReais espelha exatamente o que o Sonnet recebeu: data, rodada, ranking, pos-jogo (UOL), pre-jogo (UOL + tabela de palpites)
+  // fatosReais espelha exatamente o que o Sonnet recebeu: data, rodada, ranking,
+  // meio de tabela, artilharia, pos-jogo (UOL), pre-jogo (UOL + forma + artilheiros + tabela de palpites)
+  // (boletins recentes não entram aqui — são memória de continuidade, não fato a auditar)
   const fatosReais = [
     `=== DATA: ${hoje} — BOLÃO NA ${rodadaInfo.toUpperCase()} ===`,
     '',
     '=== RANKING REAL (posição atual, pontos e histórico por rodada) ===',
     rankingStr,
     '',
+    '=== DESTAQUES DO MEIO DA TABELA (só estes podem ser citados como "meio") ===',
+    meioRelevante || 'Nenhum destaque relevante no meio da tabela hoje.',
+    '',
+    '=== RANKING DE ARTILHARIA REAL ===',
+    artilhariaStr || 'Sem dados de artilharia disponíveis ainda.',
+    '',
     '=== JOGOS ENCERRADOS — RESULTADOS E CONTEXTO PÓS-JOGO (UOL) ===',
     posJogo || 'Nenhum resultado disponível.',
     '',
-    '=== JOGOS PENDENTES — CONTEXTO PRÉ-JOGO (UOL) E PALPITES DOS PARTICIPANTES ===',
-    // preJogo já contém palpitesTabela concatenada dentro de buildPreJogo
+    '=== JOGOS PENDENTES — CONTEXTO PRÉ-JOGO (UOL), RETROSPECTO, ARTILHEIROS E PALPITES DOS PARTICIPANTES ===',
+    // preJogo já contém forma + artilheiros + palpitesTabela concatenados dentro de buildPreJogo
     preJogo || 'Nenhum jogo pendente.',
   ].join('\n')
 
@@ -534,6 +729,9 @@ export async function GET(req: NextRequest) {
    - Nomes trocados ou distorcidos
    - Contagens de palpites incorretas (ex: "só 2 apostaram em empate" quando eram 5)
    - Afirmações sobre trajetória incorretas (ex: "subiu 3 posições" quando subiu 1)
+   - Menção a alguém do "meio da tabela" que NÃO está listado em DESTAQUES DO MEIO DA TABELA
+   - Gols, assistências ou jogos de artilheiros que não batem com o RANKING DE ARTILHARIA REAL
+   - Retrospecto de time (vitórias/empates/derrotas/gols) que não bate com o contexto pré-jogo fornecido
 
 2. ERROS DE FORMATO — verifique cada ocorrência:
    - Número escrito por extenso onde deveria ser algarismo: "duzentos pontos" → deve ser "200 pontos", "cinco à frente" → "5 à frente", "trinta e cinco pontos" → "35 pontos"

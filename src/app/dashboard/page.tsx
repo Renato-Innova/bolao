@@ -206,8 +206,8 @@ export default async function DashboardPage() {
               <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
                 <div style={{ height: '100%', width: `${disputaPct}%`, background: 'linear-gradient(90deg, #4A90D9, #7BB8F0)', borderRadius: 3 }} />
               </div>
-              <Link href="/instrucoes#pontuacao-maxima-geral" style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap', textDecoration: 'underline' }}>
-                * veja em instruções o calculo
+              <Link href="/instrucoes#pontuacao-maxima-geral" style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap', textDecoration: 'underline' }}>
+                * veja em instruções o cálculo
               </Link>
             </div>
           </div>
