@@ -46,7 +46,10 @@ export async function getRanking(): Promise<RankingEntry[]> {
   }
 
   // Step 4 — fetch the most recent snapshot before today for daily variation
-  const todayStr = new Date().toISOString().split('T')[0]
+  // Usa BRT (UTC-3), igual ao resto do app — usar UTC aqui faria "hoje" virar
+  // o dia seguinte entre 21h e 23h59 BRT, incluindo o snapshot de hoje como se
+  // fosse "ontem" e zerando a variação de todo mundo nessa janela diária.
+  const todayStr = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().split('T')[0]
 
   const { data: historico } = await supabase
     .from('ranking_historico')

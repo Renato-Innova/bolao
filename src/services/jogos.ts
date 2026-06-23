@@ -34,7 +34,7 @@ export async function getJogosPorGrupo(grupo: string): Promise<JogoCopa[]> {
 
 export async function getProximosJogos(limit = 5): Promise<JogoCopa[]> {
   const supabase = await createClient()
-  const hoje = new Date().toISOString().split('T')[0]
+  const hoje = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().split('T')[0]  // BRT (UTC-3)
   const { data } = await supabase
     .from('jogos_copa')
     .select('*, resultado:resultados(*)')
@@ -47,7 +47,7 @@ export async function getProximosJogos(limit = 5): Promise<JogoCopa[]> {
 
 export async function getUltimosResultados(limit = 5): Promise<JogoCopa[]> {
   const supabase = await createClient()
-  const hoje = new Date().toISOString().split('T')[0]
+  const hoje = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().split('T')[0]  // BRT (UTC-3)
   const { data } = await supabase
     .from('jogos_copa')
     .select('*, resultado:resultados(*)')

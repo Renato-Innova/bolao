@@ -1,21 +1,12 @@
 // v2
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/server'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
-
-export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization')
-  if (
-    process.env.CRON_SECRET &&
-    authHeader !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+// Busca o ranking de artilheiros na football-data.org e atualiza artilheiros_copa.
+// Compartilhado entre o cron (este GET) e a rota admin (/api/admin/artilheiros).
+export async function atualizarArtilheiros(): Promise<
+  { ok: true; count: number; atualizado_em: string } | { ok: false; error: string; status: number }
+> {
   const res = await fetch(
     'https://api.football-data.org/v4/competitions/WC/scorers?limit=20',
     { headers: { 'X-Auth-Token': process.env.FOOTBALL_DATA_KEY! } },
@@ -23,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   if (!res.ok) {
     const text = await res.text()
-    return NextResponse.json({ error: `football-data: ${res.status}`, detail: text }, { status: 502 })
+    return { ok: false, error: `football-data: ${res.status} — ${text}`, status: 502 }
   }
 
   const data = await res.json()
@@ -45,13 +36,28 @@ export async function GET(req: NextRequest) {
     }
   })
 
-  const { error } = await supabase
+  const admin = createAdminClient()
+  const { error } = await admin
     .from('artilheiros_copa')
     .upsert(rows, { onConflict: 'id' })
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return { ok: false, error: error.message, status: 500 }
   }
 
-  return NextResponse.json({ ok: true, count: rows.length, atualizado_em: new Date().toISOString() })
+  return { ok: true, count: rows.length, atualizado_em: new Date().toISOString() }
+}
+
+export async function GET(req: NextRequest) {
+  const authHeader = req.headers.get('authorization')
+  if (
+    process.env.CRON_SECRET &&
+    authHeader !== `Bearer ${process.env.CRON_SECRET}`
+  ) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const result = await atualizarArtilheiros()
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status })
+  return NextResponse.json(result)
 }

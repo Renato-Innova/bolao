@@ -87,6 +87,10 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais, acti
   const [recalcSaving, setRecalcSaving] = useState(false)
   const [recalcMsg,    setRecalcMsg]    = useState('')
 
+  // ── Artilheiros (atualização manual) state ────────────────────────────────
+  const [artilheirosSaving, setArtilheirosSaving] = useState(false)
+  const [artilheirosMsg,    setArtilheirosMsg]    = useState('')
+
   // ── Reset results state ───────────────────────────────────────────────────
   const [resetConfirm,  setResetConfirm]  = useState(false)
   const [resetSaving,   setResetSaving]   = useState(false)
@@ -260,6 +264,21 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais, acti
       setRecalcMsg('❌ Erro de rede.')
     } finally {
       setRecalcSaving(false)
+    }
+  }
+
+  async function atualizarArtilheirosManual() {
+    setArtilheirosSaving(true)
+    setArtilheirosMsg('')
+    try {
+      const res = await fetch('/api/admin/artilheiros', { method: 'POST' })
+      const { ok, count, error } = await res.json()
+      if (ok) setArtilheirosMsg(`✅ ${count} artilheiros atualizados.`)
+      else    setArtilheirosMsg(`❌ ${error}`)
+    } catch {
+      setArtilheirosMsg('❌ Erro de rede.')
+    } finally {
+      setArtilheirosSaving(false)
     }
   }
 
@@ -588,6 +607,28 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais, acti
               {recalcMsg && (
                 <span style={{ fontSize: 12, color: recalcMsg.startsWith('✅') ? '#4ade80' : 'rgba(255,100,100,0.9)' }}>
                   {recalcMsg}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Atualizar ranking de artilheiros */}
+          <div style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '20px 20px', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 6 }}>
+              ⚽ Atualizar Ranking de Artilheiros
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 16, lineHeight: 1.6 }}>
+              Busca o ranking de artilheiros mais recente na football-data.org e atualiza a tabela exibida no Dashboard e no boletim.
+              Já roda automaticamente a cada 30 min — use este botão só se precisar forçar uma atualização imediata.
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button onClick={atualizarArtilheirosManual} disabled={artilheirosSaving}
+                style={{ background: artilheirosSaving ? 'rgba(255,255,255,0.08)' : 'linear-gradient(90deg,#f59e0b,#d97706)', color: artilheirosSaving ? 'rgba(255,255,255,0.4)' : 'white', border: 'none', padding: '10px 24px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: artilheirosSaving ? 'not-allowed' : 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {artilheirosSaving ? 'Atualizando...' : 'Atualizar Artilheiros'}
+              </button>
+              {artilheirosMsg && (
+                <span style={{ fontSize: 12, color: artilheirosMsg.startsWith('✅') ? '#4ade80' : 'rgba(255,100,100,0.9)' }}>
+                  {artilheirosMsg}
                 </span>
               )}
             </div>
