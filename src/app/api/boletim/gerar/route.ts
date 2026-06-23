@@ -122,7 +122,10 @@ function extractPosJogo(text: string): string {
   // no texto. Cortamos exatamente entre essas duas marcações para capturar o
   // jogo todo, do início ao fim, sem depender de um tamanho fixo de janela.
   const fimMatch    = body.match(/fim de jogo/i)
-  const inicioMatch = body.match(/0' 1º T/i)
+  // (?<!\d) evita casar dentro de "10' 1º T", "20' 1º T" etc — sem essa
+  // ancoragem, ".match" parava no minuto 40 do 1º tempo (a primeira
+  // ocorrência de "0' 1º T" como substring), cortando quase todo o 1º tempo.
+  const inicioMatch = body.match(/(?<!\d)0' 1º T/i)
 
   const trecho = (fimMatch?.index != null && inicioMatch?.index != null && inicioMatch.index > fimMatch.index)
     ? body.slice(fimMatch.index, inicioMatch.index + inicioMatch[0].length)
@@ -419,7 +422,7 @@ async function getRankingComVariacao(now: Date): Promise<RankingData> {
         })
         .filter(c => Math.abs(c.deltaPos) >= 2 || c.deltaPts >= 15)
         .sort((a, b) => Math.abs(b.deltaPos) - Math.abs(a.deltaPos) || b.deltaPts - a.deltaPts)
-        .slice(0, 4)
+        .slice(0, 10)  // manda mais candidatos — a IA escolhe 3-4 realmente relevantes
     : []
   const meioRelevante = meioCandidatos
     .map(c => `${nomeMap[c.id]} (#${posAtual[c.id]}, era #${c.id in (posH1 ?? {}) ? (posH1![c.id]) : '?'}, ${c.deltaPts >= 0 ? '+' : ''}${c.deltaPts}pts na rodada)`)
