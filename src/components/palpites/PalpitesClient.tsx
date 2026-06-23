@@ -5,8 +5,9 @@ import { FlagImg } from '@/components/ui/FlagImg'
 import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
 import { AvatarPicker } from '@/components/ui/AvatarPicker'
 import { createClient } from '@/lib/supabase/client'
-import { PIX_VALOR, PIX_CHAVE, GRUPOS, TEAM_ABBR, FASES, TEAM_QUAL, ALL_TEAMS, ARTILHEIRO_OPTIONS, GOLEIRO_OPTIONS, getConfrontoHistorico } from '@/utils/constants'
+import { PIX_VALOR, PIX_CHAVE, GRUPOS, FASES, TEAM_QUAL, ALL_TEAMS, ARTILHEIRO_OPTIONS, GOLEIRO_OPTIONS, getConfrontoHistorico } from '@/utils/constants'
 import { SPECIAL_POINTS, PONTOS_CLASSIFICACAO_GRUPO } from '@/utils/scoring'
+import { abbr } from '@/utils/helpers'
 import type { Palpite, JogoCopa, PalpiteJogo } from '@/types'
 
 /* ─── helpers ──────────────────────────────────────────────── */
@@ -48,10 +49,6 @@ function groupByDay(matches: JogoCopa[]): DayGroup[] {
       matches: map[date],
     }
   })
-}
-
-function abbr(name: string): string {
-  return TEAM_ABBR[name] ?? name.replace(/\s+/g, '').slice(0, 3).toUpperCase()
 }
 
 

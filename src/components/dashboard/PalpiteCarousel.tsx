@@ -1,6 +1,17 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { FlagImg } from '@/components/ui/FlagImg'
+import { abbr } from '@/utils/helpers'
+
+export interface JogoPendente {
+  jogo_id: number
+  time_a: string
+  time_b: string
+  codigo_pais_a: string | null
+  codigo_pais_b: string | null
+  horario: string
+}
 
 export interface PalpiteSlide {
   palpite_id: number
@@ -10,6 +21,7 @@ export interface PalpiteSlide {
   posicao: number
   total: number   // total de palpites no ranking (para exibir "de X")
   status: string  // 'ativo' | 'inativo'
+  jogosPendentes: JogoPendente[]  // jogos de hoje sem palpite submetido para este palpite
 }
 
 interface Props {
@@ -163,6 +175,42 @@ function SlideContent({ slide }: { slide: PalpiteSlide }) {
           <div style={styles.sub}>de {slide.total}</div>
         </div>
       </div>
+
+      <JogosPendentesBox jogos={slide.jogosPendentes} />
+    </div>
+  )
+}
+
+function JogosPendentesBox({ jogos }: { jogos: JogoPendente[] }) {
+  if (jogos.length === 0) {
+    return (
+      <div style={styles.semPendenciaRow}>
+        <span style={{ color: '#4ade80', fontSize: 13 }}>✓</span>
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>Todos os palpites de hoje enviados</span>
+      </div>
+    )
+  }
+
+  return (
+    <div style={styles.pendentesWrap}>
+      <div style={styles.pendentesHeader}>
+        <span style={styles.pendentesLabel}>Jogos sem palpite hoje</span>
+        <span style={styles.pendentesBadge}>{jogos.length}</span>
+      </div>
+      <div style={styles.pendentesList}>
+        {jogos.map(j => (
+          <div key={j.jogo_id} style={styles.pendenteRow}>
+            <div style={styles.pendenteTimes}>
+              <FlagImg codigo={j.codigo_pais_a ?? ''} size={14} />
+              <span>{abbr(j.time_a)}</span>
+              <span style={{ color: 'rgba(255,255,255,0.35)' }}>x</span>
+              <FlagImg codigo={j.codigo_pais_b ?? ''} size={14} />
+              <span>{abbr(j.time_b)}</span>
+            </div>
+            <span style={styles.pendenteHorario}>{j.horario.slice(0, 5)}h</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -262,5 +310,44 @@ const styles: Record<string, React.CSSProperties> = {
   },
   dotOn: {
     background: '#4A90D9',
+  },
+  semPendenciaRow: {
+    display: 'flex', alignItems: 'center', gap: 6,
+    marginTop: 8, paddingTop: 8,
+    borderTop: '1px solid rgba(255,255,255,0.08)',
+  },
+  pendentesWrap: {
+    marginTop: 8, paddingTop: 8,
+    borderTop: '1px solid rgba(255,255,255,0.08)',
+    minHeight: 0,
+    display: 'flex', flexDirection: 'column',
+  },
+  pendentesHeader: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    marginBottom: 6, flexShrink: 0,
+  },
+  pendentesLabel: {
+    fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6,
+    color: 'rgba(255,100,100,0.85)',
+  },
+  pendentesBadge: {
+    fontSize: 9, fontWeight: 800, color: 'white',
+    background: 'rgba(255,100,100,0.25)', borderRadius: 8, padding: '1px 6px',
+  },
+  pendentesList: {
+    display: 'flex', flexDirection: 'column', gap: 4,
+    maxHeight: 96, overflowY: 'auto',
+  },
+  pendenteRow: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
+    borderRadius: 6, padding: '5px 8px', flexShrink: 0,
+  },
+  pendenteTimes: {
+    display: 'flex', alignItems: 'center', gap: 5,
+    fontSize: 10, fontWeight: 600, color: 'white',
+  },
+  pendenteHorario: {
+    fontSize: 9, color: 'rgba(255,255,255,0.50)',
   },
 }

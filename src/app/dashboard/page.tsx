@@ -5,7 +5,7 @@ import { getRankingCached } from '@/services/ranking'
 import { FlagImg } from '@/components/ui/FlagImg'
 import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
 import { PalpiteCarousel } from '@/components/dashboard/PalpiteCarousel'
-import type { PalpiteSlide } from '@/components/dashboard/PalpiteCarousel'
+import type { PalpiteSlide, JogoPendente } from '@/components/dashboard/PalpiteCarousel'
 import type { JogoCopa, ClassificacaoGrupo } from '@/types'
 
 // Inicio do código
@@ -118,6 +118,42 @@ export default async function DashboardPage() {
   const lider   = (ranking[0]?.total_pontos ?? 0) > 0 ? ranking[0] : null
   const myEntry = currentUser ? ranking.find(r => r.usuario_id === currentUser.id) : null
 
+  /* Jogos de hoje sem palpite submetido, por palpite do usuário logado */
+  const myPalpiteIds = currentUser ? ranking.filter(r => r.usuario_id === currentUser.id).map(r => r.palpite_id) : []
+  const pendentesPorPalpite: Record<number, JogoPendente[]> = {}
+  if (myPalpiteIds.length > 0) {
+    const { data: jogosHojeTodos } = await supabase
+      .from('jogos_copa')
+      .select('id, time_a, time_b, codigo_pais_a, codigo_pais_b, horario')
+      .eq('data', hoje)
+      .order('horario')
+
+    type JogoHoje = { id: number; time_a: string; time_b: string; codigo_pais_a: string | null; codigo_pais_b: string | null; horario: string }
+    const jogosHoje = (jogosHojeTodos ?? []) as JogoHoje[]
+    const jogosHojeIds = jogosHoje.map(j => j.id)
+
+    let submetidos: { palpite_id: number; jogo_id: number }[] = []
+    if (jogosHojeIds.length > 0) {
+      const { data: subData } = await supabase
+        .from('palpites_jogos')
+        .select('palpite_id, jogo_id')
+        .in('palpite_id', myPalpiteIds)
+        .in('jogo_id', jogosHojeIds)
+        .not('submitted_at', 'is', null)
+      submetidos = subData ?? []
+    }
+
+    for (const pid of myPalpiteIds) {
+      const jaSubmetidos = new Set(submetidos.filter(s => s.palpite_id === pid).map(s => s.jogo_id))
+      pendentesPorPalpite[pid] = jogosHoje
+        .filter(j => !jaSubmetidos.has(j.id))
+        .map(j => ({
+          jogo_id: j.id, time_a: j.time_a, time_b: j.time_b,
+          codigo_pais_a: j.codigo_pais_a, codigo_pais_b: j.codigo_pais_b, horario: j.horario,
+        }))
+    }
+  }
+
   /* slides do carrossel — todos os palpites do usuário logado */
   const mySlides: PalpiteSlide[] = currentUser
     ? ranking
@@ -130,6 +166,7 @@ export default async function DashboardPage() {
           posicao:        r.posicao,
           total:          ranking.length,
           status:         r.status ?? 'ativo',
+          jogosPendentes: pendentesPorPalpite[r.palpite_id] ?? [],
         }))
     : []
 

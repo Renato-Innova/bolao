@@ -1,4 +1,4 @@
-import { TEAMS } from './constants'
+import { TEAMS, TEAM_ABBR } from './constants'
 
 export function getFlagUrl(codigo: string, size: 'w20' | 'w40' | 'w80' = 'w40'): string {
   return `https://flagcdn.com/${size}/${codigo}.png`
@@ -6,6 +6,10 @@ export function getFlagUrl(codigo: string, size: 'w20' | 'w40' | 'w80' = 'w40'):
 
 export function getCodigoPais(nomeTime: string): string {
   return TEAMS[nomeTime]?.codigo ?? 'un'
+}
+
+export function abbr(name: string): string {
+  return TEAM_ABBR[name] ?? name.replace(/\s+/g, '').slice(0, 3).toUpperCase()
 }
 
 export function calcularPontos(
