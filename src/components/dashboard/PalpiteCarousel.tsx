@@ -77,6 +77,7 @@ export function PalpiteCarousel({ slides }: Props) {
 
   return (
     <div
+      className="palpite-carousel-card"
       style={styles.card}
       onTouchStart={e => { touchStartY.current = e.touches[0].clientY }}
       onTouchEnd={e => {
@@ -197,7 +198,7 @@ function JogosPendentesBox({ jogos }: { jogos: JogoPendente[] }) {
         <span style={styles.pendentesLabel}>Jogos sem palpite hoje</span>
         <span style={styles.pendentesBadge}>{jogos.length}</span>
       </div>
-      <div style={styles.pendentesList}>
+      <div className="pendentes-lista-jogos" style={styles.pendentesList}>
         {jogos.map(j => (
           <div key={j.jogo_id} style={styles.pendenteRow}>
             <div style={styles.pendenteTimes}>
@@ -224,7 +225,10 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'relative',
     overflow: 'hidden',
     height: '100%',
-    minHeight: 130,
+    // No mobile a lista de jogos pendentes é escondida via CSS (.pendentes-lista-jogos),
+    // só a linha-resumo (cabeçalho + badge, ou "tudo enviado") fica visível —
+    // por isso 170 já é suficiente lá. Ver regra mobile em globals.css.
+    minHeight: 170,
   },
   bar: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 2,

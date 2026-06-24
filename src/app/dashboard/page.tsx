@@ -31,7 +31,6 @@ export default async function DashboardPage() {
   const { data: { user: currentUser } } = await supabase.auth.getUser()
 
   const hoje  = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().split('T')[0]
-  const ontem = new Date(Date.now() - 3 * 60 * 60 * 1000 - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
   const [
     { count: totalAtivos },
@@ -53,7 +52,10 @@ export default async function DashboardPage() {
     supabase.from('jogos_copa').select('*', { count: 'exact', head: true }),
     supabase.from('resultados').select('*', { count: 'exact', head: true }),
     supabase.from('jogos_copa').select('*, resultado:resultados(*)').gte('data', hoje).order('data').order('horario').limit(8),
-    supabase.from('jogos_copa').select('*, resultado:resultados(*)').eq('data', ontem).not('resultado', 'is', null).order('horario', { ascending: false }),
+    // Busca os jogos com resultado mais recentes (sem fixar em "ontem") — o
+    // dia exibido é determinado depois, como o mais recente que de fato teve
+    // jogo (pode não ter sido ontem, ex: pausa entre rodadas).
+    supabase.from('jogos_copa').select('*, resultado:resultados(*)').not('resultado', 'is', null).order('data', { ascending: false }).order('horario', { ascending: false }).limit(20),
     getRankingCached(),
     supabase.from('classificacao_grupos').select('*').order('grupo').order('pts', { ascending: false }).order('dg', { ascending: false }).order('m', { ascending: false }),
     supabase.from('boletim_copa').select('*').order('gerado_em', { ascending: false }).limit(10),
@@ -170,6 +172,13 @@ export default async function DashboardPage() {
         }))
     : []
 
+  /* Últimas Partidas: dia mais recente que teve jogo com resultado (não
+     necessariamente ontem — pode ter pausa entre rodadas) */
+  const ultimaDataResultados = (ultimosResultados?.[0] as JogoCopa | undefined)?.data ?? null
+  const ultimosResultadosDoDia = ultimaDataResultados
+    ? ((ultimosResultados ?? []) as JogoCopa[]).filter(j => j.data === ultimaDataResultados)
+    : []
+
   /* Fase atual — from most recent played game, else next upcoming */
   const faseAtualRaw = (ultimosResultados?.[0] as JogoCopa | undefined)?.fase
     ?? (proximosJogos?.[0] as JogoCopa | undefined)?.fase
@@ -253,12 +262,14 @@ export default async function DashboardPage() {
         {/* R1C3 — Últimas Partidas */}
         <div className="dash-card-ultimas" style={card}>
           <div style={bar} />
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>Partidas de Ontem</div>
-          {!(ultimosResultados?.length) ? (
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>
+            Últimas Partidas{ultimaDataResultados ? ` - ${formatDate(ultimaDataResultados)}` : ''}
+          </div>
+          {!(ultimosResultadosDoDia.length) ? (
             <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: 12, padding: '12px 0' }}>Nenhum resultado ainda</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {(ultimosResultados as JogoCopa[]).map((j) => (
+              {ultimosResultadosDoDia.map((j) => (
                 <div key={j.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', padding: '7px 8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 7 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5 }}>
                     <span style={{ fontSize: 11, fontWeight: 600, color: 'white', textAlign: 'right' }}>{j.time_a}</span>
@@ -273,7 +284,6 @@ export default async function DashboardPage() {
                         pên {j.resultado!.placar_penalti_a}–{j.resultado!.placar_penalti_b}
                       </div>
                     )}
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 1 }}>{formatDate(j.data)}</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 5 }}>
                     {j.codigo_pais_b && <FlagImg codigo={j.codigo_pais_b} size={16} />}
@@ -379,7 +389,10 @@ export default async function DashboardPage() {
         <div className="dash-card-proximas" style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 14 }}>Partidas de Hoje</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {(proximosJogos ?? []).slice(0, 5).map((j: JogoCopa) => {
+            {(proximosJogos ?? []).filter((j: JogoCopa) => j.data === hoje).length === 0 && (
+              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 12, padding: '20px 0' }}>Nenhuma partida hoje</p>
+            )}
+            {(proximosJogos ?? []).filter((j: JogoCopa) => j.data === hoje).map((j: JogoCopa) => {
               const isToday   = j.data === hoje
               const hasPlacar = !!j.resultado
               const counts    = pctMap[j.id]
@@ -438,9 +451,6 @@ export default async function DashboardPage() {
                 </div>
               )
             })}
-            {!(proximosJogos?.length) && (
-              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 12, padding: '20px 0' }}>Nenhuma partida em breve</p>
-            )}
           </div>
         </div>
 

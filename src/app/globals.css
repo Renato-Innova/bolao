@@ -173,6 +173,12 @@ input[type='number'] { -moz-appearance: textfield; }
   .dash-card-proximas  { order: 4; }
   .dash-card-tabela    { order: 5; }
   .dash-card-ranking   { order: 6; }
+
+  /* carrossel de palpites: no mobile mostra só a linha-resumo dos jogos
+     pendentes (cabeçalho + contador, ou "tudo enviado"), nunca a lista de
+     jogos — sem isso a lista ficava cortada pelo overflow:hidden acima */
+  .palpite-carousel-card { min-height: 170px !important; }
+  .pendentes-lista-jogos { display: none !important; }
   .dash-card-artilheiro{ order: 7; }
   .dash-card-boletim   { order: 8; }
 
