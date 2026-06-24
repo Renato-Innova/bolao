@@ -522,9 +522,14 @@ async function getArtilheiros(): Promise<{ rankingStr: string; lista: Artilheiro
 }
 
 function artilheirosDoTime(lista: Artilheiro[], time: string): string {
-  const doTime = lista.filter(a => a.seleção === time)
+  // lista já vem ordenada por gols/assistências — usamos o índice como
+  // posição real no ranking, para a IA não confundir "artilheiro do time"
+  // com "líder da artilharia" (são coisas diferentes).
+  const doTime = lista
+    .map((a, i) => ({ ...a, posicao: i + 1 }))
+    .filter(a => a.seleção === time)
   if (doTime.length === 0) return ''
-  return doTime.map(a => `${a.jogador} (${a.gols}G ${a.assistencias}A)`).join(', ')
+  return doTime.map(a => `${a.jogador} (#${a.posicao} ${a.gols}G ${a.assistencias}A)`).join(', ')
 }
 
 // ── Forma dos times (retrospecto na própria Copa) ────────────────────────────
@@ -743,6 +748,7 @@ export async function GET(req: NextRequest) {
    - Afirmações sobre trajetória incorretas (ex: "subiu 3 posições" quando subiu 1)
    - Menção a alguém do "meio da tabela" que NÃO está listado em DESTAQUES DO MEIO DA TABELA
    - Gols, assistências ou jogos de artilheiros que não batem com o RANKING DE ARTILHARIA REAL
+   - Afirmações de liderança/posição na artilharia (ex: "lidera", "isolado na artilharia", "líder de gols") que não correspondem à posição real (#1, #2...) no RANKING DE ARTILHARIA REAL — um jogador citado como "artilheiro do time" não é necessariamente o líder geral
    - Retrospecto de time (vitórias/empates/derrotas/gols) que não bate com o contexto pré-jogo fornecido
 
 2. ERROS DE FORMATO — verifique cada ocorrência:

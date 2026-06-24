@@ -246,6 +246,7 @@ export const GOLEIRO_OPTIONS = [
   { value: 'Raúl Rangel',         label: 'Raúl Rangel (México)'                 },
   { value: 'Matthew Freese',      label: 'Matthew Freese (EUA)'                 },
   { value: 'Zion Suzuki',         label: 'Zion Suzuki (Japão)'                  },
+  { value: 'Lionel Mpasi',        label: 'Lionel Mpasi (Rep. Dem. do Congo)'    },
 ].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
 
 /* ─── Qualifying info ─────────────────────────────────────────────────────────
