@@ -190,6 +190,11 @@ input[type='number'] { -moz-appearance: textfield; }
   .grupos-grid { display: flex !important; flex-direction: column !important; }
   .legend-row  { flex-direction: column !important; gap: 6px !important; }
 
+  /* ── balanço: medalha+nome na 1ª linha, %+valor na 2ª (evita o nome
+     quebrar em várias linhas por falta de espaço) ── */
+  .balanco-premio-topo { width: 100% !important; }
+  .balanco-premio-base { width: 100% !important; justify-content: space-between !important; margin-top: 4px !important; }
+
   /* ── palpites carousel ── */
   .car-desktop { display: none !important; }
   .car-mobile  { display: block !important; }

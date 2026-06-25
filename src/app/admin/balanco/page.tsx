@@ -196,66 +196,72 @@ export default async function BalancoPage() {
             const premio = sobra * regra.pct
 
             return (
-              <div key={regra.posicao} style={{
-                display: 'flex', alignItems: 'center', gap: 14,
+              <div key={regra.posicao} className="balanco-premio-row" style={{
+                display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
                 background: 'rgba(255,255,255,0.03)',
                 border: '1px solid rgba(255,255,255,0.07)',
                 borderRadius: 10, padding: '14px 16px',
               }}>
-                {/* Posição */}
-                <div style={{
-                  fontSize: 22, minWidth: 36, textAlign: 'center',
-                }}>
-                  {regra.emoji}
+                {/* Topo: medalha + nome/pontos (no mobile fica na 1ª linha) */}
+                <div className="balanco-premio-topo" style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 0 }}>
+                  {/* Posição */}
+                  <div style={{
+                    fontSize: 22, minWidth: 36, textAlign: 'center',
+                  }}>
+                    {regra.emoji}
+                  </div>
+
+                  {/* Nome e pontos */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {entry ? (
+                      <>
+                        {/* Nome ofuscado — revelado somente após o final do bolão */}
+                        <div style={{
+                          fontSize: 14, fontWeight: 700, color: 'transparent',
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                          textShadow: '0 0 10px rgba(255,255,255,0.85)',
+                          userSelect: 'none',
+                          filter: 'blur(6px)',
+                          maxWidth: 180,
+                        }}>
+                          {entry.nome}
+                        </div>
+                        <div style={{
+                          fontSize: 11, color: 'transparent',
+                          marginTop: 2,
+                          textShadow: '0 0 8px rgba(255,255,255,0.5)',
+                          filter: 'blur(4px)',
+                          userSelect: 'none',
+                        }}>
+                          {entry.usuario_nome} · {entry.total_pontos} pts
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>
+                        Aguardando resultado final
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Nome e pontos */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {entry ? (
-                    <>
-                      {/* Nome ofuscado — revelado somente após o final do bolão */}
-                      <div style={{
-                        fontSize: 14, fontWeight: 700, color: 'transparent',
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                        textShadow: '0 0 10px rgba(255,255,255,0.85)',
-                        userSelect: 'none',
-                        filter: 'blur(6px)',
-                        maxWidth: 180,
-                      }}>
-                        {entry.nome}
-                      </div>
-                      <div style={{
-                        fontSize: 11, color: 'transparent',
-                        marginTop: 2,
-                        textShadow: '0 0 8px rgba(255,255,255,0.5)',
-                        filter: 'blur(4px)',
-                        userSelect: 'none',
-                      }}>
-                        {entry.usuario_nome} · {entry.total_pontos} pts
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>
-                      Aguardando resultado final
+                {/* Base: percentual + valor (no mobile fica na 2ª linha) */}
+                <div className="balanco-premio-base" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  {/* Percentual */}
+                  <div style={{ textAlign: 'center', minWidth: 44 }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.55)' }}>
+                      {pct(regra.pct)}
                     </div>
-                  )}
-                </div>
-
-                {/* Percentual */}
-                <div style={{ textAlign: 'center', minWidth: 44 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.55)' }}>
-                    {pct(regra.pct)}
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.30)', marginTop: 1 }}>do prêmio</div>
                   </div>
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.30)', marginTop: 1 }}>do prêmio</div>
-                </div>
 
-                {/* Valor */}
-                <div style={{ textAlign: 'right', minWidth: 90 }}>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#4A90D9', lineHeight: 1 }}>
-                    {fmt(premio)}
-                  </div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
-                    posição atual
+                  {/* Valor */}
+                  <div style={{ textAlign: 'right', minWidth: 90 }}>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#4A90D9', lineHeight: 1 }}>
+                      {fmt(premio)}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
+                      posição atual
+                    </div>
                   </div>
                 </div>
               </div>
