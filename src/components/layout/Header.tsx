@@ -140,7 +140,7 @@ export function Header() {
             background: pathname.startsWith('/admin') && !pathname.startsWith('/admin/balanco') ? 'rgba(74,222,128,0.08)' : 'transparent',
           }}>Admin</Link>
         )}
-        {(isAdmin || isOperador) && (
+        {user && (
           <Link href="/admin/balanco" style={{
             color: pathname.startsWith('/admin/balanco') ? '#fbbf24' : 'rgba(251,191,36,0.7)',
             fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6,
@@ -229,7 +229,7 @@ export function Header() {
             }}>{label}</Link>
           ))}
           {isAdmin && <Link href="/admin/resultados" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(74,222,128,0.8)', fontSize: 13, fontWeight: 600, textDecoration: 'none', padding: '6px 0' }}>Admin</Link>}
-          {(isAdmin || isOperador) && <Link href="/admin/balanco" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(251,191,36,0.8)', fontSize: 13, fontWeight: 600, textDecoration: 'none', padding: '6px 0' }}>💰 Balanço</Link>}
+          {user && <Link href="/admin/balanco" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(251,191,36,0.8)', fontSize: 13, fontWeight: 600, textDecoration: 'none', padding: '6px 0' }}>💰 Balanço</Link>}
           {(isOperador && !isAdmin) && <Link href="/operador" onClick={() => setMenuOpen(false)} style={{ color: 'rgba(251,191,36,0.8)', fontSize: 13, fontWeight: 600, textDecoration: 'none', padding: '6px 0' }}>Ativar Palpites</Link>}
           {user && <button onClick={handleLogout} style={{ textAlign: 'left', background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer', padding: '6px 0', fontFamily: 'Inter, sans-serif' }}>Sair</button>}
         </div>

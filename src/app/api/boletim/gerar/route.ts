@@ -713,11 +713,18 @@ export async function GET(req: NextRequest) {
   })
 
   // geração do boletim
+  // Tokens reais de cada chamada (message.usage) — usados para calcular o
+  // custo real de IA por boletim, em vez de uma estimativa fixa.
+  let tokensInputSonnet = 0, tokensOutputSonnet = 0
+  let tokensInputHaiku  = 0, tokensOutputHaiku  = 0
+
   const message  = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
     max_tokens: 2400,
     messages:   [{ role: 'user', content: prompt }],
   })
+  tokensInputSonnet  += message.usage.input_tokens
+  tokensOutputSonnet += message.usage.output_tokens
   if (message.stop_reason === 'max_tokens') {
     console.warn('[boletim] geração cortada por max_tokens — considere aumentar o limite')
   }
@@ -796,6 +803,8 @@ ${conteudo}`
       max_tokens: 600,
       messages:   [{ role: 'user', content: auditPrompt }],
     })
+    tokensInputHaiku  += auditMsg.usage.input_tokens
+    tokensOutputHaiku += auditMsg.usage.output_tokens
     auditoria = (auditMsg.content[0] as { type: string; text: string }).text.trim()
   } catch (e) {
     auditoria = `Auditoria falhou: ${e instanceof Error ? e.message : String(e)}`
@@ -821,12 +830,19 @@ ${conteudoOriginal}`
         max_tokens: 1800,
         messages:   [{ role: 'user', content: rewritePrompt }],
       })
+      tokensInputSonnet  += rewriteMsg.usage.input_tokens
+      tokensOutputSonnet += rewriteMsg.usage.output_tokens
       conteudoFinal = (rewriteMsg.content[0] as { type: string; text: string }).text.trim()
     } catch (e) {
       // se a reescrita falhar, publica o original e registra no campo auditoria
       auditoria += `\n\n[Reescrita falhou: ${e instanceof Error ? e.message : String(e)}]`
     }
   }
+
+  // custo real de IA — preços por MTok: Sonnet 4.6 $3 in / $15 out, Haiku 4.5 $1 in / $5 out
+  const custoUsd =
+    (tokensInputSonnet  / 1_000_000) * 3  + (tokensOutputSonnet / 1_000_000) * 15 +
+    (tokensInputHaiku   / 1_000_000) * 1  + (tokensOutputHaiku  / 1_000_000) * 5
 
   // salva
   const { error } = await supabase
@@ -838,6 +854,11 @@ ${conteudoOriginal}`
       conteudo_original: conteudoOriginal,
       prompt_texto:      prompt,
       auditoria,
+      tokens_input_sonnet:  tokensInputSonnet,
+      tokens_output_sonnet: tokensOutputSonnet,
+      tokens_input_haiku:   tokensInputHaiku,
+      tokens_output_haiku:  tokensOutputHaiku,
+      custo_usd:            custoUsd,
     })
 
   if (error) {
@@ -846,5 +867,5 @@ ${conteudoOriginal}`
   }
 
   const reescrito = conteudoFinal !== conteudoOriginal
-  return NextResponse.json({ ok: true, titulo, auditoria, reescrito, gerado_em: new Date().toISOString() })
+  return NextResponse.json({ ok: true, titulo, auditoria, reescrito, custoUsd, gerado_em: new Date().toISOString() })
 }

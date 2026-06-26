@@ -13,10 +13,22 @@ const REGRAS_PREMIO = [
   { posicao: 3, label: '3º Lugar',  emoji: '🥉', pct: 0.20 },
 ]
 
-/* ─── Custo estimado por boletim IA ─────────────────────────────────────────
-   Baseado em claude-opus-4-5: ~650 tokens input + ~450 tokens output.
-   Input $15/MTok + Output $75/MTok ≈ $0,044/boletim × câmbio ~5,50 ≈ R$0,24 */
-const CUSTO_POR_BOLETIM_BRL = 0.24
+/* ─── Custo de IA ─────────────────────────────────────────────────────────────
+   Usamos uma ESTIMATIVA FIXA até o fim do bolão (final em 19/07/2026) como
+   saída no cálculo do prêmio disponível, em vez do custo real acumulado até
+   agora — assim a sobra/premiação fica estável ao longo do bolão, sem variar
+   conforme novos boletins são gerados. No fim, trocar para o valor real.
+   Estimativa: custo medido do boletim de hoje (26/06) × dias restantes até a
+   final + custo já acumulado (~US$ 0,12/boletim × 24 boletins + US$ 2,01 já
+   gastos ≈ US$ 4,93 ≈ R$ 27 — arredondado para R$ 30 de margem).
+
+   O custo real acumulado (custo_usd, somado por boletim — ver
+   src/app/api/boletim/gerar/route.ts) ainda é calculado e exibido, só não é
+   mais usado no total de saídas. A Admin API da Anthropic daria o custo
+   exato de toda a conta, mas é exclusiva de contas organizacionais — esta é
+   uma conta individual, sem acesso a ela nem a nenhuma outra API de custo. */
+const CAMBIO_USD_BRL = 5.50
+const ESTIMATIVA_CUSTO_TOTAL_BRL = 30.00
 
 function fmt(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -57,10 +69,6 @@ export default async function BalancoPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
 
-  const { data: userData } = await supabase
-    .from('users').select('is_admin, is_operador').eq('id', user.id).maybeSingle()
-  if (!userData?.is_admin && !userData?.is_operador) redirect('/dashboard')
-
   const admin = createAdminClient()
 
   /* ── Dados de entrada ── */
@@ -70,15 +78,16 @@ export default async function BalancoPage() {
   const numPalpites = totalPalpites ?? 0
   const totalEntradas = numPalpites * PIX_VALOR
 
-  /* ── Dados de custo IA ── */
-  const { count: totalBoletins } = await admin
-    .from('boletim_copa').select('*', { count: 'exact', head: true })
+  /* ── Dados de custo IA (real, somado por boletim) ── */
+  const { data: boletinsCusto } = await admin
+    .from('boletim_copa').select('custo_usd')
 
-  const numBoletins = totalBoletins ?? 0
-  const custoIA = numBoletins * CUSTO_POR_BOLETIM_BRL
+  const numBoletins = boletinsCusto?.length ?? 0
+  const custoUsdTotal = (boletinsCusto ?? []).reduce((s, b) => s + Number(b.custo_usd ?? 0), 0)
+  const custoIAReal = custoUsdTotal * CAMBIO_USD_BRL
 
-  /* ── Sobra ── */
-  const totalSaidas = custoIA
+  /* ── Sobra (usa a estimativa fixa, não o custo real acumulado) ── */
+  const totalSaidas = ESTIMATIVA_CUSTO_TOTAL_BRL
   const sobra = totalEntradas - totalSaidas
 
   /* ── Ranking atual para distribuição do prêmio ── */
@@ -94,7 +103,7 @@ export default async function BalancoPage() {
           💰 Balanço do Bolão
         </div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>
-          Contabilidade em tempo real · atualizado automaticamente
+          Contabilidade do bolão: entradas, saídas e distribuição do prêmio entre os vencedores
         </div>
       </div>
 
@@ -127,16 +136,16 @@ export default async function BalancoPage() {
         <div style={rowStyle}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>
-              Boletins IA — Claude Opus
+              Boletins IA — Claude Sonnet + Haiku
             </div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
-              {numBoletins} boletins gerados × {fmt(CUSTO_POR_BOLETIM_BRL)} estimado
+              Estimativa fixa até o fim do bolão (19/07/2026)
             </div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', marginTop: 2 }}>
-              Estimativa baseada em ~650 tokens input + ~450 tokens output (claude-opus-4-5)
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginTop: 2 }}>
+              {numBoletins} boletins gerados · gasto real até agora: US$ {custoUsdTotal.toFixed(2)} ({fmt(custoIAReal)})
             </div>
           </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,100,100,0.85)' }}>{fmt(custoIA)}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,100,100,0.85)' }}>{fmt(totalSaidas)}</div>
         </div>
 
         <div style={totalRow}>
