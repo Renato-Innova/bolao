@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createSessionClient } from '@/lib/supabase/server'
 
 /* ── clientes ──────────────────────────────────────────────────────────────── */
 const supabase = createClient(
@@ -669,9 +670,20 @@ function buildPreJogo(
 
 /* ── handler principal ─────────────────────────────────────────────────────── */
 export async function GET(req: NextRequest) {
+  // Aceita o CRON_SECRET (chamada automática) OU uma sessão de admin logado
+  // (botão "Gerar Novo Boletim" em Admin > Configurações) — antes só o
+  // CRON_SECRET era aceito, então o botão manual sempre dava Unauthorized.
   const authHeader = req.headers.get('authorization')
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const hasCronSecret = !process.env.CRON_SECRET || authHeader === `Bearer ${process.env.CRON_SECRET}`
+
+  if (!hasCronSecret) {
+    const sessionSupabase = await createSessionClient()
+    const { data: { user } } = await sessionSupabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { data: userData } = await sessionSupabase
+      .from('users').select('is_admin').eq('id', user.id).single()
+    if (!userData?.is_admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const now    = brtNow()
