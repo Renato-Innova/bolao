@@ -2710,7 +2710,7 @@ function MatchCard({ jogo, state, onScoreChange, onSubmit, onEdit, pontos, minut
       {state.error && <div style={{ marginTop: 6, fontSize: 10, color: 'rgba(255,100,100,0.9)', textAlign: 'center' }}>{state.error}</div>}
 
       {locked ? (
-        <div style={{ marginTop: 6, fontSize: 9, color: 'rgba(255,255,255,0.50)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3 }}>🔒 Jogo em andamento</div>
+        <div style={{ marginTop: 6, fontSize: 9, color: 'rgba(255,255,255,0.50)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3 }}>🔒 Jogo bloqueado para edição</div>
       ) : (
         <div style={{ marginTop: 10, display: state.submitted ? 'none' : 'block' }}>
           {notEntered ? (
