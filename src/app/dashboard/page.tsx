@@ -263,7 +263,7 @@ export default async function DashboardPage() {
         <div className="dash-card-ultimas" style={card}>
           <div style={bar} />
           <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>
-            Últimas Partidas{ultimaDataResultados ? ` - ${formatDate(ultimaDataResultados)}` : ''}
+            Últimas Partidas
           </div>
           {!(ultimosResultadosDoDia.length) ? (
             <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: 12, padding: '12px 0' }}>Nenhum resultado ainda</p>

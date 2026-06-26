@@ -75,10 +75,17 @@ export function PalpiteCarousel({ slides }: Props) {
   const slide = slides[current]
   const isAtivo = slide.status === 'ativo'
 
+  // Altura calculada pelo palpite com mais jogos pendentes (não o slide atual)
+  // — assim o card não "pula" de tamanho ao trocar de slide no carrossel.
+  // Isso é a altura MÍNIMA: a linha do grid ainda estica pelo maior entre os
+  // 3 cards da fileira (dash-main-grid usa align-items:stretch por padrão).
+  const maxPendentes = Math.max(0, ...slides.map(s => s.jogosPendentes.length))
+  const minHeightCalc = 150 + maxPendentes * 30
+
   return (
     <div
       className="palpite-carousel-card"
-      style={styles.card}
+      style={{ ...styles.card, minHeight: minHeightCalc }}
       onTouchStart={e => { touchStartY.current = e.touches[0].clientY }}
       onTouchEnd={e => {
         if (touchStartY.current === null) return
@@ -340,7 +347,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   pendentesList: {
     display: 'flex', flexDirection: 'column', gap: 4,
-    maxHeight: 96, overflowY: 'auto',
   },
   pendenteRow: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
