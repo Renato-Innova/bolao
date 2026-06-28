@@ -1826,14 +1826,9 @@ function MataMataTab({
                         </div>
                       </>
                     ) : (
-                      <>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
-                          Aguardando confrontos da {phase.prevLabel}
-                        </div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.50)' }}>
-                          Libera conforme o administrador for definindo os confrontos da {phase.label} — não depende de você ter enviado todos os jogos da {phase.prevLabel}.
-                        </div>
-                      </>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
+                        Aguardando definição dos confrontos da {phase.prevLabel}
+                      </div>
                     )}
                   </div>
                 )}
