@@ -433,12 +433,24 @@ function ChaveTab({ jogosKO }: { jogosKO: JogoCopa[] }) {
     setPillIdx(prev => Math.max(0, Math.min(prev + (dx < 0 ? 1 : -1), lastIdx)))
   }
 
+  // Ordem visual da chave oficial da FIFA: agrupa cada par de jogos ao lado do
+  // jogo da fase seguinte que eles alimentam, em vez de ordenar por data —
+  // a chave real não segue ordem cronológica (mesma ordem usada em Meus
+  // Palpites > Mata-Mata > Chave, ver PalpitesClient.tsx).
+  const ORDEM_CHAVE: Record<number, number> = Object.fromEntries(
+    [74, 77, 73, 75, 83, 84, 81, 82, 76, 78, 79, 80, 86, 88, 85, 87,
+     89, 90, 93, 94, 91, 92, 95, 96,
+     97, 98, 99, 100,
+     101, 102,
+     103, 104].map((n, i) => [n, i])
+  )
+
   const colsByCode = Object.fromEntries(
     CHAVE_COLS.map(c => {
       const codes = c.code === 'FIN' ? ['TPL', 'F'] : [c.code]
       return [c.code, jogosKO
         .filter(j => codes.includes(j.fase))
-        .sort((a, b) => a.data.localeCompare(b.data) || a.horario.localeCompare(b.horario))]
+        .sort((a, b) => (ORDEM_CHAVE[a.numero_jogo ?? 0] ?? 999) - (ORDEM_CHAVE[b.numero_jogo ?? 0] ?? 999))]
     })
   )
 
