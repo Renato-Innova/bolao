@@ -277,6 +277,14 @@ input[type='number'] { -moz-appearance: textfield; }
   .ko-team-full { display: none !important; }
   .ko-team-abbr { display: inline !important; }
 
+  /* mata-mata: badges de enviados/pendentes do accordion de dia, mais
+     compactos no mobile */
+  .ko-day-badge { font-size: 8px !important; letter-spacing: 0.3px !important; }
+
+  /* mata-mata: dia da semana abreviado (3 letras) no accordion de dia */
+  .ko-day-full  { display: none !important; }
+  .ko-day-short { display: inline !important; }
+
   /* ── ranking ── */
   .rank-header    { display: none !important; }
   .rank-acertos   { display: none !important; }

@@ -189,6 +189,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
   const [activeTab, setActiveTab] = useState(0)
   const [mataMataSubTab, setMataMataSubTab] = useState(0)  // 0=list, 1=chave
   const [phaseSectionOpen, setPhaseSectionOpen] = useState<Record<string, boolean>>({})
+  const [koDayOpen, setKoDayOpen] = useState<Record<string, boolean>>({})
   const [chaveView, setChaveView] = useState<'oficial' | 'palpite'>('oficial')
   const [chavePillIdx, setChavePillIdx] = useState(0)   // mobile: active bracket column index
   const chaveOuterRef = useRef<HTMLDivElement>(null)
@@ -278,6 +279,26 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
         if (!targetPhaseCode) targetPhaseCode = phase.code  // fallback: primeira fase desbloqueada
       }
       setPhaseSectionOpen(targetPhaseCode ? { [targetPhaseCode]: true } : {})
+
+      // Mesma lógica, um nível abaixo: dentro da fase escolhida, abre só o dia
+      // com o próximo jogo pendente ou o próximo jogo da copa, o que vier
+      // primeiro — os demais dias da fase ficam recolhidos.
+      const novoKoDayOpen: Record<string, boolean> = {}
+      if (targetPhaseCode) {
+        const codesAlvo = targetPhaseCode === 'FIN' ? ['TPL', 'F'] : [targetPhaseCode]
+        const jogosFaseAlvo = jogosKO.filter(j => codesAlvo.includes(j.fase))
+        const datasFaseAlvo = [...new Set(jogosFaseAlvo.map(j => j.data))].sort()
+        let targetData: string | null = null
+        for (const data of datasFaseAlvo) {
+          const jogosDoDia = jogosFaseAlvo.filter(j => j.data === data)
+          const pendingDia  = jogosDoDia.some(m => !states[String(m.id)]?.submitted && !m.resultado)
+          const upcomingDia = jogosDoDia.some(m => !m.resultado)
+          if (pendingDia || upcomingDia) { targetData = data; break }
+        }
+        if (!targetData && datasFaseAlvo.length > 0) targetData = datasFaseAlvo[0]
+        for (const data of datasFaseAlvo) novoKoDayOpen[data] = data === targetData
+      }
+      setKoDayOpen(novoKoDayOpen)
     } else {
       setMatchStates({})
       setCampeao('')
@@ -1179,6 +1200,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
               editMatch={editMatch}
               phaseSectionOpen={phaseSectionOpen}
               setPhaseSectionOpen={setPhaseSectionOpen}
+              koDayOpen={koDayOpen}
+              setKoDayOpen={setKoDayOpen}
               mataMataSubTab={mataMataSubTab}
               setMataMataSubTab={setMataMataSubTab}
               chaveView={chaveView}
@@ -1710,6 +1733,8 @@ interface MataMataTabProps {
   editMatch: (id: string) => void
   phaseSectionOpen: Record<string, boolean>
   setPhaseSectionOpen: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
+  koDayOpen: Record<string, boolean>
+  setKoDayOpen: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
   mataMataSubTab: number
   setMataMataSubTab: (n: number) => void
   chaveView: 'oficial' | 'palpite'
@@ -1724,6 +1749,7 @@ interface MataMataTabProps {
 function MataMataTab({
   selected, jogosKO, jogosGS, todosJogos, posicaoGrupoMap, matchStates, updateState, submitMatch, editMatch,
   phaseSectionOpen, setPhaseSectionOpen,
+  koDayOpen, setKoDayOpen,
   mataMataSubTab, setMataMataSubTab,
   chaveView, setChaveView,
   chavePillIdx, setChavePillIdx, chaveOuterRef, chaveTrackRef,
@@ -1810,41 +1836,78 @@ function MataMataTab({
                   <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                     {phaseJogos.length === 0 ? (
                       <div style={{ padding: '20px', textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 12 }}>Jogos em breve</div>
-                    ) : (
-                      Object.entries(
+                    ) : (() => {
+                      const porDia = Object.entries(
                         phaseJogos.reduce((acc, j) => {
                           if (!acc[j.data]) acc[j.data] = []
                           acc[j.data].push(j)
                           return acc
                         }, {} as Record<string, JogoCopa[]>)
-                      ).sort(([a], [b]) => a.localeCompare(b)).map(([data, jogos]) => {
-                        const d = new Date(data + 'T12:00:00')
-                        const DAYS_PT = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado']
-                        const MONTHS_PT = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
-                        const dayLabel = `${DAYS_PT[d.getDay()]} · ${d.getDate()} de ${MONTHS_PT[d.getMonth()]}`
-                        return (
-                          <div key={data}>
-                            <div style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.7, background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                              {dayLabel}
-                            </div>
-                            <div className="match-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, padding: 10 }}>
-                              {jogos.map(jogo => (
-                                <KnockoutGameCard key={jogo.id} jogo={jogo}
-                                  state={matchStates[String(jogo.id)] ?? DEFAULT_MATCH_STATE}
-                                  onScoreChange={(side, val) => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
-                                  onPenaltiWinnerChange={winner => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), winner === 'A' ? { penaltiA: 1, penaltiB: 0 } : { penaltiA: 0, penaltiB: 1 })}
-                                  onSubmit={() => submitMatch(String(jogo.id))}
-                                  onEdit={() => editMatch(String(jogo.id))}
-                                  pontos={selected.palpites_jogos?.find(pj => pj.jogo_id === jogo.id)?.pontos ?? null}
-                                  minutosLock={minutosLock}
-                                  todosJogos={todosJogos}
-                                  posicaoGrupoMap={posicaoGrupoMap} />
-                              ))}
-                            </div>
+                      ).sort(([a], [b]) => a.localeCompare(b))
+                      const datasFase = porDia.map(([data]) => data)
+
+                      return (
+                        <div style={{ padding: '10px 14px 4px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginBottom: 10 }}>
+                            <button
+                              onClick={() => setKoDayOpen(p => { const next = { ...p }; datasFase.forEach(d => { next[d] = true }); return next })}
+                              style={{ background: 'rgba(74,144,217,0.1)', border: '1px solid rgba(74,144,217,0.25)', color: '#7BB8F0', padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.4, whiteSpace: 'nowrap' }}>
+                              Expandir todos
+                            </button>
+                            <button
+                              onClick={() => setKoDayOpen(p => { const next = { ...p }; datasFase.forEach(d => { next[d] = false }); return next })}
+                              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.4, whiteSpace: 'nowrap' }}>
+                              Recolher todos
+                            </button>
                           </div>
-                        )
-                      })
-                    )}
+
+                          {porDia.map(([data, jogos]) => {
+                            const d = new Date(data + 'T12:00:00')
+                            const DAYS_PT = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado']
+                            const MONTHS_PT = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
+                            const dayLabel = `${DAYS_PT[d.getDay()]} · ${d.getDate()} de ${MONTHS_PT[d.getMonth()]}`
+                            const dayLabelShort = `${DAYS_PT[d.getDay()].slice(0, 3).toUpperCase()} · ${d.getDate()} ${MONTHS_PT[d.getMonth()].slice(0, 3)}`
+                            const dayOpen = koDayOpen[data] ?? true
+                            const enviados = jogos.filter(j => matchStates[String(j.id)]?.submitted).length
+                            const pendentes = jogos.length - enviados
+                            const dayComplete = pendentes === 0
+                            const dayCol = dayComplete
+                              ? { border: 'rgba(74,222,128,0.25)', bg: 'rgba(74,222,128,0.04)', chevron: 'rgba(74,222,128,0.7)' }
+                              : { border: 'rgba(249,115,22,0.35)', bg: 'rgba(249,115,22,0.04)', chevron: 'rgba(249,115,22,0.8)' }
+
+                            return (
+                              <div key={data} style={{ marginBottom: 10 }}>
+                                <div onClick={() => setKoDayOpen(p => ({ ...p, [data]: !dayOpen }))}
+                                  style={{ display: 'flex', alignItems: 'center', gap: 10, background: dayCol.bg, border: `1px solid ${dayCol.border}`, borderRadius: 8, padding: '9px 14px', cursor: 'pointer', userSelect: 'none' }}>
+                                  <span className="ko-day-full" style={{ fontSize: 12, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>{dayLabel}</span>
+                                  <span className="ko-day-short" style={{ fontSize: 12, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', display: 'none' }}>{dayLabelShort}</span>
+                                  <div style={{ flex: 1 }} />
+                                  <span className="ko-day-badge" style={{ fontSize: 10, fontWeight: 700, color: '#4ade80', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>✓ {enviados} {enviados === 1 ? 'enviado' : 'enviados'}</span>
+                                  {pendentes > 0 && <span className="ko-day-badge" style={{ fontSize: 10, fontWeight: 700, color: '#f97316', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>⏳ {pendentes} {pendentes === 1 ? 'pendente' : 'pendentes'}</span>}
+                                  <span style={{ fontSize: 11, color: dayCol.chevron, transition: 'transform 0.25s', transform: dayOpen ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}>▼</span>
+                                </div>
+                                {dayOpen && (
+                                  <div className="match-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, paddingTop: 8 }}>
+                                    {jogos.map(jogo => (
+                                      <KnockoutGameCard key={jogo.id} jogo={jogo}
+                                        state={matchStates[String(jogo.id)] ?? DEFAULT_MATCH_STATE}
+                                        onScoreChange={(side, val) => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
+                                        onPenaltiWinnerChange={winner => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), winner === 'A' ? { penaltiA: 1, penaltiB: 0 } : { penaltiA: 0, penaltiB: 1 })}
+                                        onSubmit={() => submitMatch(String(jogo.id))}
+                                        onEdit={() => editMatch(String(jogo.id))}
+                                        pontos={selected.palpites_jogos?.find(pj => pj.jogo_id === jogo.id)?.pontos ?? null}
+                                        minutosLock={minutosLock}
+                                        todosJogos={todosJogos}
+                                        posicaoGrupoMap={posicaoGrupoMap} />
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )
+                    })()}
                   </div>
                 )}
               </div>
