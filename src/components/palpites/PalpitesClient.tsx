@@ -1586,7 +1586,7 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiWinnerChange, o
       {state.scoreA >= 0 && state.scoreB >= 0 && state.scoreA === state.scoreB && (
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ textAlign: 'center', fontSize: 9, fontWeight: 700, color: 'rgba(255,200,80,0.75)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-            Empate · quem venceu nos pênaltis?
+            Empate · Escolha quem vencerá nos pênaltis?
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             {(['A', 'B'] as const).map(side => {
@@ -1600,9 +1600,9 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiWinnerChange, o
                   style={{
                     flex: 1, maxWidth: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     padding: '7px 10px', borderRadius: 8, cursor: state.submitted ? 'default' : 'pointer',
-                    border: isWinner ? '2px solid #ffc850' : '1px solid rgba(255,200,80,0.35)',
-                    background: isWinner ? 'rgba(255,200,80,0.18)' : 'rgba(255,200,80,0.08)',
-                    color: isWinner ? '#ffc850' : 'rgba(255,255,255,0.55)',
+                    border: isWinner ? '2px solid #4ade80' : '1px solid rgba(255,200,80,0.35)',
+                    background: isWinner ? 'rgba(74,222,128,0.18)' : 'rgba(255,200,80,0.08)',
+                    color: isWinner ? '#4ade80' : 'rgba(255,255,255,0.55)',
                     fontSize: 11, fontWeight: 700, fontFamily: 'Inter,sans-serif',
                   }}>
                   <TeamFlag hasTeam={hasTeam} codigo={codigo} size={16} />
