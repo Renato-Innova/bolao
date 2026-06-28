@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { PIX_VALOR, PIX_CHAVE, GRUPOS, FASES, TEAM_QUAL, ALL_TEAMS, ARTILHEIRO_OPTIONS, GOLEIRO_OPTIONS, getConfrontoHistorico } from '@/utils/constants'
 import { SPECIAL_POINTS, PONTOS_CLASSIFICACAO_GRUPO } from '@/utils/scoring'
 import { abbr } from '@/utils/helpers'
-import type { Palpite, JogoCopa, PalpiteJogo } from '@/types'
+import type { Palpite, JogoCopa, PalpiteJogo, ClassificacaoGrupo } from '@/types'
 
 /* ─── helpers ──────────────────────────────────────────────── */
 
@@ -103,6 +103,7 @@ interface Props {
   palpitesIniciais: Palpite[]
   todosJogos: JogoCopa[]
   scoringConfigs: { fase: string; tipo_acerto: string; pontos: number }[]
+  classificacaoGrupos?: ClassificacaoGrupo[]
   especiaisDeadline?: string | null
   novoPalpiteDeadline?: string | null
   minutosLockJogo?: number
@@ -111,7 +112,23 @@ interface Props {
 
 const VISIBLE = 3
 
-export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos, scoringConfigs, especiaisDeadline, novoPalpiteDeadline, minutosLockJogo = 60, variacaoMap = {} }: Props) {
+// Posição de cada time dentro do grupo, calculada a partir de classificacao_grupos
+// (pts → saldo de gols → gols marcados) — usada no painel "Info" do mata-mata.
+function buildPosicaoGrupoMap(classificacaoGrupos: ClassificacaoGrupo[]): Record<string, ClassificacaoGrupo & { posicao: number }> {
+  const byGrupo: Record<string, ClassificacaoGrupo[]> = {}
+  for (const row of classificacaoGrupos) {
+    if (!byGrupo[row.grupo]) byGrupo[row.grupo] = []
+    byGrupo[row.grupo].push(row)
+  }
+  const map: Record<string, ClassificacaoGrupo & { posicao: number }> = {}
+  for (const rows of Object.values(byGrupo)) {
+    const sorted = [...rows].sort((a, b) => b.pts - a.pts || b.dg - a.dg || b.m - a.m)
+    sorted.forEach((row, i) => { map[row.pais_nome] = { ...row, posicao: i + 1 } })
+  }
+  return map
+}
+
+export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos, scoringConfigs, classificacaoGrupos = [], especiaisDeadline, novoPalpiteDeadline, minutosLockJogo = 60, variacaoMap = {} }: Props) {
   const supabase = createClient()
 
   /* ─── deadline flags (recalculated on each render — lightweight) ─── */
@@ -192,6 +209,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
   const selected = palpites.find(p => p.id === selectedId)
   const jogosGS = todosJogos.filter(j => j.fase === 'GS')
   const jogosKO = todosJogos.filter(j => j.fase !== 'GS')
+  const posicaoGrupoMap = buildPosicaoGrupoMap(classificacaoGrupos)
 
   // Lookup pontos for a given game in the selected palpite
   function getPontos(jogoId: number): number | null {
@@ -1153,6 +1171,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
               selected={selected}
               jogosKO={jogosKO}
               jogosGS={jogosGS}
+              todosJogos={todosJogos}
+              posicaoGrupoMap={posicaoGrupoMap}
               matchStates={matchStates}
               updateState={updateState}
               submitMatch={submitMatch}
@@ -1428,9 +1448,12 @@ interface KoCardProps {
   onEdit: () => void
   pontos?: number | null
   minutosLock?: number
+  todosJogos: JogoCopa[]
+  posicaoGrupoMap: Record<string, ClassificacaoGrupo & { posicao: number }>
 }
 
-function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiWinnerChange, onSubmit, onEdit, pontos, minutosLock = 60 }: KoCardProps) {
+function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiWinnerChange, onSubmit, onEdit, pontos, minutosLock = 60, todosJogos, posicaoGrupoMap }: KoCardProps) {
+  const [infoOpen, setInfoOpen] = useState(false)
   const locked   = isLocked(jogo.data, jogo.horario)
   const editable = canEditWithLock(jogo.data, jogo.horario, minutosLock)
 
@@ -1506,6 +1529,12 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiWinnerChange, o
           {FASES[jogo.fase] ?? jogo.fase}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          <button
+            onClick={e => { e.stopPropagation(); setInfoOpen(o => !o) }}
+            title="Informações das seleções"
+            style={{ background: infoOpen ? 'rgba(74,144,217,0.2)' : 'rgba(74,144,217,0.08)', border: `1px solid ${infoOpen ? 'rgba(74,144,217,0.6)' : 'rgba(74,144,217,0.35)'}`, borderRadius: 4, color: infoOpen ? '#7BB8F0' : '#4A90D9', fontSize: 9, fontWeight: 800, padding: '1px 5px', cursor: 'pointer', fontFamily: 'Inter,sans-serif', letterSpacing: 0.8, textTransform: 'uppercase', flexShrink: 0 }}>
+            Info
+          </button>
           {state.submitted && (
             editable ? (
               <button onClick={onEdit}
@@ -1580,6 +1609,14 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiWinnerChange, o
               )
             })}
           </div>
+        </div>
+      )}
+
+      {infoOpen && (
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {hasTeamA && <KoTeamInfoPanel nome={jogo.time_a} codigo={displayCodigoA} todosJogos={todosJogos} posicaoGrupoMap={posicaoGrupoMap} antesDe={jogo.id} />}
+          {hasTeamA && hasTeamB && <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} />}
+          {hasTeamB && <KoTeamInfoPanel nome={jogo.time_b} codigo={displayCodigoB} todosJogos={todosJogos} posicaoGrupoMap={posicaoGrupoMap} antesDe={jogo.id} />}
         </div>
       )}
 
@@ -1660,6 +1697,8 @@ interface MataMataTabProps {
   selected: Palpite
   jogosKO: JogoCopa[]
   jogosGS: JogoCopa[]
+  todosJogos: JogoCopa[]
+  posicaoGrupoMap: Record<string, ClassificacaoGrupo & { posicao: number }>
   matchStates: Record<string, MatchState>
   updateState: (id: string, p: Partial<MatchState>) => void
   submitMatch: (id: string) => void
@@ -1678,7 +1717,7 @@ interface MataMataTabProps {
 }
 
 function MataMataTab({
-  selected, jogosKO, jogosGS, matchStates, updateState, submitMatch, editMatch,
+  selected, jogosKO, jogosGS, todosJogos, posicaoGrupoMap, matchStates, updateState, submitMatch, editMatch,
   phaseSectionOpen, setPhaseSectionOpen,
   mataMataSubTab, setMataMataSubTab,
   chaveView, setChaveView,
@@ -1792,7 +1831,9 @@ function MataMataTab({
                                   onSubmit={() => submitMatch(String(jogo.id))}
                                   onEdit={() => editMatch(String(jogo.id))}
                                   pontos={selected.palpites_jogos?.find(pj => pj.jogo_id === jogo.id)?.pontos ?? null}
-                                  minutosLock={minutosLock} />
+                                  minutosLock={minutosLock}
+                                  todosJogos={todosJogos}
+                                  posicaoGrupoMap={posicaoGrupoMap} />
                               ))}
                             </div>
                           </div>
@@ -2633,6 +2674,88 @@ function TeamInfoPanel({ nome }: { nome: string }) {
       )}
     </div>
   )
+}
+
+/* ─── KoTeamInfoPanel — resultado no grupo + jogos na Copa (mata-mata) ───
+   Diferente do TeamInfoPanel (dados fixos de qualificação, usado na fase de
+   grupos), este painel é montado a partir de dados reais do torneio:
+   classificação final do grupo (classificacao_grupos) e todos os jogos já
+   disputados pelo time na Copa (todosJogos). A lista de jogos cresce
+   naturalmente conforme o torneio avança — nas oitavas já inclui o jogo dos
+   16-avos, nas quartas o das oitavas, e assim por diante. */
+function KoTeamInfoPanel({ nome, codigo, todosJogos, posicaoGrupoMap, antesDe }: {
+  nome: string
+  codigo?: string
+  todosJogos: JogoCopa[]
+  posicaoGrupoMap: Record<string, ClassificacaoGrupo & { posicao: number }>
+  antesDe: number
+}) {
+  const grupoInfo = posicaoGrupoMap[nome]
+
+  const jogosNaCopa = todosJogos
+    .filter(j => j.id !== antesDe && j.resultado && (j.time_a === nome || j.time_b === nome))
+    .sort((a, b) => a.data.localeCompare(b.data) || a.horario.localeCompare(b.horario))
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+        <TeamFlagSmall codigo={codigo} />
+        <span style={{ fontSize: 11, fontWeight: 800, color: 'white' }}>{nome}</span>
+      </div>
+
+      {grupoInfo && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.55)' }}>Resultado no grupo:</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: '#4A90D9', background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 10, padding: '1px 7px' }}>
+              {grupoInfo.posicao}º · Grupo {grupoInfo.grupo}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            {([
+              ['J',   grupoInfo.j],
+              ['V',   grupoInfo.c],
+              ['E',   grupoInfo.e],
+              ['D',   grupoInfo.d],
+              ['GP',  grupoInfo.m],
+              ['GC',  grupoInfo.s],
+              ['Pts', grupoInfo.pts],
+            ] as [string, number][]).map(([label, val]) => (
+              <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: label === 'Pts' ? '#4A90D9' : 'rgba(255,255,255,0.7)' }}>{val}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {jogosNaCopa.length > 0 && (
+        <>
+          <div style={{ marginTop: 7, fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+            Jogos na Copa
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 4 }}>
+            {jogosNaCopa.map(j => (
+              <div key={j.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, background: 'rgba(255,255,255,0.03)', borderRadius: 5, padding: '3px 6px' }}>
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)' }}>{FASES[j.fase] ?? j.fase}</span>
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)', textAlign: 'right' }}>
+                  {j.time_a} {j.resultado!.placar_real_a} × {j.resultado!.placar_real_b} {j.time_b}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function TeamFlagSmall({ codigo }: { codigo?: string }) {
+  if (!codigo) {
+    return <div style={{ width: 16, height: 11, borderRadius: 2, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
+  }
+  return <FlagImg codigo={codigo} size={16} />
 }
 
 function ScoreControl({ value, onChange, submitted, locked, scoreColor, scoreBorder }: {

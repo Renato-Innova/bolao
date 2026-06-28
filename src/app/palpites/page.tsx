@@ -28,7 +28,7 @@ export default async function PalpitesPage() {
     userData = { nome: fallbackNome }
   }
 
-  const [{ data: palpites }, { data: todosJogos }, { data: configs }, { data: sysConfig }, ranking] = await Promise.all([
+  const [{ data: palpites }, { data: todosJogos }, { data: configs }, { data: sysConfig }, { data: classificacaoGrupos }, ranking] = await Promise.all([
     supabase
       .from('palpites')
       .select('*, palpites_jogos(*, jogo:jogos_copa(*, resultado:resultados(*)))')
@@ -55,6 +55,11 @@ export default async function PalpitesPage() {
       .eq('id', 1)
       .maybeSingle(),
 
+    // Classificação final dos grupos — usada no painel "Info" do mata-mata
+    supabase
+      .from('classificacao_grupos')
+      .select('*'),
+
     getRanking(),
   ])
 
@@ -71,6 +76,7 @@ export default async function PalpitesPage() {
       palpitesIniciais={palpites ?? []}
       todosJogos={todosJogos ?? []}
       scoringConfigs={configs ?? []}
+      classificacaoGrupos={classificacaoGrupos ?? []}
       especiaisDeadline={sysConfig?.especiais_deadline ?? null}
       novoPalpiteDeadline={sysConfig?.novo_palpite_deadline ?? null}
       minutosLockJogo={sysConfig?.minutos_lock_jogo ?? 60}
