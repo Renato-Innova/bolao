@@ -10,7 +10,7 @@ export async function getRanking(): Promise<RankingEntry[]> {
   // Step 1 — fetch active palpites (no joins, maximum compatibility)
   const { data: palpites, error: errP } = await supabase
     .from('palpites')
-    .select('id, nome, usuario_id, avatar_type, avatar_value')
+    .select('id, nome, usuario_id, avatar_type, avatar_value, pontos_especiais, pontos_classificacao')
     .eq('status', 'ativo')
 
   if (errP) {
@@ -87,7 +87,11 @@ export async function getRanking(): Promise<RankingEntry[]> {
 
   const entries: RankingEntry[] = palpites.map((p: Record<string, unknown>) => {
     const id         = p.id as number
-    const pontosHoje = pontosPorPalpite[id] ?? 0
+    // total = pontos de jogo + especiais (campeão, artilheiro...) + bônus de classificação
+    // de grupos — mesma fórmula usada pelos snapshots em ranking_historico(_completo)
+    const pontosHoje = (pontosPorPalpite[id] ?? 0)
+      + Number(p.pontos_especiais ?? 0)
+      + Number(p.pontos_classificacao ?? 0)
     const variacao          = id in pontosOntem ? pontosHoje - pontosOntem[id] : 0
     // variacao_posicao: positive means moved UP (lower number = better position)
     const variacao_posicao  = 0 // filled in after sort below
