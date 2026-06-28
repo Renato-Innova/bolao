@@ -1517,8 +1517,11 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiWinnerChange, o
   }
 
   const borderColor = locked ? 'rgba(74,144,217,0.15)' : state.submitted ? 'rgba(74,222,128,0.25)' : 'rgba(74,144,217,0.3)'
+  // -1 é o sentinela de "placar não preenchido" — nesse caso ainda não é um
+  // empate real, então não deve disparar o aviso de pênaltis
+  const notEntered = state.scoreA === -1 || state.scoreB === -1
   // Empate sem vencedor nos pênaltis ainda definido → bloqueia o envio
-  const semVencedorPenaltis = state.scoreA === state.scoreB && state.penaltiA === state.penaltiB
+  const semVencedorPenaltis = !notEntered && state.scoreA === state.scoreB && state.penaltiA === state.penaltiB
 
   return (
     <div style={{ background: '#0D1E3D', border: `1px solid ${borderColor}`, borderRadius: 10, padding: '8px 14px 12px', position: 'relative', opacity: locked ? 0.75 : 1, pointerEvents: locked ? 'none' : 'auto' }}>
@@ -1612,20 +1615,16 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiWinnerChange, o
         </div>
       )}
 
-      {infoOpen && (
-        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {hasTeamA && <KoTeamInfoPanel nome={jogo.time_a} codigo={displayCodigoA} todosJogos={todosJogos} posicaoGrupoMap={posicaoGrupoMap} antesDe={jogo.id} />}
-          {hasTeamA && hasTeamB && <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} />}
-          {hasTeamB && <KoTeamInfoPanel nome={jogo.time_b} codigo={displayCodigoB} todosJogos={todosJogos} posicaoGrupoMap={posicaoGrupoMap} antesDe={jogo.id} />}
-        </div>
-      )}
-
       {/* ── ação / bloqueio ── */}
       {locked ? (
         <div style={{ marginTop: 8, fontSize: 9, color: 'rgba(255,255,255,0.50)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3 }}>🔒 Jogo bloqueado para edição</div>
       ) : (
         <div style={{ marginTop: 10, display: state.submitted ? 'none' : 'block' }}>
-          {semVencedorPenaltis ? (
+          {notEntered ? (
+            <div style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.50)', padding: 6, borderRadius: 6, fontSize: 10, fontWeight: 700, textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              Informe o placar
+            </div>
+          ) : semVencedorPenaltis ? (
             <div style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,120,120,0.8)', padding: 6, borderRadius: 6, fontSize: 10, fontWeight: 700, textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.4 }}>
               Indique o vencedor nos pênaltis
             </div>
@@ -1635,6 +1634,14 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiWinnerChange, o
               {state.saving ? '...' : 'Enviar placar'}
             </button>
           )}
+        </div>
+      )}
+
+      {infoOpen && (
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {hasTeamA && <KoTeamInfoPanel nome={jogo.time_a} codigo={displayCodigoA} todosJogos={todosJogos} posicaoGrupoMap={posicaoGrupoMap} antesDe={jogo.id} />}
+          {hasTeamA && hasTeamB && <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} />}
+          {hasTeamB && <KoTeamInfoPanel nome={jogo.time_b} codigo={displayCodigoB} todosJogos={todosJogos} posicaoGrupoMap={posicaoGrupoMap} antesDe={jogo.id} />}
         </div>
       )}
 

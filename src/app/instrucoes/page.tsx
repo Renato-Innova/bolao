@@ -250,11 +250,15 @@ export default async function InstrucoesPage() {
                     <td style={{ fontSize: 12, color: isTPL ? 'rgba(255,255,255,0.5)' : 'white', fontWeight: 600, padding: '8px 10px', borderBottom: idx < FASES_ORDER.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', whiteSpace: 'nowrap' }}>
                       {FASES_LABEL[fase]}
                     </td>
-                    {(['placar_exato', 'empate', 'vencedor', 'gols_equipe', 'penalti'] as const).map(tipo => (
-                      <td key={tipo} style={{ fontSize: 12, fontWeight: 700, color: '#4A90D9', padding: '8px 10px', textAlign: 'center', borderBottom: idx < FASES_ORDER.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                        {pts(fase, tipo)} pts
-                      </td>
-                    ))}
+                    {(['placar_exato', 'empate', 'vencedor', 'gols_equipe', 'penalti'] as const).map(tipo => {
+                      // Não há disputa de pênaltis na fase de grupos
+                      const semPenaltisNaGS = tipo === 'penalti' && fase === 'GS'
+                      return (
+                        <td key={tipo} style={{ fontSize: 12, fontWeight: 700, color: semPenaltisNaGS ? 'rgba(255,255,255,0.2)' : '#4A90D9', padding: '8px 10px', textAlign: 'center', borderBottom: idx < FASES_ORDER.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                          {semPenaltisNaGS ? '—' : `${pts(fase, tipo)} pts`}
+                        </td>
+                      )
+                    })}
                   </tr>
                 )
               })}

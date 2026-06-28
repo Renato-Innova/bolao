@@ -171,8 +171,9 @@ function buildPrompt(params: {
   meioRelevante: string
   artilharia: string
   boletinsRecentes: string
+  bonusClassificacaoInfo: string
 }) {
-  const { hoje, ranking, posJogo, preJogo, rodadaInfo, meioRelevante, artilharia, boletinsRecentes } = params
+  const { hoje, ranking, posJogo, preJogo, rodadaInfo, meioRelevante, artilharia, boletinsRecentes, bonusClassificacaoInfo } = params
 
   return `Você é o narrador oficial do Bolão Copa 2026 — um jornalista esportivo com o tom da ESPN Brasil: animado e com pitadas de ironia, mas sempre profissional e com análise técnica de verdade.
 
@@ -190,6 +191,7 @@ DATA: ${hoje} — EDICAO: MANHA — BOLAO NA ${rodadaInfo.toUpperCase()}
 ===== RANKING ATUAL =====
 
 ${ranking}
+${bonusClassificacaoInfo}
 
 ===== DESTAQUES DO MEIO DA TABELA (cite 3-4 destes se forem relevantes — NUNCA force uma mencao sem motivo, e nunca invente nomes fora desta lista) =====
 
@@ -270,6 +272,7 @@ type RankingData = {
   palpiteIds:    number[]
   rodadaInfo:    string
   meioRelevante: string
+  temBonusClassificacao: boolean
 }
 
 /* ── funções de coleta de dados ────────────────────────────────────────────── */
@@ -311,10 +314,20 @@ async function getRankingComVariacao(now: Date): Promise<RankingData> {
 
   const { data: palpitesAtivos } = await supabase
     .from('palpites')
-    .select('id, nome')
+    .select('id, nome, pontos_especiais, pontos_classificacao')
     .eq('status', 'ativo')
 
   const palpiteIds = (palpitesAtivos ?? []).map((p: { id: number }) => p.id)
+
+  // pontos_especiais e pontos_classificacao não entram em get_pontos_por_palpite
+  // (essa RPC só soma palpites_jogos.pontos) — somamos aqui pra bater com o
+  // ranking real exibido no site.
+  const especiaisMap: Record<number, number> = {}
+  const classifMap: Record<number, number> = {}
+  for (const p of palpitesAtivos ?? []) {
+    especiaisMap[p.id] = Number(p.pontos_especiais ?? 0)
+    classifMap[p.id] = Number(p.pontos_classificacao ?? 0)
+  }
 
   // "Rodada" = número de dias de jogo já realizados (datas distintas com pelo menos 1 resultado)
   // Isso é independente do campo `rodada` do banco, que agrupa vários dias numa mesma rodada da fase de grupos.
@@ -361,6 +374,7 @@ async function getRankingComVariacao(now: Date): Promise<RankingData> {
 
   const ptMap: Record<number, number> = {}
   for (const r of pontos ?? []) ptMap[r.palpite_id] = Number(r.total_pontos ?? 0)
+  for (const id of palpiteIds) ptMap[id] = (ptMap[id] ?? 0) + especiaisMap[id] + classifMap[id]
 
   const toHistMap = (rows: HistRow[] | null) => {
     const m: Record<number, number> = {}
@@ -405,7 +419,8 @@ async function getRankingComVariacao(now: Date): Promise<RankingData> {
     }
 
     const histStr = hist.length > 0 ? `  [${hist.join(' | ')}]` : ''
-    return `#${i + 1}  ${nomeMap[id]}  ${pts} pts${histStr}`
+    const classifStr = classifMap[id] > 0 ? `  (bônus classificação de grupos: +${classifMap[id]}pts)` : ''
+    return `#${i + 1}  ${nomeMap[id]}  ${pts} pts${classifStr}${histStr}`
   }).join('\n')
 
   // Destaques do meio de tabela: exclui top 10 e base 10, só entra quem teve
@@ -429,7 +444,9 @@ async function getRankingComVariacao(now: Date): Promise<RankingData> {
     .map(c => `${nomeMap[c.id]} (#${posAtual[c.id]}, era #${c.id in (posH1 ?? {}) ? (posH1![c.id]) : '?'}, ${c.deltaPts >= 0 ? '+' : ''}${c.deltaPts}pts na rodada)`)
     .join('\n')
 
-  return { rankingStr, sorted, nomeMap, ptMap, palpiteIds, rodadaInfo, meioRelevante }
+  const temBonusClassificacao = Object.values(classifMap).some(v => v > 0)
+
+  return { rankingStr, sorted, nomeMap, ptMap, palpiteIds, rodadaInfo, meioRelevante, temBonusClassificacao }
 }
 
 // ── Boletins recentes (memória de contexto, não aparece no boletim de hoje) ─
@@ -695,7 +712,16 @@ export async function GET(req: NextRequest) {
   const encerrados                             = await getJogosEncerrados([ontem, hoje])
   const pendentes                              = await getJogosPendentes([hoje])
   const { rankingStr, sorted, nomeMap, ptMap,
-          palpiteIds, rodadaInfo, meioRelevante } = await getRankingComVariacao(now)
+          palpiteIds, rodadaInfo, meioRelevante, temBonusClassificacao } = await getRankingComVariacao(now)
+
+  // Explica o que é o "bônus classificação de grupos" — só aparece quando algum
+  // palpite já tem esse valor gravado (calculado pelo admin uma única vez, ao
+  // final da fase de grupos). Sem essa explicação a IA tende a tratar o salto
+  // de pontos/posições de hoje como desempenho normal da rodada, quando na
+  // verdade é um bônus pontual e não recorrente.
+  const bonusClassificacaoInfo = temBonusClassificacao
+    ? `\n(NOTA IMPORTANTE: "bônus classificação de grupos" é uma pontuação especial, pontual e NÃO recorrente — até 640 pts no total, 20 pts por time que o participante previu corretamente como classificado para o mata-mata (2 primeiros de cada grupo + os 8 melhores terceiros colocados). Ela foi calculada e somada UMA ÚNICA VEZ, agora que a fase de grupos terminou — não é pontuação de jogos de hoje. Pode (e deve) ser comentada como um evento marcante de hoje — quem acertou muitos classificados deu um salto no ranking por isso, não por desempenho excepcional nos placares —, mas NÃO narre isso como "uma sequência de acertos" ou "boa rodada de apostas", pois é um bônus único de uma vez só.)`
+    : ''
   const palpitesTabela                         = await getTabelaPalpites(pendentes, palpiteIds, sorted, nomeMap)
   const { encTexts, penTexts }                 = await getContextoUol(encerrados, pendentes)
   const { rankingStr: artilhariaStr, lista: artilheirosLista } = await getArtilheiros()
@@ -709,8 +735,15 @@ export async function GET(req: NextRequest) {
   const preJogo = buildPreJogo(pendentes, penTexts, palpitesTabela, formaTimes, artilheirosLista)
   const prompt  = buildPrompt({
     hoje, ranking: rankingStr, posJogo, preJogo, rodadaInfo,
-    meioRelevante, artilharia: artilhariaStr, boletinsRecentes,
+    meioRelevante, artilharia: artilhariaStr, boletinsRecentes, bonusClassificacaoInfo,
   })
+
+  // ?preview=true — só monta e devolve o prompt, sem chamar a API da Anthropic
+  // nem gravar nada no banco. Uso: testar mudanças no prompt sem custo nem
+  // gerar um boletim duplicado para o dia.
+  if (req.nextUrl.searchParams.get('preview') === 'true') {
+    return NextResponse.json({ ok: true, preview: true, prompt })
+  }
 
   // geração do boletim
   // Tokens reais de cada chamada (message.usage) — usados para calcular o
@@ -740,6 +773,7 @@ export async function GET(req: NextRequest) {
     '',
     '=== RANKING REAL (posição atual, pontos e histórico por rodada) ===',
     rankingStr,
+    bonusClassificacaoInfo,
     '',
     '=== DESTAQUES DO MEIO DA TABELA (só estes podem ser citados como "meio") ===',
     meioRelevante || 'Nenhum destaque relevante no meio da tabela hoje.',

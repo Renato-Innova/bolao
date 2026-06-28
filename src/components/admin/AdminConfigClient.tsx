@@ -109,6 +109,9 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais, acti
   const [boletimSaving,   setBoletimSaving]   = useState(false)
   const [boletimErro,     setBoletimErro]     = useState('')
   const [boletimStatus,   setBoletimStatus]   = useState<BoletimStatus | null>(null)
+  const [previewPrompt,   setPreviewPrompt]   = useState<string | null>(null)
+  const [previewLoading,  setPreviewLoading]  = useState(false)
+  const [previewErro,     setPreviewErro]     = useState('')
   const [boletimLoaded,   setBoletimLoaded]   = useState(false)
   const [auditExpanded,   setAuditExpanded]   = useState(false)
 
@@ -140,6 +143,27 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais, acti
       setBoletimErro('Erro de conexão.')
     }
     setBoletimSaving(false)
+  }
+
+  // Monta e devolve o prompt que seria enviado ao Sonnet, sem chamar a API da
+  // Anthropic nem gravar nenhum boletim — útil pra testar mudanças no prompt
+  // sem custo e sem duplicar o boletim do dia.
+  async function testarPrompt() {
+    setPreviewLoading(true)
+    setPreviewErro('')
+    setPreviewPrompt(null)
+    try {
+      const res  = await fetch('/api/boletim/gerar?preview=true')
+      const json = await res.json()
+      if (!res.ok) {
+        setPreviewErro(json.error ?? 'Erro ao montar o prompt.')
+      } else {
+        setPreviewPrompt(json.prompt ?? '')
+      }
+    } catch {
+      setPreviewErro('Erro de conexão.')
+    }
+    setPreviewLoading(false)
   }
 
   // ── Configurações do sistema (prazos) ─────────────────────────────────────
@@ -727,10 +751,33 @@ export function AdminConfigClient({ configs, usuarios, palpites, especiais, acti
                 style={{ background: boletimSaving ? 'rgba(255,255,255,0.08)' : 'linear-gradient(90deg,#4A90D9,#7c3aed)', color: boletimSaving ? 'rgba(255,255,255,0.4)' : 'white', border: 'none', padding: '10px 24px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: boletimSaving ? 'not-allowed' : 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 {boletimSaving ? 'Gerando boletim...' : '📰 Gerar Novo Boletim'}
               </button>
+              <button onClick={testarPrompt} disabled={previewLoading}
+                style={{ background: 'rgba(255,255,255,0.06)', color: previewLoading ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.15)', padding: '10px 20px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: previewLoading ? 'not-allowed' : 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {previewLoading ? 'Montando prompt...' : '🔍 Testar Prompt (sem gerar)'}
+              </button>
               {boletimErro && (
                 <span style={{ fontSize: 12, color: 'rgba(255,100,100,0.9)' }}>❌ {boletimErro}</span>
               )}
+              {previewErro && (
+                <span style={{ fontSize: 12, color: 'rgba(255,100,100,0.9)' }}>❌ {previewErro}</span>
+              )}
             </div>
+
+            {previewPrompt != null && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    Prompt que seria enviado ao Sonnet (não gera boletim)
+                  </span>
+                  <button onClick={() => setPreviewPrompt(null)}
+                    style={{ background: 'none', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)', borderRadius: 5, fontSize: 11, padding: '2px 8px', cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                    Fechar
+                  </button>
+                </div>
+                <textarea readOnly value={previewPrompt}
+                  style={{ width: '100%', height: 360, background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: 'rgba(255,255,255,0.8)', fontSize: 11, fontFamily: 'monospace', padding: 12, resize: 'vertical', lineHeight: 1.5 }} />
+              </div>
+            )}
           </div>
 
           {/* ── Enquete ── */}
