@@ -471,7 +471,7 @@ function extractSection(texto: string, header: string): string {
   return texto.slice(startContent, fim).trim()
 }
 
-async function getBoletinsRecentes(limit = 3): Promise<string> {
+async function getBoletinsRecentes(limit = 3, hoje?: string): Promise<string> {
   // Busca uma margem extra de linhas porque pode haver mais de um boletim no
   // mesmo dia (regeração manual) — aqui ficamos só com o mais recente de cada
   // dia, para a IA nunca receber duas versões do mesmo dia como se fossem dias diferentes.
@@ -487,6 +487,10 @@ async function getBoletinsRecentes(limit = 3): Promise<string> {
   const porDia = new Map<string, { gerado_em: string; conteudo: string }>()
   for (const b of data as { gerado_em: string; conteudo: string }[]) {
     const dia = brtDate(new Date(b.gerado_em))
+    // Exclui o próprio dia de hoje: se já existe um boletim de hoje e estamos
+    // gerando outro agora, é porque o anterior não ficou bom — não deve
+    // entrar como "memória" do boletim que está sendo gerado.
+    if (dia === hoje) continue
     if (!porDia.has(dia)) porDia.set(dia, b)  // já vem ordenado desc, então o primeiro de cada dia é o mais recente
   }
 
@@ -728,7 +732,7 @@ export async function GET(req: NextRequest) {
   const formaTimes                             = await getFormaTimes(
     pendentes.flatMap(j => [j.time_a as string, j.time_b as string])
   )
-  const boletinsRecentes                       = await getBoletinsRecentes(3)
+  const boletinsRecentes                       = await getBoletinsRecentes(3, hoje)
 
   // montagem do prompt
   const posJogo = buildPosJogo(encerrados, encTexts)
