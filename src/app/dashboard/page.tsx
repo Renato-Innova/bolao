@@ -46,6 +46,7 @@ export default async function DashboardPage() {
     { data: artilheiros },
     { data: pontuacaoResumo },
     { data: jogosPorFase },
+    { data: maiorClassifRow },
   ] = await Promise.all([
     supabase.from('palpites').select('*', { count: 'exact', head: true }).eq('status', 'ativo'),
     supabase.from('users').select('*', { count: 'exact', head: true }),
@@ -63,6 +64,11 @@ export default async function DashboardPage() {
     supabase.from('artilheiros_copa').select('*').order('gols', { ascending: false }).order('assistencias', { ascending: false }).limit(10),
     supabase.from('pontuacao_resumo').select('fase, tipo, pontos_unitario, pontos_max'),
     supabase.from('jogos_copa').select('fase, resultado:resultados(id)'),
+    // Sinaliza se o bônus de classificação de grupos já foi calculado pelo
+    // admin (operação em lote — se algum palpite tem valor > 0, foi rodada
+    // para todos). Usado para incluir esse bônus em "pontos em disputa".
+    supabase.from('palpites').select('pontos_classificacao').eq('status', 'ativo')
+      .order('pontos_classificacao', { ascending: false }).limit(1),
   ])
 
   // Contagem de palpites para próximos jogos (vitória A / empate / vitória B)
@@ -106,7 +112,14 @@ export default async function DashboardPage() {
   const fasesUsadas = resumoJogos.length > 0
     ? resumoJogos.map(r => ({ fase: r.fase, ptsExato: r.pontos_unitario }))
     : Object.entries(PONTOS_EXATO_FALLBACK).map(([fase, ptsExato]) => ({ fase, ptsExato }))
-  const pontosEmDisputa = fasesUsadas.reduce((s, f) => s + (completadosPorFase[f.fase] ?? 0) * f.ptsExato, 0)
+  // Bônus de classificação de grupos: pontos já decididos assim que o admin
+  // calcula (uma vez, ao fim da fase de grupos) — antes disso não conta como
+  // "em disputa" porque ainda não foi resolvido para nenhum palpite.
+  const bonusClassifJaCalculado = ((maiorClassifRow ?? [])[0]?.pontos_classificacao ?? 0) > 0
+  const pontosMaxClassificacao = resumoRows.find(r => r.tipo === 'classificacao')?.pontos_max ?? 0
+  const pontosEmDisputa =
+    fasesUsadas.reduce((s, f) => s + (completadosPorFase[f.fase] ?? 0) * f.ptsExato, 0) +
+    (bonusClassifJaCalculado ? pontosMaxClassificacao : 0)
   // Máximo possível = total geral do bolão (jogos + classificação + especiais), direto da view
   const pontosMaxJogos = resumoRows.length > 0
     ? resumoRows.reduce((s, r) => s + r.pontos_max, 0)
@@ -247,7 +260,7 @@ export default async function DashboardPage() {
               <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.60)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>Pontos em disputa</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 10 }}>
                 <span style={{ fontSize: 32, fontWeight: 700, color: 'white', lineHeight: 1 }}>{pontosEmDisputa.toLocaleString('pt-BR')}</span>
-                <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)' }}>/ {pontosMaxJogos.toLocaleString('pt-BR')} *</span>
+                <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>/ {pontosMaxJogos.toLocaleString('pt-BR')} *</span>
               </div>
               <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
                 <div style={{ height: '100%', width: `${disputaPct}%`, background: 'linear-gradient(90deg, #4A90D9, #7BB8F0)', borderRadius: 3 }} />
