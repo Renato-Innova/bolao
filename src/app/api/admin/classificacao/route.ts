@@ -48,7 +48,6 @@ export async function POST() {
   const { data: classifOficial } = await admin
     .from('classificacao_grupos')
     .select('grupo, pais_nome, pts, dg, m')  // pts, dg=goal_diff, m=goals_for
-    .order('grupo').order('pts', { ascending: false })
 
   if (!classifOficial || classifOficial.length === 0) {
     return NextResponse.json({
@@ -56,16 +55,23 @@ export async function POST() {
     }, { status: 400 })
   }
 
-  // Build official qualifiers set: top 2 per group + best 8 third-place teams
+  // Build official qualifiers set: top 2 per group + best 8 third-place teams.
+  // A ordem de inserção em classificacao_grupos não é confiável (a tabela é
+  // preenchida manualmente, sem desempate) — por isso cada grupo é reordenado
+  // aqui por pts → saldo de gols → gols marcados antes de decidir quem são o
+  // 1º e o 2º colocados.
   const byGroup: Record<string, typeof classifOficial> = {}
   for (const row of classifOficial) {
     if (!byGroup[row.grupo]) byGroup[row.grupo] = []
     byGroup[row.grupo].push(row)
   }
+  for (const rows of Object.values(byGroup)) {
+    rows.sort((a, b) => b.pts - a.pts || b.dg - a.dg || b.m - a.m)
+  }
 
   const oficiais = new Set<string>()
 
-  // Top 2 from each group (already ordered by pts desc)
+  // Top 2 de cada grupo (já ordenado por pts → saldo → gols marcados acima)
   for (const rows of Object.values(byGroup)) {
     if (rows[0]) oficiais.add(rows[0].pais_nome)
     if (rows[1]) oficiais.add(rows[1].pais_nome)
