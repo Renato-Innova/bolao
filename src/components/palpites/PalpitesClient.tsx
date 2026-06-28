@@ -244,6 +244,22 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
       // (accordion only renders when hasSome; days with no submissions show cards flat)
       const hasSome = targetGroup.matches.some(m => !!states[String(m.id)]?.submitted)
       setAccOpen(hasSome ? { [targetGroup.date]: true } : {})
+
+      // Mesma lógica acima, mas para a fase do Mata-Mata (aba padrão agora) —
+      // abre a fase com o próximo jogo pendente ou o próximo jogo da copa,
+      // o que vier primeiro, pulando fases ainda bloqueadas.
+      const allJogosForLock = [...jogosGS, ...jogosKO]
+      let targetPhaseCode: string | null = null
+      for (const phase of KO_PHASES) {
+        if (isPhaseLocked(phase.code, palpite, allJogosForLock)) continue
+        const codes = phase.code === 'FIN' ? ['TPL', 'F'] : [phase.code]
+        const faseJogos = jogosKO.filter(j => codes.includes(j.fase))
+        const pending  = faseJogos.some(m => !states[String(m.id)]?.submitted && !m.resultado)
+        const upcoming = faseJogos.some(m => !m.resultado)
+        if (pending || upcoming) { targetPhaseCode = phase.code; break }
+        if (!targetPhaseCode) targetPhaseCode = phase.code  // fallback: primeira fase desbloqueada
+      }
+      setPhaseSectionOpen(targetPhaseCode ? { [targetPhaseCode]: true } : {})
     } else {
       setMatchStates({})
       setCampeao('')
@@ -986,7 +1002,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
         <>
           {/* Tabs */}
           <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 18, overflowX: 'auto', WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'] }}>
-            {(['Fase de Grupos', 'Palpites Especiais', 'Tabela do Palpite', 'Mata-Mata', 'Pontuação'] as const).map((label, i) => {
+            {(['Mata-Mata', 'Tabela do Palpite', 'Pontuação', 'Palpites Especiais', 'Fase de Grupos'] as const).map((label, i) => {
               const active = activeTab === i
               return (
                 <div key={i} onClick={() => setActiveTab(i)} style={{
@@ -997,14 +1013,14 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
                   borderBottom: `2px solid ${active ? '#4A90D9' : 'transparent'}`,
                   marginBottom: -1, transition: 'color 0.15s, border-color 0.15s',
                 }}>
-                  {i === 1 && (especiaisLocked ? '🔒 ' : '🔓 ')}{label}
+                  {i === 3 && (especiaisLocked ? '🔒 ' : '🔓 ')}{label}
                 </div>
               )
             })}
           </div>
 
-          {/* Tab 1: Fase de Grupos */}
-          {activeTab === 0 && (
+          {/* Fase de Grupos */}
+          {activeTab === 4 && (
             <>
               <div style={{ marginBottom: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginBottom: 6 }}>
@@ -1128,11 +1144,11 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
             </>
           )}
 
-          {/* Tab 3: Tabela do Palpite */}
-          {activeTab === 2 && <TabelaDoPalpite palpite={selected} todosJogos={todosJogos} />}
+          {/* Tabela do Palpite */}
+          {activeTab === 1 && <TabelaDoPalpite palpite={selected} todosJogos={todosJogos} />}
 
-          {/* Tab 4: Mata-Mata */}
-          {activeTab === 3 && (
+          {/* Mata-Mata */}
+          {activeTab === 0 && (
             <MataMataTab
               selected={selected}
               jogosKO={jogosKO}
@@ -1155,8 +1171,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
             />
           )}
 
-          {/* Tab 2: Palpites Especiais */}
-          {activeTab === 1 && (
+          {/* Palpites Especiais */}
+          {activeTab === 3 && (
             <div style={{ maxWidth: 480 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
@@ -1255,7 +1271,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
           )}
 
           {/* Tab 5: Pontuação (index 4) */}
-          {activeTab === 4 && <PontuacaoTab palpite={selected} todosJogos={todosJogos} scoringConfigs={scoringConfigs} />}
+          {activeTab === 2 && <PontuacaoTab palpite={selected} todosJogos={todosJogos} scoringConfigs={scoringConfigs} />}
 
           {/* Desktop bottom bar */}
           <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.2)', borderRadius: 10 }}>
@@ -1415,18 +1431,8 @@ interface KoCardProps {
 }
 
 function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmit, onEdit, pontos, minutosLock = 60 }: KoCardProps) {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
   const locked   = isLocked(jogo.data, jogo.horario)
   const editable = canEditWithLock(jogo.data, jogo.horario, minutosLock)
-
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
 
   // Teams are now always taken directly from jogos_copa.
   // isPlaceholder() is true only when admin hasn't filled the official bracket yet.
@@ -1462,10 +1468,10 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
     const valBorder = isUnset ? '2px solid transparent' : penalti
       ? (state.submitted ? '2px solid rgba(255,200,80,0.5)' : '1px solid rgba(255,200,80,0.3)')
       : scoreBorder
-    const sz = penalti ? 24 : 30
-    const fsz = penalti ? 14 : 17
-    const vsz = penalti ? 24 : 32
-    const vfsz = isUnset ? 16 : penalti ? 15 : 19
+    const sz = penalti ? 20 : 24
+    const fsz = penalti ? 12 : 14
+    const vsz = penalti ? 22 : 30
+    const vfsz = isUnset ? 15 : penalti ? 13 : 17
     // Hide +/− buttons when the game is already submitted — score is read-only until edited
     if (state.submitted) {
       return (
@@ -1475,7 +1481,7 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
       )
     }
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
         <button className="sc-btn" onClick={onDec} disabled={locked}
           style={{ width: sz, height: sz, border: btnBorder, borderRadius: 5, background: btnBg, color: btnColor, fontSize: fsz, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, lineHeight: 1, fontFamily: 'Inter,sans-serif', flexShrink: 0 }}>−</button>
         <div style={{ width: vsz, height: vsz, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: vfsz, fontWeight: 800, color: valColor, borderRadius: 5, border: valBorder, transition: 'border-color 0.3s, color 0.3s', userSelect: 'none' }}>
@@ -1487,145 +1493,134 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
     )
   }
 
+  const borderColor = locked ? 'rgba(74,144,217,0.15)' : state.submitted ? 'rgba(74,222,128,0.25)' : 'rgba(74,144,217,0.3)'
+  // Empate sem vencedor nos pênaltis ainda definido → bloqueia o envio
+  const semVencedorPenaltis = state.scoreA === state.scoreB && state.penaltiA === state.penaltiB
+
   return (
-    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', opacity: locked ? 0.45 : 1, pointerEvents: locked ? 'none' : 'auto' }}>
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
-      background: state.submitted ? 'rgba(74,222,128,0.03)' : 'transparent',
-    }}>
-      {/* Team A */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: 14, fontWeight: hasTeamA ? 600 : 400, color: hasTeamA ? 'white' : 'rgba(255,255,255,0.3)', fontStyle: hasTeamA ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {displayNameA}
+    <div style={{ background: '#0D1E3D', border: `1px solid ${borderColor}`, borderRadius: 10, padding: '8px 14px 12px', marginBottom: 10, position: 'relative', opacity: locked ? 0.75 : 1, pointerEvents: locked ? 'none' : 'auto' }}>
+
+      {/* ── Row 1: fase badge (esquerda) + editar/check (direita) ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <span style={{ fontSize: 9, fontWeight: 800, color: '#7BB8F0', textTransform: 'uppercase', letterSpacing: 0.8, background: 'rgba(74,144,217,0.15)', border: '1px solid rgba(74,144,217,0.25)', borderRadius: 4, padding: '1px 5px' }}>
+          {FASES[jogo.fase] ?? jogo.fase}
         </span>
-        <TeamFlag hasTeam={hasTeamA} codigo={displayCodigoA} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          {state.submitted && (
+            editable ? (
+              <button onClick={onEdit}
+                style={{ background: 'rgba(251,146,60,0.15)', border: '1px solid rgba(251,146,60,0.5)', borderRadius: 4, color: '#fb923c', fontSize: 9, fontWeight: 800, padding: '1px 5px', cursor: 'pointer', fontFamily: 'Inter,sans-serif', letterSpacing: 0.8, textTransform: 'uppercase', flexShrink: 0 }}>
+                Editar
+              </button>
+            ) : (
+              <button disabled title="Prazo encerrado — jogo começa em menos de 1 hora"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, color: 'rgba(255,255,255,0.2)', fontSize: 9, fontWeight: 800, padding: '1px 5px', cursor: 'not-allowed', fontFamily: 'Inter,sans-serif', letterSpacing: 0.8, textTransform: 'uppercase', flexShrink: 0 }}>
+                Editar
+              </button>
+            )
+          )}
+          {state.submitted && <span style={{ color: '#4ade80', fontSize: 14, fontWeight: 700 }}>✓</span>}
+        </div>
       </div>
 
-      {/* Score */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-        {/* 90-min score */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      {/* ── Row 2: times centralizados + placar ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0 }}>
+          <TeamFlag hasTeam={hasTeamA} codigo={displayCodigoA} size={24} />
+          <span style={{ fontSize: 9, fontWeight: 700, color: hasTeamA ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>
+            {hasTeamA ? abbr(displayNameA) : displayNameA}
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
           <ScoreBtn val={state.scoreA} onDec={() => onScoreChange('A', Math.max(0, state.scoreA - 1))} onInc={() => onScoreChange('A', state.scoreA + 1)} />
-          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.50)', padding: '0 2px', fontWeight: 300 }}>×</span>
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 30, lineHeight: 1, fontSize: 12, color: 'rgba(255,255,255,0.50)', fontWeight: 300 }}>×</span>
           <ScoreBtn val={state.scoreB} onDec={() => onScoreChange('B', Math.max(0, state.scoreB - 1))} onInc={() => onScoreChange('B', state.scoreB + 1)} />
         </div>
-        {/* Penalty row — shown when both scores are set (≥ 0) and equal */}
-        {state.scoreA >= 0 && state.scoreB >= 0 && state.scoreA === state.scoreB && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,200,80,0.75)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Pên.</span>
-            <ScoreBtn
-              val={state.penaltiA}
-              onDec={() => onPenaltiChange('A', Math.max(0, state.penaltiA - 1))}
-              onInc={() => onPenaltiChange('A', state.penaltiA + 1)}
-              penalti
-            />
-            <span style={{ fontSize: 11, color: 'rgba(255,200,80,0.3)', fontWeight: 300 }}>×</span>
-            <ScoreBtn
-              val={state.penaltiB}
-              onDec={() => onPenaltiChange('B', Math.max(0, state.penaltiB - 1))}
-              onInc={() => onPenaltiChange('B', state.penaltiB + 1)}
-              penalti
-            />
-          </div>
-        )}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0 }}>
+          <TeamFlag hasTeam={hasTeamB} codigo={displayCodigoB} size={24} />
+          <span style={{ fontSize: 9, fontWeight: 700, color: hasTeamB ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>
+            {hasTeamB ? abbr(displayNameB) : displayNameB}
+          </span>
+        </div>
       </div>
 
-      {/* Team B */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, justifyContent: 'flex-end' }}>
-        <TeamFlag hasTeam={hasTeamB} codigo={displayCodigoB} />
-        <span style={{ fontSize: 14, fontWeight: hasTeamB ? 600 : 400, color: hasTeamB ? 'white' : 'rgba(255,255,255,0.3)', fontStyle: hasTeamB ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>
-          {displayNameB}
+      {/* Pênaltis — mostrado quando os placares estão definidos e empatados */}
+      {state.scoreA >= 0 && state.scoreB >= 0 && state.scoreA === state.scoreB && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 6 }}>
+          <span style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,200,80,0.75)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Pên.</span>
+          <ScoreBtn val={state.penaltiA} onDec={() => onPenaltiChange('A', Math.max(0, state.penaltiA - 1))} onInc={() => onPenaltiChange('A', state.penaltiA + 1)} penalti />
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 22, lineHeight: 1, fontSize: 11, color: 'rgba(255,200,80,0.3)', fontWeight: 300 }}>×</span>
+          <ScoreBtn val={state.penaltiB} onDec={() => onPenaltiChange('B', Math.max(0, state.penaltiB - 1))} onInc={() => onPenaltiChange('B', state.penaltiB + 1)} penalti />
+        </div>
+      )}
+
+      {/* ── ação / bloqueio ── */}
+      {locked ? (
+        <div style={{ marginTop: 8, fontSize: 9, color: 'rgba(255,255,255,0.50)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3 }}>🔒 Jogo bloqueado para edição</div>
+      ) : (
+        <div style={{ marginTop: 10, display: state.submitted ? 'none' : 'block' }}>
+          {semVencedorPenaltis ? (
+            <div style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,120,120,0.8)', padding: 6, borderRadius: 6, fontSize: 10, fontWeight: 700, textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              Indique o vencedor nos pênaltis
+            </div>
+          ) : (
+            <button onClick={onSubmit} disabled={state.saving}
+              style={{ width: '100%', background: 'rgba(74,144,217,0.14)', border: '1px solid rgba(74,144,217,0.3)', color: '#7BB8F0', padding: 6, borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              {state.saving ? '...' : 'Enviar placar'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── data / hora / cidade ── */}
+      <div style={{ marginTop: 8, textAlign: 'center' }}>
+        <span style={{ fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.40)', textTransform: 'uppercase', letterSpacing: 0.3 }}>
+          {dateStr}{jogo.cidade ? ` · ${jogo.cidade}` : ''}
         </span>
       </div>
 
-      {/* Action */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', whiteSpace: 'nowrap' }}>{dateStr}</span>
-        {state.submitted ? (
-          <>
-            <span style={{ color: '#4ade80', fontSize: 14, fontWeight: 700 }}>✓</span>
-            <div ref={menuRef} style={{ position: 'relative' }}>
-              <button onClick={() => setMenuOpen(o => !o)}
-                style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'rgba(255,255,255,0.50)', fontSize: 13, width: 24, height: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⋮</button>
-              {menuOpen && (
-                <div style={{ position: 'absolute', top: 28, right: 0, background: '#1a2d50', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 8, padding: 4, minWidth: 155, zIndex: 20 }}>
-                  <div onClick={() => { if (editable) { onEdit(); setMenuOpen(false) } }}
-                    style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: editable ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.25)', borderRadius: 6, cursor: editable ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
-                    onMouseEnter={e => editable && (e.currentTarget.style.background = 'rgba(74,144,217,0.15)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                    ✏️ Editar placar
-                  </div>
-                </div>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            {/* KO draw without a penalty winner → block submit */}
-            {state.scoreA === state.scoreB && state.penaltiA === state.penaltiB ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                <button disabled
-                  style={{ padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'not-allowed', border: 'none', fontFamily: 'Inter,sans-serif', background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap' }}>
-                  Enviar
-                </button>
-                <span style={{ fontSize: 8, color: 'rgba(255,120,120,0.8)', fontWeight: 600, textAlign: 'center', maxWidth: 80 }}>
-                  indique o vencedor nos pênaltis
-                </span>
-              </div>
-            ) : (
-              <button onClick={onSubmit} disabled={state.saving}
-                style={{ padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', fontFamily: 'Inter,sans-serif', background: 'linear-gradient(90deg,#4A90D9,#1a5ca8)', color: 'white', whiteSpace: 'nowrap' }}>
-                {state.saving ? '...' : 'Enviar'}
-              </button>
-            )}
-          </>
-        )}
-      </div>
-      {locked && <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.50)', flexShrink: 0 }}>🔒</div>}
-    </div>
-
-    {/* Histórico de confronto */}
-    {confronto && (
-      <div style={{ padding: '4px 16px 6px', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Histórico:</span>
-        {confronto.inedito
-          ? <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.6)', fontWeight: 600 }}>Primeiro confronto oficial entre as seleções</span>
-          : <>
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.65)' }}>{confronto.ultimoConfronto}</span>
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>·</span>
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>{confronto.raioX}</span>
-            </>
-        }
-      </div>
-    )}
-
-    {/* Official result + points — shown after submitting when the admin has entered the result */}
-    {state.submitted && jogo.resultado && (() => {
-      const ra = jogo.resultado.placar_real_a
-      const rb = jogo.resultado.placar_real_b
-      const pa = jogo.resultado.placar_penalti_a
-      const pb = jogo.resultado.placar_penalti_b
-      const hasPts = pontos != null
-      const ptsColor = pontos && pontos > 0 ? '#4ade80' : 'rgba(255,255,255,0.3)'
-      return (
-        <div style={{ padding: '5px 16px 8px', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)' }}>
-            <span style={{ color: 'rgba(255,255,255,0.50)' }}>🌍 </span>
-            <strong style={{ color: 'rgba(255,255,255,0.55)' }}>{jogo.time_a}</strong>
-            {' '}<strong style={{ color: 'rgba(255,255,255,0.7)' }}>{ra} × {rb}</strong>{' '}
-            <strong style={{ color: 'rgba(255,255,255,0.55)' }}>{jogo.time_b}</strong>
-            {pa != null && pb != null && (
-              <span style={{ color: 'rgba(255,200,80,0.7)' }}> · pên. {pa}×{pb}</span>
-            )}
-          </span>
-          {hasPts && (
-            <span style={{ fontSize: 10, fontWeight: 800, color: ptsColor }}>
-              {pontos! > 0 ? `+${pontos} pts` : '0 pts'}
-            </span>
-          )}
+      {/* Histórico de confronto */}
+      {confronto && (
+        <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Histórico:</span>
+          {confronto.inedito
+            ? <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.6)', fontWeight: 600 }}>Primeiro confronto oficial entre as seleções</span>
+            : <>
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.65)' }}>{confronto.ultimoConfronto}</span>
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>·</span>
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>{confronto.raioX}</span>
+              </>
+          }
         </div>
-      )
-    })()}
+      )}
+
+      {/* Official result + points — shown after submitting when the admin has entered the result */}
+      {state.submitted && jogo.resultado && (() => {
+        const ra = jogo.resultado.placar_real_a
+        const rb = jogo.resultado.placar_real_b
+        const pa = jogo.resultado.placar_penalti_a
+        const pb = jogo.resultado.placar_penalti_b
+        const hasPts = pontos != null
+        const ptsColor = pontos && pontos > 0 ? '#4ade80' : 'rgba(255,255,255,0.3)'
+        return (
+          <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)' }}>
+              <span style={{ color: 'rgba(255,255,255,0.50)' }}>🌍 Jogo Oficial: </span>
+              <strong style={{ color: 'rgba(255,255,255,0.55)' }}>{jogo.time_a}</strong>
+              {' '}<strong style={{ color: 'rgba(255,255,255,0.7)' }}>{ra} × {rb}</strong>{' '}
+              <strong style={{ color: 'rgba(255,255,255,0.55)' }}>{jogo.time_b}</strong>
+              {pa != null && pb != null && (
+                <span style={{ color: 'rgba(255,200,80,0.7)' }}> · pên. {pa}×{pb}</span>
+              )}
+            </span>
+            {hasPts && (
+              <span style={{ fontSize: 10, fontWeight: 800, color: ptsColor }}>
+                {pontos! > 0 ? `+${pontos} pts` : '0 pts'}
+              </span>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 }

@@ -64,6 +64,10 @@ input[type='number'] { -moz-appearance: textfield; }
 .car-desktop { display: block; }
 .car-mobile  { display: none; }
 
+/* ── mata-mata: nome completo (desktop) vs abreviado (mobile) ── */
+.ko-team-full { display: inline; }
+.ko-team-abbr { display: none; }
+
 /* ── meu dia — ontem + hoje lado a lado no desktop ── */
 .meu-dia-row { display: flex; flex-direction: row; gap: 16px; }
 .meu-dia-row > * { flex: 1; min-width: 0; }
@@ -266,6 +270,10 @@ input[type='number'] { -moz-appearance: textfield; }
   /* day label: show short on mobile, hide full */
   .day-date-full  { display: none !important; }
   .day-date-short { display: inline !important; }
+
+  /* mata-mata: usa abreviação de 3 letras no lugar do nome completo */
+  .ko-team-full { display: none !important; }
+  .ko-team-abbr { display: inline !important; }
 
   /* ── ranking ── */
   .rank-header    { display: none !important; }
