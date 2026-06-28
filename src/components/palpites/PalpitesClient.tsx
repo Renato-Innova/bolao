@@ -2139,10 +2139,11 @@ function TabelaDoPalpite({ palpite, todosJogos }: { palpite: Palpite; todosJogos
     return Object.values(standings)
   }
 
-  const grupos = GRUPOS.map(g => {
+  // 1ª passada: standings previstas e oficiais por grupo (oficiais só quando
+  // todos os jogos do grupo já têm resultado)
+  const gruposBase = GRUPOS.map(g => {
     const jogos = grupoJogos[g] ?? []
 
-    // Predicted standings from user's palpites
     const predRows = buildStandings(jogos, j => {
       const pj = submittedMap[String(j.id)]
       if (!pj) return null
@@ -2150,27 +2151,49 @@ function TabelaDoPalpite({ palpite, todosJogos }: { palpite: Palpite; todosJogos
     })
     const times = fifaSort(predRows, jogos, submittedMap)
 
-    // Official standings from actual results (only when all games have results)
     const allHaveResults = jogos.length > 0 && jogos.every(j => j.resultado)
-    const officialTop2: Set<string> = new Set()
+    let officialSorted: PalpiteRow[] = []
     if (allHaveResults) {
       const offRows = buildStandings(jogos, j =>
         j.resultado ? { ga: j.resultado.placar_real_a, gb: j.resultado.placar_real_b } : null
       )
-      const sorted = fifaSort(offRows, jogos, submittedMap)
-      if (sorted[0]) officialTop2.add(sorted[0].time)
-      if (sorted[1]) officialTop2.add(sorted[1].time)
+      officialSorted = fifaSort(offRows, jogos, submittedMap)
     }
 
-    // How many of the user's predicted top 2 are in the official top 2?
-    const classifBonus = allHaveResults && times.length >= 2
-      ? [times[0].time, times[1].time].filter(t => officialTop2.has(t)).length * 20
-      : null  // null = results not yet available
-
-    return { grupo: g, times, classifBonus }
+    return { grupo: g, times, allHaveResults, officialSorted }
   }).filter(g => g.times.length > 0)
 
-  // Compute best-8 third-place teams from the user's predicted standings
+  // Vaga de "melhor 3º colocado" é GLOBAL (8 melhores entre os 12 grupos) —
+  // só pode ser determinada quando todos os grupos já têm resultado oficial
+  const todosGruposComResultado = gruposBase.every(g => g.allHaveResults)
+  const officialBest8ThirdNames: Set<string> = (() => {
+    if (!todosGruposComResultado) return new Set()
+    const thirds = gruposBase
+      .filter(g => g.officialSorted.length >= 3)
+      .map(g => g.officialSorted[2])
+    const best8 = [...thirds]
+      .sort((a, b) => b.pts - a.pts || b.sg - a.sg || b.gp - a.gp)
+      .slice(0, 8)
+    return new Set(best8.map(t => t.time))
+  })()
+
+  const grupos = gruposBase.map(({ grupo, times, allHaveResults, officialSorted }) => {
+    if (!allHaveResults || times.length < 2) return { grupo, times, classifBonus: null }
+
+    const officialTop2 = new Set([officialSorted[0]?.time, officialSorted[1]?.time].filter(Boolean))
+    let classifBonus = [times[0].time, times[1].time].filter(t => officialTop2.has(t)).length * 20
+
+    // 3º colocado previsto também pontua se for um dos 8 melhores terceiros
+    // oficiais (vaga global) — só pode ser conferido com todos os grupos prontos
+    if (todosGruposComResultado && times[2] && officialBest8ThirdNames.has(times[2].time)) {
+      classifBonus += 20
+    }
+
+    return { grupo, times, classifBonus }
+  })
+
+  // Terceiros previstos pelo próprio usuário, só para estilizar a linha do 3º
+  // colocado na tabela (não usado para somar pontos — isso usa o conjunto oficial acima)
   const best8ThirdNames: Set<string> = (() => {
     const thirds = grupos
       .filter(g => g.times.length >= 3)
