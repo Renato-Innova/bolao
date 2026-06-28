@@ -1639,6 +1639,19 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiWinnerChange, o
 
       {infoOpen && (
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {confronto && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Histórico:</span>
+              {confronto.inedito
+                ? <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.6)', fontWeight: 600 }}>Primeiro confronto oficial entre as seleções</span>
+                : <>
+                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.65)' }}>{confronto.ultimoConfronto}</span>
+                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>·</span>
+                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>{confronto.raioX}</span>
+                  </>
+              }
+            </div>
+          )}
           {hasTeamA && <KoTeamInfoPanel nome={jogo.time_a} codigo={displayCodigoA} todosJogos={todosJogos} posicaoGrupoMap={posicaoGrupoMap} antesDe={jogo.id} />}
           {hasTeamA && hasTeamB && <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} />}
           {hasTeamB && <KoTeamInfoPanel nome={jogo.time_b} codigo={displayCodigoB} todosJogos={todosJogos} posicaoGrupoMap={posicaoGrupoMap} antesDe={jogo.id} />}
@@ -1651,21 +1664,6 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiWinnerChange, o
           {dateStr}{jogo.cidade ? ` · ${jogo.cidade}` : ''}
         </span>
       </div>
-
-      {/* Histórico de confronto */}
-      {confronto && (
-        <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Histórico:</span>
-          {confronto.inedito
-            ? <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.6)', fontWeight: 600 }}>Primeiro confronto oficial entre as seleções</span>
-            : <>
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.65)' }}>{confronto.ultimoConfronto}</span>
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>·</span>
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>{confronto.raioX}</span>
-              </>
-          }
-        </div>
-      )}
 
       {/* Official result + points — shown after submitting when the admin has entered the result */}
       {state.submitted && jogo.resultado && (() => {
