@@ -168,11 +168,31 @@ function JogosTab({ todosJogos }: { todosJogos: JogoCopa[] }) {
   const days = groupByDay(jogosFiltrados)
   const defaultOpenDate = groupByDay(todosJogos).find(d => d.games.some(g => !g.resultado))?.date ?? null
 
+  // Último jogo já ocorrido (maior data+horário entre os que já têm resultado)
+  // — usado para abrir o dia dele e rolar a página até ali ao entrar na página.
+  const jogosComResultado = todosJogos.filter(j => j.resultado)
+  const ultimoJogoOcorrido = jogosComResultado.length > 0
+    ? jogosComResultado.reduce((latest, j) =>
+        (j.data > latest.data || (j.data === latest.data && j.horario > latest.horario)) ? j : latest
+      )
+    : null
+
   const [accOpen, setAccOpen] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {}
     if (defaultOpenDate) init[defaultOpenDate] = true
+    if (ultimoJogoOcorrido) init[ultimoJogoOcorrido.data] = true
     return init
   })
+
+  const gameRefs = useRef<Record<number, HTMLDivElement | null>>({})
+
+  // Rola até o último jogo ocorrido assim que a página carrega
+  useEffect(() => {
+    if (!ultimoJogoOcorrido) return
+    const el = gameRefs.current[ultimoJogoOcorrido.id]
+    if (el) el.scrollIntoView({ behavior: 'auto', block: 'center' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ao buscar, expande todos os dias encontrados automaticamente
   function handleBuscaChange(novaBusca: string) {
@@ -281,7 +301,11 @@ function JogosTab({ todosJogos }: { todosJogos: JogoCopa[] }) {
 
               {isOpen && (
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                  {day.games.map(jogo => <GameRow key={jogo.id} jogo={jogo} />)}
+                  {day.games.map(jogo => (
+                    <div key={jogo.id} ref={el => { gameRefs.current[jogo.id] = el }}>
+                      <GameRow jogo={jogo} />
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
