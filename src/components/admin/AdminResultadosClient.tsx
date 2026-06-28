@@ -165,20 +165,22 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
   const [editing,  setEditing]  = useState(!hasSent)
   const [placarA,   setPlacarA]   = useState(jogo.resultado?.placar_real_a?.toString() ?? '')
   const [placarB,   setPlacarB]   = useState(jogo.resultado?.placar_real_b?.toString() ?? '')
-  const [penaltiA,  setPenaltiA]  = useState(jogo.resultado?.placar_penalti_a?.toString() ?? '')
-  const [penaltiB,  setPenaltiB]  = useState(jogo.resultado?.placar_penalti_b?.toString() ?? '')
+  // Pênaltis: só registramos quem venceu, não o placar exato (a pontuação já
+  // só considera o vencedor — ver scoring.ts). Internamente continua gravado
+  // como (1,0) ou (0,1) nas colunas existentes, sem precisar migrar o schema.
+  const penaltiVencedorInicial: 'A' | 'B' | null =
+    jogo.resultado?.placar_penalti_a != null && jogo.resultado?.placar_penalti_b != null
+      ? (jogo.resultado.placar_penalti_a > jogo.resultado.placar_penalti_b ? 'A' : 'B')
+      : null
+  const [penaltiVencedor, setPenaltiVencedor] = useState<'A' | 'B' | null>(penaltiVencedorInicial)
   const [saving,    setSaving]    = useState(false)
   const [saveError, setSaveError] = useState('')
 
-  // Show penalty inputs for KO games when both scores are entered and equal
+  // Show penalty choice for KO games when both scores are entered and equal
   const isDraw = isKO && placarA !== '' && placarB !== '' && parseInt(placarA) === parseInt(placarB)
 
-  // Block saving a KO draw without a valid penalty result (must have a winner)
-  const penaltiBlocked = isDraw && (
-    penaltiA === '' || penaltiB === '' ||
-    isNaN(parseInt(penaltiA)) || isNaN(parseInt(penaltiB)) ||
-    parseInt(penaltiA) === parseInt(penaltiB)  // penalties must decide a winner
-  )
+  // Block saving a KO draw without a chosen penalty winner
+  const penaltiBlocked = isDraw && penaltiVencedor === null
   const canSave = !penaltiBlocked
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -224,8 +226,8 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
     if (isNaN(a) || isNaN(b) || a < 0 || b < 0) return
     setSaving(true); setSaveError('')
 
-    const penA = isDraw && penaltiA !== '' ? parseInt(penaltiA) : null
-    const penB = isDraw && penaltiB !== '' ? parseInt(penaltiB) : null
+    const penA = isDraw && penaltiVencedor ? (penaltiVencedor === 'A' ? 1 : 0) : null
+    const penB = isDraw && penaltiVencedor ? (penaltiVencedor === 'B' ? 1 : 0) : null
 
     const res = await fetch('/api/admin/resultado', {
       method: 'POST',
@@ -262,8 +264,7 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
   function startEdit() {
     setPlacarA((savedA ?? 0).toString())
     setPlacarB((savedB ?? 0).toString())
-    setPenaltiA(savedPenA?.toString() ?? '')
-    setPenaltiB(savedPenB?.toString() ?? '')
+    setPenaltiVencedor(savedPenA != null && savedPenB != null ? (savedPenA > savedPenB ? 'A' : 'B') : null)
     setEditing(true)
     setMenuOpen(false)
   }
@@ -349,20 +350,35 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
             <span style={{ fontSize: 10, color: 'rgba(255,200,80,0.7)', fontWeight: 600 }}>🔒 Preencha os times primeiro</span>
           )}
           {isSent && !editing && savedPenA != null && savedPenB != null && (
-            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 0.3 }}>pen {savedPenA}–{savedPenB}</span>
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 0.3 }}>
+              pên: vencedor {savedPenA > savedPenB ? localTimeA : localTimeB}
+            </span>
           )}
           {!teamsUnknown && !(isSent && !editing) && isDraw && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.8)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>Pênaltis</span>
-                <input type="number" min={0} value={penaltiA} onChange={e => setPenaltiA(e.target.value)}
-                  style={{ width: 30, height: 26, textAlign: 'center', borderRadius: 5, background: 'rgba(255,200,80,0.08)', border: `1px solid ${penaltiBlocked ? 'rgba(255,80,80,0.5)' : 'rgba(255,200,80,0.35)'}`, color: '#ffc850', fontSize: 12, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif', padding: 0 }} />
-                <span style={{ color: 'rgba(255,200,80,0.4)', fontSize: 11 }}>×</span>
-                <input type="number" min={0} value={penaltiB} onChange={e => setPenaltiB(e.target.value)}
-                  style={{ width: 30, height: 26, textAlign: 'center', borderRadius: 5, background: 'rgba(255,200,80,0.08)', border: `1px solid ${penaltiBlocked ? 'rgba(255,80,80,0.5)' : 'rgba(255,200,80,0.35)'}`, color: '#ffc850', fontSize: 12, fontWeight: 700, outline: 'none', fontFamily: 'Inter,sans-serif', padding: 0 }} />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.8)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>Quem venceu nos pênaltis?</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {(['A', 'B'] as const).map(side => {
+                  const isWinner = penaltiVencedor === side
+                  const name = side === 'A' ? localTimeA : localTimeB
+                  const codigo = side === 'A' ? localCodigoA : localCodigoB
+                  return (
+                    <button key={side} type="button" onClick={() => setPenaltiVencedor(side)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 5, padding: '4px 8px', borderRadius: 6, cursor: 'pointer',
+                        border: isWinner ? '2px solid #ffc850' : `1px solid ${penaltiBlocked ? 'rgba(255,80,80,0.5)' : 'rgba(255,200,80,0.35)'}`,
+                        background: isWinner ? 'rgba(255,200,80,0.18)' : 'rgba(255,200,80,0.08)',
+                        color: isWinner ? '#ffc850' : 'rgba(255,255,255,0.55)',
+                        fontSize: 11, fontWeight: 700, fontFamily: 'Inter,sans-serif',
+                      }}>
+                      {codigo && <FlagImg codigo={codigo} size={14} />}
+                      {name}
+                    </button>
+                  )
+                })}
               </div>
               {penaltiBlocked && (
-                <span style={{ fontSize: 9, color: 'rgba(255,120,120,0.9)', fontWeight: 600 }}>⚠️ Preencha os pênaltis</span>
+                <span style={{ fontSize: 9, color: 'rgba(255,120,120,0.9)', fontWeight: 600 }}>⚠️ Selecione o vencedor</span>
               )}
             </div>
           )}

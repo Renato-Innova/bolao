@@ -281,7 +281,7 @@ export default async function DashboardPage() {
                     </div>
                     {j.resultado!.placar_penalti_a != null && (
                       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)' }}>
-                        pên {j.resultado!.placar_penalti_a}–{j.resultado!.placar_penalti_b}
+                        pên: {j.resultado!.placar_penalti_a! > j.resultado!.placar_penalti_b! ? j.time_a : j.time_b}
                       </div>
                     )}
                   </div>

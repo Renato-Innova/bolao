@@ -109,7 +109,7 @@ function GameRow({ jogo }: { jogo: JogoCopa }) {
             </div>
             {hasPenalty && (
               <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.7)', fontWeight: 600, letterSpacing: 0.3 }}>
-                pen {penA}–{penB}
+                pên: {winA ? jogo.time_a : jogo.time_b}
               </span>
             )}
           </>
@@ -465,8 +465,8 @@ function ChaveTab({ jogosKO }: { jogosKO: JogoCopa[] }) {
         ? (hasTeamA ? jogo.time_a : 'A definir')
         : (hasTeamB ? jogo.time_b : 'A definir')
       const score   = hasRes ? (side === 'A' ? scoreA : scoreB) : null
-      const penScore = hasPen ? (side === 'A' ? penA : penB) : null
       const isWin   = side === 'A' ? winA : winB
+      const venceuPenaltis = hasPen && isWin
 
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 4px', borderRadius: 4, background: isWin ? 'rgba(74,144,217,0.1)' : 'transparent', borderLeft: isWin ? '2px solid #4A90D9' : '2px solid transparent', marginLeft: isWin ? -2 : 0 }}>
@@ -481,8 +481,8 @@ function ChaveTab({ jogosKO }: { jogosKO: JogoCopa[] }) {
             <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, minWidth: 12, textAlign: 'right', color: isWin ? '#4A90D9' : hasRes ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.25)' }}>
               {score ?? '–'}
             </span>
-            {penScore != null && (
-              <span style={{ fontSize: 8, color: 'rgba(255,200,80,0.7)', fontWeight: 600 }}>({penScore})</span>
+            {venceuPenaltis && (
+              <span style={{ fontSize: 8, color: 'rgba(255,200,80,0.7)', fontWeight: 600 }}>(pên)</span>
             )}
           </div>
         </div>

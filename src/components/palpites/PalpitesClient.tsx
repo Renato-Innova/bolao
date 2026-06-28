@@ -1423,14 +1423,14 @@ interface KoCardProps {
   jogo: JogoCopa
   state: MatchState
   onScoreChange: (side: 'A' | 'B', val: number) => void
-  onPenaltiChange: (side: 'A' | 'B', val: number) => void
+  onPenaltiWinnerChange: (winner: 'A' | 'B') => void
   onSubmit: () => void
   onEdit: () => void
   pontos?: number | null
   minutosLock?: number
 }
 
-function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmit, onEdit, pontos, minutosLock = 60 }: KoCardProps) {
+function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiWinnerChange, onSubmit, onEdit, pontos, minutosLock = 60 }: KoCardProps) {
   const locked   = isLocked(jogo.data, jogo.horario)
   const editable = canEditWithLock(jogo.data, jogo.horario, minutosLock)
 
@@ -1498,7 +1498,7 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
   const semVencedorPenaltis = state.scoreA === state.scoreB && state.penaltiA === state.penaltiB
 
   return (
-    <div style={{ background: '#0D1E3D', border: `1px solid ${borderColor}`, borderRadius: 10, padding: '8px 14px 12px', marginBottom: 10, position: 'relative', opacity: locked ? 0.75 : 1, pointerEvents: locked ? 'none' : 'auto' }}>
+    <div style={{ background: '#0D1E3D', border: `1px solid ${borderColor}`, borderRadius: 10, padding: '8px 14px 12px', position: 'relative', opacity: locked ? 0.75 : 1, pointerEvents: locked ? 'none' : 'auto' }}>
 
       {/* ── Row 1: fase badge (esquerda) + editar/check (direita) ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -1544,22 +1544,42 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
         </div>
       </div>
 
-      {/* Pênaltis — mostrado quando os placares estão definidos e empatados.
-          Usa o mesmo grid 1fr/auto/1fr da linha dos times: assim a coluna
-          central (com os placares) fica exatamente no mesmo eixo horizontal
-          da linha de cima, e os dois "×" ficam alinhados na vertical — o
-          rótulo "Pên." vai na coluna da esquerda, sem afetar essa centralização. */}
+      <div style={{ textAlign: 'center', marginTop: 2 }}>
+        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', letterSpacing: 0.3 }}>Resultado final da partida (90 ou 120min)</span>
+      </div>
+
+      {/* Pênaltis — escolha de vencedor, não placar. Pontuação já só considera
+          quem venceu (ver scoring.ts), então não há motivo pra coletar o placar
+          exato — e isso fica mais simples e rápido pro usuário responder. */}
       {state.scoreA >= 0 && state.scoreB >= 0 && state.scoreA === state.scoreB && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 6, marginTop: 6 }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <span style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,200,80,0.75)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Pên.</span>
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ textAlign: 'center', fontSize: 9, fontWeight: 700, color: 'rgba(255,200,80,0.75)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+            Empate · quem venceu nos pênaltis?
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-            <ScoreBtn val={state.penaltiA} onDec={() => onPenaltiChange('A', Math.max(0, state.penaltiA - 1))} onInc={() => onPenaltiChange('A', state.penaltiA + 1)} penalti />
-            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 22, lineHeight: 1, fontSize: 11, color: 'rgba(255,200,80,0.3)', fontWeight: 300 }}>×</span>
-            <ScoreBtn val={state.penaltiB} onDec={() => onPenaltiChange('B', Math.max(0, state.penaltiB - 1))} onInc={() => onPenaltiChange('B', state.penaltiB + 1)} penalti />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            {(['A', 'B'] as const).map(side => {
+              const winner = state.penaltiA === 1 ? 'A' : state.penaltiB === 1 ? 'B' : null
+              const isWinner = winner === side
+              const name = side === 'A' ? displayNameA : displayNameB
+              const hasTeam = side === 'A' ? hasTeamA : hasTeamB
+              const codigo = side === 'A' ? displayCodigoA : displayCodigoB
+              return (
+                <button key={side} onClick={() => onPenaltiWinnerChange(side)} disabled={state.submitted || locked}
+                  style={{
+                    flex: 1, maxWidth: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '7px 10px', borderRadius: 8, cursor: state.submitted ? 'default' : 'pointer',
+                    border: isWinner ? '2px solid #ffc850' : '1px solid rgba(255,200,80,0.35)',
+                    background: isWinner ? 'rgba(255,200,80,0.18)' : 'rgba(255,200,80,0.08)',
+                    color: isWinner ? '#ffc850' : 'rgba(255,255,255,0.55)',
+                    fontSize: 11, fontWeight: 700, fontFamily: 'Inter,sans-serif',
+                  }}>
+                  <TeamFlag hasTeam={hasTeam} codigo={codigo} size={16} />
+                  {hasTeam ? abbr(name) : name}
+                  {isWinner && ' ✓'}
+                </button>
+              )
+            })}
           </div>
-          <div />
         </div>
       )}
 
@@ -1619,7 +1639,7 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
               {' '}<strong style={{ color: 'rgba(255,255,255,0.7)' }}>{ra} × {rb}</strong>{' '}
               <strong style={{ color: 'rgba(255,255,255,0.55)' }}>{jogo.time_b}</strong>
               {pa != null && pb != null && (
-                <span style={{ color: 'rgba(255,200,80,0.7)' }}> · pên. {pa}×{pb}</span>
+                <span style={{ color: 'rgba(255,200,80,0.7)' }}> · vencedor pên: {pa > pb ? jogo.time_a : jogo.time_b}</span>
               )}
             </span>
             {hasPts && (
@@ -1763,16 +1783,18 @@ function MataMataTab({
                             <div style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.7, background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                               {dayLabel}
                             </div>
-                            {jogos.map(jogo => (
-                              <KnockoutGameCard key={jogo.id} jogo={jogo}
-                                state={matchStates[String(jogo.id)] ?? DEFAULT_MATCH_STATE}
-                                onScoreChange={(side, val) => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
-                                onPenaltiChange={(side, val) => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), side === 'A' ? { penaltiA: val } : { penaltiB: val })}
-                                onSubmit={() => submitMatch(String(jogo.id))}
-                                onEdit={() => editMatch(String(jogo.id))}
-                                pontos={selected.palpites_jogos?.find(pj => pj.jogo_id === jogo.id)?.pontos ?? null}
-                                minutosLock={minutosLock} />
-                            ))}
+                            <div className="match-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, padding: 10 }}>
+                              {jogos.map(jogo => (
+                                <KnockoutGameCard key={jogo.id} jogo={jogo}
+                                  state={matchStates[String(jogo.id)] ?? DEFAULT_MATCH_STATE}
+                                  onScoreChange={(side, val) => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), side === 'A' ? { scoreA: val } : { scoreB: val })}
+                                  onPenaltiWinnerChange={winner => !matchStates[String(jogo.id)]?.submitted && updateState(String(jogo.id), winner === 'A' ? { penaltiA: 1, penaltiB: 0 } : { penaltiA: 0, penaltiB: 1 })}
+                                  onSubmit={() => submitMatch(String(jogo.id))}
+                                  onEdit={() => editMatch(String(jogo.id))}
+                                  pontos={selected.palpites_jogos?.find(pj => pj.jogo_id === jogo.id)?.pontos ?? null}
+                                  minutosLock={minutosLock} />
+                              ))}
+                            </div>
                           </div>
                         )
                       })
@@ -1913,7 +1935,7 @@ function ChaveKnockout({ jogosKO, selected, matchStates, chaveView, setChaveView
       const codigo   = side === 'A' ? mc2CodigoA : mc2CodigoB
       const name     = side === 'A' ? mc2NameA : mc2NameB
       const score    = getScore(jogo, side)
-      const penScore = getPenalti(jogo, side)
+      const venceuPenaltis = getPenalti(jogo, side) != null && winner === side
       const isWin    = winner === side
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 4px', borderRadius: 5, background: isWin ? 'rgba(74,144,217,0.08)' : 'transparent', borderLeft: isWin ? '2px solid #4A90D9' : '2px solid transparent', marginLeft: isWin ? -2 : 0 }}>
@@ -1928,8 +1950,8 @@ function ChaveKnockout({ jogosKO, selected, matchStates, chaveView, setChaveView
             <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, minWidth: 14, textAlign: 'right', color: isWin ? '#4A90D9' : hasResult ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.3)' }}>
               {score}
             </span>
-            {penScore != null && (
-              <span style={{ fontSize: 8, color: 'rgba(255,200,80,0.7)', fontWeight: 600 }}>({penScore})</span>
+            {venceuPenaltis && (
+              <span style={{ fontSize: 8, color: 'rgba(255,200,80,0.7)', fontWeight: 600 }}>(pên)</span>
             )}
           </div>
         </div>

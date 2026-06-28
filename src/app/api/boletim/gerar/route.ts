@@ -156,7 +156,7 @@ function resolveResultado(j: Jogo): Record<string, unknown> | null {
 function fmtResultado(j: Record<string, unknown>): string {
   const r = resolveResultado(j)!
   const pen = r.placar_penalti_a != null
-    ? ` (pên: ${r.placar_penalti_a}-${r.placar_penalti_b})`
+    ? ` (pên: ${(r.placar_penalti_a as number) > (r.placar_penalti_b as number) ? j.time_a : j.time_b} venceu)`
     : ''
   return `${j.time_a} ${r.placar_real_a}-${r.placar_real_b} ${j.time_b}${pen} | ${(j.horario as string).slice(0, 5)}h`
 }
