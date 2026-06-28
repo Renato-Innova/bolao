@@ -270,7 +270,7 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
       const allJogosForLock = [...jogosGS, ...jogosKO]
       let targetPhaseCode: string | null = null
       for (const phase of KO_PHASES) {
-        if (isPhaseLocked(phase.code, palpite, allJogosForLock)) continue
+        if (isPhaseLocked(phase.code, allJogosForLock)) continue
         const codes = phase.code === 'FIN' ? ['TPL', 'F'] : [phase.code]
         const faseJogos = jogosKO.filter(j => codes.includes(j.fase))
         const pending  = faseJogos.some(m => !states[String(m.id)]?.submitted && !m.resultado)
@@ -1437,12 +1437,9 @@ function submittedCountByFase(fase: string, selected: Palpite, jogos: JogoCopa[]
   return { submitted, total: faseJogos.length }
 }
 
-function isPhaseLocked(phaseCode: KoPhaseCode, selected: Palpite, todosJogos: JogoCopa[]): boolean {
-  const def = KO_PHASES.find(p => p.code === phaseCode)!
-  const prev = def.prevCode
-
-  // R32 special lock: stays locked until the admin fills the official bracket.
-  // All R32 jogos_copa records must have real team names (no placeholders).
+function isPhaseLocked(phaseCode: KoPhaseCode, todosJogos: JogoCopa[]): boolean {
+  // R32: stays locked until the admin fills the official bracket. All R32
+  // jogos_copa records must have real team names (no placeholders).
   if (phaseCode === 'R32') {
     const r32Jogos = todosJogos.filter(j => j.fase === 'R32')
     if (r32Jogos.length === 0) return true  // not seeded yet
@@ -1451,13 +1448,19 @@ function isPhaseLocked(phaseCode: KoPhaseCode, selected: Palpite, todosJogos: Jo
     )
   }
 
-  // All other phases: locked until the user has submitted every game in the previous phase
-  const prevJogos = todosJogos.filter(j => j.fase === prev)
-  if (prevJogos.length === 0) return false
-  const doneCount = (selected.palpites_jogos ?? []).filter(pj =>
-    prevJogos.some(j => j.id === pj.jogo_id) && pj.submitted_at
-  ).length
-  return doneCount < prevJogos.length
+  // R16 em diante: libera assim que PELO MENOS UM jogo da fase já tem os dois
+  // times definidos (não placeholder) — não depende de o usuário ter
+  // enviado todos os jogos da fase anterior. Antes, perder o prazo de um
+  // único jogo da fase anterior travava o usuário pra sempre nas fases
+  // seguintes, mesmo que a chave real já tivesse avançado. Os jogos cujos
+  // times ainda não foram definidos simplesmente não aparecem na lista
+  // (ver filtro em phaseJogos), e vão entrando conforme a chave se monta.
+  const codes = phaseCode === 'FIN' ? ['TPL', 'F'] : [phaseCode]
+  const faseJogos = todosJogos.filter(j => codes.includes(j.fase))
+  if (faseJogos.length === 0) return true
+  return !faseJogos.some(
+    j => !isPlaceholder(j.time_a ?? '') && !isPlaceholder(j.time_b ?? '')
+  )
 }
 
 /* ─── KnockoutGameCard ────────────────────────────────────── */
@@ -1777,9 +1780,13 @@ function MataMataTab({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {KO_PHASES.map(phase => {
             const codes = phase.code === 'FIN' ? ['TPL', 'F'] : [phase.code]
-            const phaseJogos = jogosKO.filter(j => codes.includes(j.fase))
+            // Só mostra jogos cujos dois times já foram definidos — os demais
+            // ainda são "Vencedor Jogo X" e vão aparecer conforme a chave avança.
+            const phaseJogos = jogosKO.filter(j =>
+              codes.includes(j.fase) && !isPlaceholder(j.time_a ?? '') && !isPlaceholder(j.time_b ?? '')
+            )
             const { submitted, total } = submittedCountByFase(phase.code, selected, allJogos)
-            const locked = isPhaseLocked(phase.code as KoPhaseCode, selected, allJogos)
+            const locked = isPhaseLocked(phase.code as KoPhaseCode, allJogos)
             const isOpen = !!phaseSectionOpen[phase.code]
             const complete = submitted === total && total > 0
 
@@ -1821,10 +1828,10 @@ function MataMataTab({
                     ) : (
                       <>
                         <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
-                          Disponível após {phase.prevLabel}
+                          Aguardando confrontos da {phase.prevLabel}
                         </div>
                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.50)' }}>
-                          Preencha todos os {KO_PHASES.find(p => p.code === phase.prevCode)?.total ?? '?'} jogos da {phase.prevLabel} para liberar.
+                          Libera conforme o administrador for definindo os confrontos da {phase.label} — não depende de você ter enviado todos os jogos da {phase.prevLabel}.
                         </div>
                       </>
                     )}

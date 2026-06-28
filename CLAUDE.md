@@ -328,7 +328,7 @@ Single source of truth for maximum points, always live — computed from `config
 
 ### Knockout Phase Locking
 - R32 unlocks only after admin fills all bracket slots (no placeholders)
-- Each subsequent KO phase unlocks only after all games in the previous phase are submitted
+- Each subsequent KO phase unlocks as soon as at least one of its games has both teams resolved (not placeholders) — independent of the user's own submission progress, so missing the deadline for one game never locks a palpite out of later phases. Within an unlocked phase, only games whose own matchup is already resolved are shown; the rest appear progressively as the admin advances the bracket.
 - `isPhaseLocked()` in `PalpitesClient.tsx` enforces these rules
 
 ### Scoring — Official Regulation (Regulamento v1.0)
