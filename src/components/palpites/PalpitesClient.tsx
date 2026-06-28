@@ -1544,13 +1544,22 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiChange, onSubmi
         </div>
       </div>
 
-      {/* Pênaltis — mostrado quando os placares estão definidos e empatados */}
+      {/* Pênaltis — mostrado quando os placares estão definidos e empatados.
+          Usa o mesmo grid 1fr/auto/1fr da linha dos times: assim a coluna
+          central (com os placares) fica exatamente no mesmo eixo horizontal
+          da linha de cima, e os dois "×" ficam alinhados na vertical — o
+          rótulo "Pên." vai na coluna da esquerda, sem afetar essa centralização. */}
       {state.scoreA >= 0 && state.scoreB >= 0 && state.scoreA === state.scoreB && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 6 }}>
-          <span style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,200,80,0.75)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Pên.</span>
-          <ScoreBtn val={state.penaltiA} onDec={() => onPenaltiChange('A', Math.max(0, state.penaltiA - 1))} onInc={() => onPenaltiChange('A', state.penaltiA + 1)} penalti />
-          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 22, lineHeight: 1, fontSize: 11, color: 'rgba(255,200,80,0.3)', fontWeight: 300 }}>×</span>
-          <ScoreBtn val={state.penaltiB} onDec={() => onPenaltiChange('B', Math.max(0, state.penaltiB - 1))} onInc={() => onPenaltiChange('B', state.penaltiB + 1)} penalti />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 6, marginTop: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <span style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,200,80,0.75)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Pên.</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <ScoreBtn val={state.penaltiA} onDec={() => onPenaltiChange('A', Math.max(0, state.penaltiA - 1))} onInc={() => onPenaltiChange('A', state.penaltiA + 1)} penalti />
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 22, lineHeight: 1, fontSize: 11, color: 'rgba(255,200,80,0.3)', fontWeight: 300 }}>×</span>
+            <ScoreBtn val={state.penaltiB} onDec={() => onPenaltiChange('B', Math.max(0, state.penaltiB - 1))} onInc={() => onPenaltiChange('B', state.penaltiB + 1)} penalti />
+          </div>
+          <div />
         </div>
       )}
 
