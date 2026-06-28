@@ -61,10 +61,21 @@ type PontuacaoResumoRow = {
 
 export default async function InstrucoesPage() {
   const supabase = await createClient()
-  const [{ data: configs }, { data: resumo }] = await Promise.all([
+  const [{ data: configs }, { data: resumo }, { data: sysConfig }] = await Promise.all([
     supabase.from('configuracoes_pontuacao').select('*').order('fase'),
     supabase.from('pontuacao_resumo').select('*'),
+    supabase.from('configuracoes_sistema').select('minutos_lock_jogo').eq('id', 1).maybeSingle(),
   ])
+
+  const minutosLock = sysConfig?.minutos_lock_jogo ?? 60
+  // "1 hora antes" / "30 minutos antes" / "1 minuto antes" — texto sempre
+  // coerente com o valor real configurado em Admin > Operações, em vez de
+  // ficar fixo em "1 hora" no código.
+  const prazoEdicaoTexto = minutosLock === 60
+    ? '1 hora antes'
+    : minutosLock % 60 === 0
+      ? `${minutosLock / 60} horas antes`
+      : `${minutosLock} ${minutosLock === 1 ? 'minuto' : 'minutos'} antes`
 
   // Build config map with official regulation defaults as fallback
   const configMap: Record<string, Record<string, number>> = {}
@@ -143,7 +154,7 @@ export default async function InstrucoesPage() {
               { n: 3, title: 'Envie o placar de cada jogo individualmente', desc: <>Chute o placar de cada partida clicando em "Enviar placar". Indique também o <strong style={{ color: 'white' }}>campeão, vice, artilheiro, melhor jogador e melhor goleiro</strong>.</> },
               { n: 4, title: 'Ative pagando R$ 30,00 via PIX', desc: <>Palpites não pagos não valem pra competição. <strong style={{ color: 'white' }}>Após o início da Copa não é mais possível ativar.</strong> Não perca o prazo!</> },
               { n: 5, title: 'Um palpite, toda a Copa', desc: <>Cada palpite pago cobre <strong style={{ color: 'white' }}>todos os 104 jogos</strong> — 72 da fase de grupos e 32 do mata-mata completo. Sem taxas adicionais por fase.</> },
-              { n: 6, title: 'Continue no mata-mata', desc: <>Conforme cada fase avança, você edita seu palpite pra adicionar os próximos jogos. É possível editar até <strong style={{ color: 'white' }}>1 hora antes</strong> de cada partida.</> },
+              { n: 6, title: 'Continue no mata-mata', desc: <>Conforme cada fase avança, você edita seu palpite pra adicionar os próximos jogos. É possível editar até <strong style={{ color: 'white' }}>{prazoEdicaoTexto}</strong> de cada partida.</> },
             ].map(s => (
               <div key={s.n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                 <div style={{ width: 24, height: 24, background: 'linear-gradient(135deg, #4A90D9, #1a5ca8)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: 'white', flexShrink: 0, marginTop: 1 }}>{s.n}</div>
@@ -404,7 +415,7 @@ export default async function InstrucoesPage() {
               },
               {
                 q: 'Posso editar meu placar após enviar?',
-                a: 'Sim. Cada partida pode ser editada até 1 hora antes do início do jogo. Atenção: editar um jogo do mata-mata pode apagar os palpites das fases seguintes.',
+                a: `Sim. Cada partida pode ser editada até ${prazoEdicaoTexto} do início do jogo. Atenção: editar um jogo do mata-mata pode apagar os palpites das fases seguintes.`,
               },
               {
                 q: 'Quantos palpites posso ter?',
