@@ -188,6 +188,24 @@ export const CONFRONTOS_HISTORICOS: Record<string, ConfrontoHistorico> = {
   'Colômbia|Uzbequistão':        { ultimoConfronto: '—', raioX: 'Primeiro confronto oficial', inedito: true },
   // Grupo L
   'Croácia|Inglaterra':          { ultimoConfronto: 'Inglaterra 1 x 0 Croácia (Euro 2020)',  raioX: '11 jogos. Inglaterra: 6V · Croácia: 3V · 2E' },
+
+  // 16 Avos de Final (R32)
+  'África do Sul|Canadá':              { ultimoConfronto: 'África do Sul 2 x 0 Canadá (2007, amistoso)', raioX: '1 jogo. África do Sul venceu' },
+  'Alemanha|Paraguai':                 { ultimoConfronto: 'Alemanha 3 x 3 Paraguai (2013, amistoso)', raioX: '2 jogos. Alemanha: 1V · 1E' },
+  'Holanda|Marrocos':                  { ultimoConfronto: 'Holanda 2 x 1 Marrocos (2017, amistoso)', raioX: '3 jogos. Holanda: 2V · Marrocos: 1V' },
+  'Brasil|Japão':                      { ultimoConfronto: 'Japão 3 x 2 Brasil (2025, amistoso)', raioX: '14 jogos. Brasil: 11V · 2E · Japão: 1V' },
+  'França|Suécia':                     { ultimoConfronto: 'França 4 x 2 Suécia (2020)', raioX: '23 jogos. França: 12V · 5E · Suécia: 6V' },
+  'Costa do Marfim|Noruega':           { ultimoConfronto: '—', raioX: 'Primeiro confronto oficial', inedito: true },
+  'Equador|México':                    { ultimoConfronto: 'México 1 x 1 Equador (2025, amistoso)', raioX: '25 jogos. México: 14V · 7E · Equador: 4V' },
+  'Inglaterra|Rep. Dem. do Congo':     { ultimoConfronto: '—', raioX: 'Primeiro confronto oficial', inedito: true },
+  'Bósnia e Herzegovina|EUA':          { ultimoConfronto: 'EUA 4 x 3 Bósnia e Herzegovina (2013, amistoso)', raioX: '3 jogos. EUA: 2V · 1E' },
+  'Bélgica|Senegal':                   { ultimoConfronto: '—', raioX: 'Primeiro confronto oficial', inedito: true },
+  'Croácia|Portugal':                  { ultimoConfronto: 'Croácia 1 x 1 Portugal (2024)', raioX: '10 jogos. Portugal: 7V · 2E · Croácia: 1V' },
+  'Áustria|Espanha':                   { ultimoConfronto: 'Áustria 1 x 5 Espanha (2009, amistoso)', raioX: '16 jogos. Espanha: 9V · 3E · Áustria: 4V' },
+  'Argélia|Suíça':                     { ultimoConfronto: '—', raioX: 'Primeiro confronto oficial', inedito: true },
+  'Argentina|Cabo Verde':              { ultimoConfronto: '—', raioX: 'Primeiro confronto oficial', inedito: true },
+  'Colômbia|Gana':                     { ultimoConfronto: 'Colômbia 2 x 1 Gana (2006, amistoso)', raioX: '5 jogos. Colômbia leva vantagem no retrospecto' },
+  'Austrália|Egito':                   { ultimoConfronto: 'Egito 3 x 0 Austrália (2010, amistoso)', raioX: '1 jogo. Egito venceu' },
 }
 
 // Retorna o histórico de confronto dado dois nomes de time (ordem não importa)

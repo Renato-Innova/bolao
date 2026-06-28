@@ -100,7 +100,14 @@ export async function POST(req: NextRequest) {
 
   const { fase } = await req.json() as { fase: string }
 
-  if (fase === 'R32') return handleR32(admin)
+  // BLOQUEADO: handleR32 distribui os "melhor 3º colocado" sequencialmente
+  // por ordem de jogo, sem checar a lista de grupos elegíveis de cada vaga —
+  // já causou um jogo dos 16-avos com adversário errado. Reexecutar
+  // recalcularia do zero e reintroduziria o erro. Editar os times manualmente
+  // até a lógica de atribuição ser corrigida com a tabela oficial da FIFA.
+  if (fase === 'R32') {
+    return NextResponse.json({ error: 'Bloqueado: o cálculo do "melhor 3º colocado" dos 16-avos tem um bug conhecido. Edite os times manualmente em vez de usar este botão.' }, { status: 423 })
+  }
   if (['R16', 'QF', 'SF', 'TPL', 'F'].includes(fase)) return handleKoPhase(admin, fase)
   return NextResponse.json({ error: 'Fase inválida.' }, { status: 400 })
 }

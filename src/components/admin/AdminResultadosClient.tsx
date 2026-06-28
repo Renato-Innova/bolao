@@ -101,14 +101,23 @@ function PreencherModal({ onClose, onDone, filledPhases }: {
             {KO_PHASES.map(phase => {
               const isFilled = filledPhases.has(phase.code)
               const isSelected = selectedFase === phase.code
+              // 16-avos: bloqueado. A regra de "melhor 3º colocado" do algoritmo
+              // tinha um bug (não respeitava a lista de grupos elegíveis de cada
+              // vaga) e já causou um jogo com adversário errado — corrigido
+              // manualmente uma vez. Reclicar aqui recalcularia do zero e
+              // reintroduziria o erro. Travado até a lógica ser corrigida.
+              const isLocked = phase.code === 'R32'
               return (
-                <div key={phase.code} onClick={() => setSelectedFase(phase.code)}
-                  style={{ padding: '12px 16px', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, border: `1px solid ${isSelected ? 'rgba(74,144,217,0.6)' : isFilled ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.08)'}`, background: isSelected ? 'rgba(74,144,217,0.12)' : isFilled ? 'rgba(74,222,128,0.05)' : 'rgba(255,255,255,0.03)', transition: 'all 0.15s' }}>
+                <div key={phase.code} onClick={() => { if (!isLocked) setSelectedFase(phase.code) }}
+                  title={isLocked ? 'Bloqueado: o cálculo de "melhor 3º colocado" tem um bug conhecido. Editar os times manualmente em vez disso.' : undefined}
+                  style={{ padding: '12px 16px', borderRadius: 8, cursor: isLocked ? 'not-allowed' : 'pointer', opacity: isLocked ? 0.45 : 1, display: 'flex', alignItems: 'center', gap: 12, border: `1px solid ${isSelected ? 'rgba(74,144,217,0.6)' : isFilled ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.08)'}`, background: isSelected ? 'rgba(74,144,217,0.12)' : isFilled ? 'rgba(74,222,128,0.05)' : 'rgba(255,255,255,0.03)', transition: 'all 0.15s' }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: isSelected ? '#7BB8F0' : isFilled ? '#4ade80' : 'rgba(255,255,255,0.8)' }}>{phase.label}</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{phase.hint}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+                      {isLocked ? '🔒 Bloqueado — bug conhecido no cálculo do melhor 3º colocado. Edite os times manualmente.' : phase.hint}
+                    </div>
                   </div>
-                  {isFilled && <span style={{ fontSize: 16, color: '#4ade80', flexShrink: 0 }}>✓</span>}
+                  {isFilled && !isLocked && <span style={{ fontSize: 16, color: '#4ade80', flexShrink: 0 }}>✓</span>}
                 </div>
               )
             })}
