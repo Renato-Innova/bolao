@@ -1,5 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
-import type { JogoCopa } from '@/types'
+import { unstable_cache } from 'next/cache'
+import { createAdminClient, createClient } from '@/lib/supabase/server'
+import type { ClassificacaoGrupo, JogoCopa } from '@/types'
 
 export async function getJogos(): Promise<JogoCopa[]> {
   const supabase = await createClient()
@@ -58,3 +59,34 @@ export async function getUltimosResultados(limit = 5): Promise<JogoCopa[]> {
     .limit(limit)
   return (data ?? []) as JogoCopa[]
 }
+
+// Dados públicos (sem dependência de sessão/cookies) usados na página /tabela —
+// cacheados via admin client para evitar 2 round-trips ao Supabase em todo
+// page load. Mesmo padrão de getRankingCached() em services/ranking.ts.
+async function getTabelaData(): Promise<{ classificacao: ClassificacaoGrupo[]; todosJogos: JogoCopa[] }> {
+  const supabase = createAdminClient()
+  const [{ data: classificacaoData }, { data: jogosData }] = await Promise.all([
+    supabase
+      .from('classificacao_grupos')
+      .select('*')
+      .order('grupo')
+      .order('pts',  { ascending: false })
+      .order('dg',   { ascending: false })
+      .order('m',    { ascending: false }),
+
+    supabase
+      .from('jogos_copa')
+      .select('*, resultado:resultados(*)')
+      .order('data',    { ascending: true })
+      .order('horario', { ascending: true }),
+  ])
+
+  return {
+    classificacao: (classificacaoData ?? []) as ClassificacaoGrupo[],
+    todosJogos: (jogosData ?? []) as JogoCopa[],
+  }
+}
+
+export const getTabelaDataCached = process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? unstable_cache(getTabelaData, ['tabela'], { revalidate: 20, tags: ['tabela'] })
+  : getTabelaData

@@ -1,6 +1,6 @@
 // v2
 import { createClient } from '@/lib/supabase/server'
-import { getRankingCached } from '@/services/ranking'
+import { getRankingCached, getRankingHistoricoCached } from '@/services/ranking'
 import type { RankingEntry } from '@/types'
 
 import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
@@ -154,17 +154,9 @@ export default async function RankingPage() {
   const todayBRT = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10)
 
   if (activeIds.length > 0) {
-    const { data: historico } = await supabase
-      .from('ranking_historico')
-      .select('palpite_id, data, total_pontos')
-      .in('palpite_id', activeIds)
-      .order('data', { ascending: true })
+    const { historico, historicoCompleto } = await getRankingHistoricoCached(activeIds)
 
     // posição oficial por dia (desempatada por acertos exatos) — tabela aditiva nova
-    const { data: historicoCompleto } = await supabase
-      .from('ranking_historico_completo')
-      .select('palpite_id, data, posicao')
-      .in('palpite_id', activeIds)
     const posicaoPorDiaMap: Record<string, number> = {}
     for (const h of (historicoCompleto ?? []) as { palpite_id: number; data: string; posicao: number }[]) {
       posicaoPorDiaMap[`${h.palpite_id}|${h.data}`] = h.posicao

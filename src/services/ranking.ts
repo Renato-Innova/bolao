@@ -136,3 +136,36 @@ export async function getRanking(): Promise<RankingEntry[]> {
 export const getRankingCached = process.env.SUPABASE_SERVICE_ROLE_KEY
   ? unstable_cache(getRanking, ['ranking'], { revalidate: 20, tags: ['ranking'] })
   : getRanking
+
+// Histórico para o gráfico de evolução do ranking — mesmos dados para todos
+// os usuários, então cacheável do mesmo jeito que getRankingCached(). Evita
+// 2 round-trips extras (ranking_historico + ranking_historico_completo) em
+// toda visita à página /ranking.
+async function getRankingHistorico(activeIds: number[]): Promise<{
+  historico: { palpite_id: number; data: string; total_pontos: number }[]
+  historicoCompleto: { palpite_id: number; data: string; posicao: number }[]
+}> {
+  const hasAdminKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY
+  const supabase = hasAdminKey ? createAdminClient() : await createClient()
+
+  const [{ data: historico }, { data: historicoCompleto }] = await Promise.all([
+    supabase
+      .from('ranking_historico')
+      .select('palpite_id, data, total_pontos')
+      .in('palpite_id', activeIds)
+      .order('data', { ascending: true }),
+    supabase
+      .from('ranking_historico_completo')
+      .select('palpite_id, data, posicao')
+      .in('palpite_id', activeIds),
+  ])
+
+  return {
+    historico: historico ?? [],
+    historicoCompleto: historicoCompleto ?? [],
+  }
+}
+
+export const getRankingHistoricoCached = process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? unstable_cache(getRankingHistorico, ['ranking-historico'], { revalidate: 20, tags: ['ranking'] })
+  : getRankingHistorico

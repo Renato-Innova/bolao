@@ -1,7 +1,7 @@
 // v2
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getRankingCached } from '@/services/ranking'
+import { getDashboardSharedDataCached } from '@/services/dashboard'
 import { FlagImg } from '@/components/ui/FlagImg'
 import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
 import { PalpiteCarousel } from '@/components/dashboard/PalpiteCarousel'
@@ -32,64 +32,12 @@ export default async function DashboardPage() {
 
   const hoje  = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-  const [
-    { count: totalAtivos },
-    { count: totalUsuarios },
-    { count: totalJogos },
-    { count: jogosRealizados },
-    { data: proximosJogos },
-    { data: ultimosResultados },
-    ranking,
-    { data: grupoJogos },
-    { data: boletins },
-    { count: totalBoletins },
-    { data: artilheiros },
-    { data: pontuacaoResumo },
-    { data: jogosPorFase },
-    { data: maiorClassifRow },
-    { data: jogosKOTodos },
-  ] = await Promise.all([
-    supabase.from('palpites').select('*', { count: 'exact', head: true }).eq('status', 'ativo'),
-    supabase.from('users').select('*', { count: 'exact', head: true }),
-    supabase.from('jogos_copa').select('*', { count: 'exact', head: true }),
-    supabase.from('resultados').select('*', { count: 'exact', head: true }),
-    supabase.from('jogos_copa').select('*, resultado:resultados(*)').gte('data', hoje).order('data').order('horario').limit(8),
-    // Busca os jogos com resultado mais recentes (sem fixar em "ontem") — o
-    // dia exibido é determinado depois, como o mais recente que de fato teve
-    // jogo (pode não ter sido ontem, ex: pausa entre rodadas).
-    supabase.from('jogos_copa').select('*, resultado:resultados(*)').not('resultado', 'is', null).order('data', { ascending: false }).order('horario', { ascending: false }).limit(20),
-    getRankingCached(),
-    supabase.from('classificacao_grupos').select('*').order('grupo').order('pts', { ascending: false }).order('dg', { ascending: false }).order('m', { ascending: false }),
-    supabase.from('boletim_copa').select('*').order('gerado_em', { ascending: false }).limit(10),
-    supabase.from('boletim_copa').select('*', { count: 'exact', head: true }),
-    supabase.from('artilheiros_copa').select('*').order('gols', { ascending: false }).order('assistencias', { ascending: false }).limit(10),
-    supabase.from('pontuacao_resumo').select('fase, tipo, pontos_unitario, pontos_max'),
-    supabase.from('jogos_copa').select('fase, resultado:resultados(id)'),
-    // Sinaliza se o bônus de classificação de grupos já foi calculado pelo
-    // admin (operação em lote — se algum palpite tem valor > 0, foi rodada
-    // para todos). Usado para incluir esse bônus em "pontos em disputa".
-    supabase.from('palpites').select('pontos_classificacao').eq('status', 'ativo')
-      .order('pontos_classificacao', { ascending: false }).limit(1),
-    // Jogos do mata-mata (todas as fases exceto GS) — usado pelo card "Mata-Mata"
-    // do R2C2 depois que a fase de grupos termina.
-    supabase.from('jogos_copa')
-      .select('id, numero_jogo, fase, data, horario, time_a, time_b, codigo_pais_a, codigo_pais_b, resultado:resultados(placar_real_a, placar_real_b, placar_penalti_a, placar_penalti_b)')
-      .neq('fase', 'GS')
-      .order('numero_jogo'),
-  ])
-
-  // Contagem de palpites para próximos jogos (vitória A / empate / vitória B)
-  const proximosIds = (proximosJogos ?? []).map((j: JogoCopa) => j.id)
-  type PJRow = { jogo_id: number; placar_palpite_a: number; placar_palpite_b: number }
-  let palpitesProximos: PJRow[] = []
-  if (proximosIds.length > 0) {
-    const { data: pjData } = await supabase
-      .from('palpites_jogos')
-      .select('jogo_id, placar_palpite_a, placar_palpite_b')
-      .in('jogo_id', proximosIds)
-      .not('submitted_at', 'is', null)
-    palpitesProximos = (pjData ?? []) as PJRow[]
-  }
+  const {
+    totalAtivos, totalUsuarios, totalJogos, jogosRealizados,
+    proximosJogos, ultimosResultados, ranking, grupoJogos, boletins,
+    totalBoletins, artilheiros, pontuacaoResumo, jogosPorFase,
+    maiorClassifRow, jogosKOTodos, palpitesProximos,
+  } = await getDashboardSharedDataCached()
 
   const pctMap: Record<number, { winA: number; draw: number; winB: number; total: number }> = {}
   for (const j of (proximosJogos ?? [])) {
