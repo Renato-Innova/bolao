@@ -1603,7 +1603,7 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiWinnerChange, o
       </div>
 
       <div style={{ textAlign: 'center', marginTop: 2 }}>
-        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', letterSpacing: 0.3 }}>Resultado final da partida (90 ou 120min)</span>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: 0.3 }}>Resultado final da partida (90 ou 120min)</span>
       </div>
 
       {/* Pênaltis — escolha de vencedor, não placar. Pontuação já só considera
@@ -1667,13 +1667,13 @@ function KnockoutGameCard({ jogo, state, onScoreChange, onPenaltiWinnerChange, o
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {confronto && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Histórico:</span>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Histórico:</span>
               {confronto.inedito
-                ? <span style={{ fontSize: 9, color: 'rgba(255,200,80,0.6)', fontWeight: 600 }}>Primeiro confronto oficial entre as seleções</span>
+                ? <span style={{ fontSize: 12, color: 'rgba(255,200,80,0.6)', fontWeight: 600 }}>Primeiro confronto oficial entre as seleções</span>
                 : <>
-                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.65)' }}>{confronto.ultimoConfronto}</span>
-                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>·</span>
-                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>{confronto.raioX}</span>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>{confronto.ultimoConfronto}</span>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>·</span>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{confronto.raioX}</span>
                   </>
               }
             </div>
