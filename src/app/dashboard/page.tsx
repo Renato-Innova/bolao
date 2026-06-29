@@ -47,6 +47,7 @@ export default async function DashboardPage() {
     { data: pontuacaoResumo },
     { data: jogosPorFase },
     { data: maiorClassifRow },
+    { data: jogosKOTodos },
   ] = await Promise.all([
     supabase.from('palpites').select('*', { count: 'exact', head: true }).eq('status', 'ativo'),
     supabase.from('users').select('*', { count: 'exact', head: true }),
@@ -69,6 +70,12 @@ export default async function DashboardPage() {
     // para todos). Usado para incluir esse bônus em "pontos em disputa".
     supabase.from('palpites').select('pontos_classificacao').eq('status', 'ativo')
       .order('pontos_classificacao', { ascending: false }).limit(1),
+    // Jogos do mata-mata (todas as fases exceto GS) — usado pelo card "Mata-Mata"
+    // do R2C2 depois que a fase de grupos termina.
+    supabase.from('jogos_copa')
+      .select('id, numero_jogo, fase, data, horario, time_a, time_b, codigo_pais_a, codigo_pais_b, resultado:resultados(placar_real_a, placar_real_b, placar_penalti_a, placar_penalti_b)')
+      .neq('fase', 'GS')
+      .order('numero_jogo'),
   ])
 
   // Contagem de palpites para próximos jogos (vitória A / empate / vitória B)
@@ -215,6 +222,84 @@ export default async function DashboardPage() {
   const displayGroups = nextGSGroups.length > 0
     ? nextGSGroups
     : Object.keys(byGrupo).slice(0, 3)
+
+  /* Mata-Mata: jogos com ambos os times já definidos (não placeholder de chave) */
+  function isPlaceholderKO(name: string | null | undefined): boolean {
+    if (!name) return true
+    return /^\d+º Grupo [A-L]$/.test(name) || /^Melhor 3º/.test(name) || name.startsWith('Vencedor') || name.startsWith('Perdedor')
+  }
+  type ResultadoKO = { placar_real_a: number; placar_real_b: number; placar_penalti_a: number | null; placar_penalti_b: number | null }
+  type JogoKO = { id: number; numero_jogo: number | null; fase: string; data: string; horario: string; time_a: string | null; time_b: string | null; codigo_pais_a: string | null; codigo_pais_b: string | null; resultado: ResultadoKO | null }
+  const jogosKO = (jogosKOTodos ?? []) as unknown as JogoKO[]
+  const resolvedKO = jogosKO.filter(j => !isPlaceholderKO(j.time_a) && !isPlaceholderKO(j.time_b))
+  const jogosHojeKO = resolvedKO.filter(j => j.data === hoje)
+  const displayKO = (jogosHojeKO.length > 0
+    ? jogosHojeKO
+    : resolvedKO.filter(j => j.data >= hoje).sort((a, b) => (a.data + a.horario).localeCompare(b.data + b.horario))
+  ).slice(0, 4)
+
+  function refNumero(s: string | null | undefined): number | null {
+    const m = (s ?? '').match(/^Vencedor\s+.*?(\d+)$/)
+    return m ? parseInt(m[1]) : null
+  }
+  function formatPlaceholderKO(s: string): string {
+    const m = s.match(/^(Vencedor|Perdedor)\s+.*?(\d+)$/)
+    if (!m) return s
+    return `${m[1] === 'Vencedor' ? 'Venc.' : 'Perd.'} J${m[2]}`
+  }
+  // Vencedor de um jogo já decidido (90+ET, ou pênaltis em caso de empate) —
+  // usado para achar a vaga na próxima fase quando o admin já preencheu o
+  // nome real do time ali (em vez do placeholder "Vencedor Jogo X").
+  function getVencedorKO(jogo: JogoKO): { nome: string; codigo: string | null } | null {
+    const res = jogo.resultado
+    if (!res || !jogo.time_a || !jogo.time_b) return null
+    if (res.placar_real_a === res.placar_real_b) {
+      if (res.placar_penalti_a == null || res.placar_penalti_b == null) return null
+      return res.placar_penalti_a > res.placar_penalti_b
+        ? { nome: jogo.time_a, codigo: jogo.codigo_pais_a }
+        : { nome: jogo.time_b, codigo: jogo.codigo_pais_b }
+    }
+    return res.placar_real_a > res.placar_real_b
+      ? { nome: jogo.time_a, codigo: jogo.codigo_pais_a }
+      : { nome: jogo.time_b, codigo: jogo.codigo_pais_b }
+  }
+  function getProximoConfronto(jogo: JogoKO) {
+    if (!jogo.numero_jogo) return null
+    const vencedor = getVencedorKO(jogo)
+    const nextGame = jogosKO.find(g =>
+      g.id !== jogo.id && (
+        refNumero(g.time_a) === jogo.numero_jogo ||
+        refNumero(g.time_b) === jogo.numero_jogo ||
+        (!!vencedor && (g.time_a === vencedor.nome || g.time_b === vencedor.nome))
+      )
+    )
+    if (!nextGame) return null
+    const isA = refNumero(nextGame.time_a) === jogo.numero_jogo || (!!vencedor && nextGame.time_a === vencedor.nome)
+    const oposto      = isA ? nextGame.time_b : nextGame.time_a
+    const opostoCodigo = isA ? nextGame.codigo_pais_b : nextGame.codigo_pais_a
+    if (!oposto) return null
+
+    if (!isPlaceholderKO(oposto)) {
+      return { resolved: true, times: [{ nome: oposto, codigo: opostoCodigo }] }
+    }
+    // Ainda não decidido — em vez de mostrar só "Venc. JX", busca o jogo
+    // referenciado e mostra os dois times que vão disputar aquela vaga.
+    const refNum  = refNumero(oposto)
+    const refGame = refNum ? jogosKO.find(g => g.numero_jogo === refNum) : null
+    if (refGame) {
+      const refVencedor = getVencedorKO(refGame)
+      if (refVencedor) {
+        return { resolved: false, times: [{ nome: refVencedor.nome, codigo: refVencedor.codigo }] }
+      }
+      if (refGame.time_a && refGame.time_b) {
+        return { resolved: false, times: [
+          { nome: refGame.time_a, codigo: refGame.codigo_pais_a },
+          { nome: refGame.time_b, codigo: refGame.codigo_pais_b },
+        ] }
+      }
+    }
+    return { resolved: false, times: [{ nome: formatPlaceholderKO(oposto), codigo: null }] }
+  }
 
   function formatDate(d: string) {
     const parts = d.split('-')
@@ -467,52 +552,115 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* R2C2 — Tabela Oficial */}
+        {/* R2C2 — Tabela Oficial (fase de grupos) / Mata-Mata (após a fase de grupos) */}
         <div className="dash-card-tabela" style={{ background: '#0D1E3D', border: '1px solid rgba(74,144,217,0.15)', borderRadius: 10, padding: '16px 18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8 }}>Tabela oficial</div>
-              {nextGSGroups.length > 0 && (
-                <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.60)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
-                  Grupos com jogos hoje
+          {faseAtualRaw === 'GS' ? (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8 }}>Tabela oficial</div>
+                  {nextGSGroups.length > 0 && (
+                    <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.60)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
+                      Grupos com jogos hoje
+                    </div>
+                  )}
+                </div>
+                <Link href="/tabela" style={{ fontSize: 10, color: '#4A90D9', fontWeight: 500, textDecoration: 'none', letterSpacing: 0 }}>ver todos →</Link>
+              </div>
+
+              {displayGroups.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 12, padding: '16px 0' }}>Grupos em breve</p>
+              ) : displayGroups.map((grupo, gi) => (
+                <div key={grupo} style={{ marginBottom: gi < displayGroups.length - 1 ? 10 : 0 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#4A90D9', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>
+                    Grupo {grupo}
+                  </div>
+                  <div className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '0 4px 3px', fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.50)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <span>#</span><span style={{ textAlign: 'left' }}>Seleção</span><span>J</span><span>V</span><span>SG</span><span className="rank-acertos">GP</span><span>Pts</span>
+                  </div>
+                  {(byGrupo[grupo] ?? []).length === 0 ? (
+                    <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 11, padding: '6px 0' }}>Jogos em breve</p>
+                  ) : (byGrupo[grupo] ?? []).map((row: ClassificacaoGrupo, idx: number) => {
+                    const q     = idx < 2
+                    const sgStr = row.dg > 0 ? `+${row.dg}` : String(row.dg)
+                    return (
+                      <div key={row.pais_nome} className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '4px 4px', alignItems: 'center', fontSize: 11, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.85)', background: q ? 'rgba(74,144,217,0.07)' : 'transparent', borderRadius: q ? 4 : 0 }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: q ? '#4A90D9' : 'rgba(255,255,255,0.25)' }}>{idx + 1}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 5, textAlign: 'left' }}>
+                          <FlagImg codigo={row.pais_codigo} size={18} />
+                          <span style={{ fontSize: 10, fontWeight: 600, color: 'white' }}>{row.pais_nome}</span>
+                        </span>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.j}</span>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.c}</span>
+                        <span style={{ fontSize: 10, color: row.dg < 0 ? 'rgba(255,100,100,0.75)' : 'rgba(255,255,255,0.6)' }}>{sgStr}</span>
+                        <span className="rank-acertos" style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.m}</span>
+                        <span style={{ fontWeight: 700, color: '#4A90D9', fontSize: 11 }}>{row.pts}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
+            </>
+          ) : (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: 0.8 }}>Mata-Mata</div>
+                  <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.60)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
+                    {jogosHojeKO.length > 0 ? 'Confrontos de hoje' : 'Próximos confrontos'}
+                  </div>
+                </div>
+                <Link href="/palpites" style={{ fontSize: 10, color: '#4A90D9', fontWeight: 500, textDecoration: 'none', letterSpacing: 0 }}>ver chave →</Link>
+              </div>
+
+              {displayKO.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 12, padding: '16px 0' }}>Chave em definição</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {displayKO.map((jogo) => {
+                    const proximo = getProximoConfronto(jogo)
+                    return (
+                      <div key={jogo.id}>
+                        <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>
+                          {formatDate(jogo.data)} · {formatTime(jogo.horario)}h{jogo.numero_jogo ? ` · Jogo ${jogo.numero_jogo}` : ''}
+                        </div>
+                        <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
+                          <div style={{ flex: 1, background: 'rgba(74,144,217,0.08)', border: '1px solid rgba(74,144,217,0.3)', borderRadius: 6, padding: '6px 8px', minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'white', fontWeight: 600, fontSize: 11, overflow: 'hidden' }}>
+                              {jogo.codigo_pais_a && <FlagImg codigo={jogo.codigo_pais_a} size={14} />}
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{jogo.time_a}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'rgba(255,255,255,0.55)', fontSize: 11, marginTop: 3, overflow: 'hidden' }}>
+                              {jogo.codigo_pais_b && <FlagImg codigo={jogo.codigo_pais_b} size={14} />}
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{jogo.time_b}</span>
+                            </div>
+                          </div>
+                          {proximo && (
+                            <>
+                              <span style={{ color: 'rgba(74,144,217,0.5)', fontSize: 13, flexShrink: 0 }}>→</span>
+                              <div style={{
+                                flex: 1, minWidth: 0, borderRadius: 6, padding: '6px 8px', fontSize: 9, color: 'rgba(255,255,255,0.45)',
+                                background: proximo.resolved ? 'rgba(74,144,217,0.08)' : 'rgba(255,255,255,0.03)',
+                                border: proximo.resolved ? '1px solid rgba(74,144,217,0.3)' : '1px dashed rgba(255,255,255,0.15)',
+                              }}>
+                                <div>Vencedor enfrenta:</div>
+                                {proximo.times.map((t, ti) => (
+                                  <div key={ti} style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3, color: 'rgba(255,255,255,0.65)', overflow: 'hidden' }}>
+                                    {t.codigo && <FlagImg codigo={t.codigo} size={14} />}
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.nome}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               )}
-            </div>
-            <Link href="/tabela" style={{ fontSize: 10, color: '#4A90D9', fontWeight: 500, textDecoration: 'none', letterSpacing: 0 }}>ver todos →</Link>
-          </div>
-
-          {displayGroups.length === 0 ? (
-            <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 12, padding: '16px 0' }}>Grupos em breve</p>
-          ) : displayGroups.map((grupo, gi) => (
-            <div key={grupo} style={{ marginBottom: gi < displayGroups.length - 1 ? 10 : 0 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#4A90D9', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>
-                Grupo {grupo}
-              </div>
-              <div className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '0 4px 3px', fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.50)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                <span>#</span><span style={{ textAlign: 'left' }}>Seleção</span><span>J</span><span>V</span><span>SG</span><span className="rank-acertos">GP</span><span>Pts</span>
-              </div>
-              {(byGrupo[grupo] ?? []).length === 0 ? (
-                <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.50)', fontSize: 11, padding: '6px 0' }}>Jogos em breve</p>
-              ) : (byGrupo[grupo] ?? []).map((row: ClassificacaoGrupo, idx: number) => {
-                const q     = idx < 2
-                const sgStr = row.dg > 0 ? `+${row.dg}` : String(row.dg)
-                return (
-                  <div key={row.pais_nome} className="dash-table-cols" style={{ display: 'grid', gridTemplateColumns: '16px 1fr 22px 22px 22px 22px 28px', gap: 2, padding: '4px 4px', alignItems: 'center', fontSize: 11, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.85)', background: q ? 'rgba(74,144,217,0.07)' : 'transparent', borderRadius: q ? 4 : 0 }}>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: q ? '#4A90D9' : 'rgba(255,255,255,0.25)' }}>{idx + 1}</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, textAlign: 'left' }}>
-                      <FlagImg codigo={row.pais_codigo} size={18} />
-                      <span style={{ fontSize: 10, fontWeight: 600, color: 'white' }}>{row.pais_nome}</span>
-                    </span>
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.j}</span>
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.c}</span>
-                    <span style={{ fontSize: 10, color: row.dg < 0 ? 'rgba(255,100,100,0.75)' : 'rgba(255,255,255,0.6)' }}>{sgStr}</span>
-                    <span className="rank-acertos" style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{row.m}</span>
-                    <span style={{ fontWeight: 700, color: '#4A90D9', fontSize: 11 }}>{row.pts}</span>
-                  </div>
-                )
-              })}
-            </div>
-          ))}
+            </>
+          )}
         </div>
 
         {/* R3C1+C2 — Boletim da Copa 2026 */}
