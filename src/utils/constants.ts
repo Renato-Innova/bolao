@@ -206,6 +206,8 @@ export const CONFRONTOS_HISTORICOS: Record<string, ConfrontoHistorico> = {
   'Argentina|Cabo Verde':              { ultimoConfronto: '—', raioX: 'Primeiro confronto oficial', inedito: true },
   'Colômbia|Gana':                     { ultimoConfronto: 'Colômbia 2 x 1 Gana (2006, amistoso)', raioX: '5 jogos. Colômbia leva vantagem no retrospecto' },
   'Austrália|Egito':                   { ultimoConfronto: 'Egito 3 x 0 Austrália (2010, amistoso)', raioX: '1 jogo. Egito venceu' },
+  // Oitavas de Final
+  'Canadá|Marrocos':                   { ultimoConfronto: 'Marrocos 2 x 1 Canadá (Copa 2022)', raioX: '4 jogos. Marrocos: 3V · 1E · Canadá: 0V' },
 }
 
 // Retorna o histórico de confronto dado dois nomes de time (ordem não importa)
