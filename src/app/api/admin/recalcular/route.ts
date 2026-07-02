@@ -48,9 +48,24 @@ export async function POST() {
     configsByFase[c.fase].push({ tipo_acerto: c.tipo_acerto, pontos: c.pontos })
   }
 
-  let updatedCount = 0
+  // 3 — Fetch ALL submitted predictions for ALL games-with-result in a single
+  // query (avoids N+1: antes fazia uma query por jogo, agora é uma só, com
+  // os resultados agrupados em memória).
+  const jogoIds = jogos.map(j => j.id)
+  const { data: todosPalpitesJogos } = await admin
+    .from('palpites_jogos')
+    .select('id, jogo_id, placar_palpite_a, placar_palpite_b, placar_penalti_a, placar_penalti_b, submitted_at')
+    .in('jogo_id', jogoIds)
 
-  // 3 — For each game with a result, recalculate all submitted predictions
+  const palpitesJogosPorJogo: Record<number, typeof todosPalpitesJogos> = {}
+  for (const pj of todosPalpitesJogos ?? []) {
+    if (!palpitesJogosPorJogo[pj.jogo_id]) palpitesJogosPorJogo[pj.jogo_id] = []
+    palpitesJogosPorJogo[pj.jogo_id]!.push(pj)
+  }
+
+  // 4 — For each game with a result, recalculate all submitted predictions
+  const updates: Array<{ id: number; pontos: number }> = []
+
   for (const jogo of jogos) {
     const resultado = Array.isArray(jogo.resultado) ? jogo.resultado[0] : jogo.resultado
     if (!resultado) continue
@@ -58,14 +73,7 @@ export async function POST() {
     const isKO = jogo.fase !== 'GS'
     const configs = configsByFase[jogo.fase] ?? []
 
-    const { data: palpitesJogos } = await admin
-      .from('palpites_jogos')
-      .select('id, placar_palpite_a, placar_palpite_b, placar_penalti_a, placar_penalti_b, submitted_at')
-      .eq('jogo_id', jogo.id)
-
-    const updates: Array<{ id: number; pontos: number }> = []
-
-    for (const pj of palpitesJogos ?? []) {
+    for (const pj of palpitesJogosPorJogo[jogo.id] ?? []) {
       if (!pj.submitted_at || pj.placar_palpite_a == null || pj.placar_palpite_b == null) continue
 
       const pontos = calcularPontos(
@@ -87,16 +95,22 @@ export async function POST() {
 
       updates.push({ id: pj.id, pontos })
     }
+  }
 
-    if (updates.length > 0) {
-      const { error: upsertErr } = await admin
-        .from('palpites_jogos')
-        .upsert(updates, { onConflict: 'id' })
-      if (upsertErr) {
-        return NextResponse.json({ error: `Erro ao atualizar jogo ${jogo.id}: ${upsertErr.message}` }, { status: 500 })
-      }
-      updatedCount += updates.length
+  // 5 — Batched upserts (chunks de 500) em vez de um upsert por jogo — reduz
+  // drasticamente os round-trips (antes: 1 por jogo, ~50+; agora: 1 a cada
+  // 500 linhas) sem arriscar payload gigante numa chamada só.
+  let updatedCount = 0
+  const CHUNK_SIZE = 500
+  for (let i = 0; i < updates.length; i += CHUNK_SIZE) {
+    const chunk = updates.slice(i, i + CHUNK_SIZE)
+    const { error: upsertErr } = await admin
+      .from('palpites_jogos')
+      .upsert(chunk, { onConflict: 'id' })
+    if (upsertErr) {
+      return NextResponse.json({ error: `Erro ao atualizar pontos: ${upsertErr.message}` }, { status: 500 })
     }
+    updatedCount += chunk.length
   }
 
   revalidateTag('ranking', 'max')
