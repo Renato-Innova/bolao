@@ -1,9 +1,9 @@
 import { getTabelaDataCached } from '@/services/jogos'
 import { TabelaClient } from '@/components/tabela/TabelaClient'
 
-// TTL de 60min é rede de segurança — mutação de admin chama revalidatePath('/tabela')
+// TTL de 24h é rede de segurança — mutação de admin chama revalidatePath('/tabela')
 // e revalidateTag('tabela'), que atualizam a página na hora.
-export const revalidate = 3600
+export const revalidate = 86400
 
 export default async function TabelaPage() {
   const { classificacao, todosJogos } = await getTabelaDataCached()

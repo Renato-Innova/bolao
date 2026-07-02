@@ -87,8 +87,12 @@ async function getTabelaData(): Promise<{ classificacao: ClassificacaoGrupo[]; t
   }
 }
 
-// TTL de 60min é rede de segurança — rotas de admin que mudam jogos/resultados
-// chamam revalidateTag('tabela') e a atualização é instantânea.
+// TTL de 24h é rede de segurança — rotas de admin que mudam jogos/resultados
+// chamam revalidateTag('tabela') e a atualização é instantânea. classificacao_grupos
+// é mantida em sincronia por um trigger no Postgres (fn_update_classificacao_grupos,
+// disparado por INSERT/UPDATE/DELETE em resultados) — sempre que o admin salva
+// um resultado via /api/admin/resultado, essa tabela já reflete a mudança
+// antes mesmo do revalidateTag('tabela') rodar.
 export const getTabelaDataCached = process.env.SUPABASE_SERVICE_ROLE_KEY
-  ? unstable_cache(getTabelaData, ['tabela'], { revalidate: 3600, tags: ['tabela'] })
+  ? unstable_cache(getTabelaData, ['tabela'], { revalidate: 86400, tags: ['tabela'] })
   : getTabelaData

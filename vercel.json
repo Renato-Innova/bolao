@@ -8,6 +8,10 @@
     {
       "path": "/api/artilheiros/atualizar",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/revalidate-ranking",
+      "schedule": "0 3 * * *"
     }
   ]
 }
