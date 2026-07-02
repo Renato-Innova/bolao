@@ -133,13 +133,13 @@ export async function getRanking(): Promise<RankingEntry[]> {
 // envolver código que não lê cookies — por isso só fica ativo quando a
 // service-role key está configurada (caminho que usa createAdminClient,
 // sem depender da sessão do usuário). Sem a key, cai no cálculo ao vivo.
-// TTL de 5min é só uma rede de segurança — a atualização de verdade acontece
+// TTL de 60min é só uma rede de segurança — a atualização de verdade acontece
 // na hora via revalidateTag('ranking'), chamado por toda rota de admin que
 // altera pontos/resultados. Um TTL curto não ajuda a atualizar mais rápido
 // (isso já é instantâneo via tag), só reduz o reaproveitamento de cache
 // entre visitantes — daí o valor mais alto aqui.
 export const getRankingCached = process.env.SUPABASE_SERVICE_ROLE_KEY
-  ? unstable_cache(getRanking, ['ranking'], { revalidate: 300, tags: ['ranking'] })
+  ? unstable_cache(getRanking, ['ranking'], { revalidate: 3600, tags: ['ranking'] })
   : getRanking
 
 // Histórico para o gráfico de evolução do ranking — mesmos dados para todos
@@ -172,5 +172,5 @@ async function getRankingHistorico(activeIds: number[]): Promise<{
 }
 
 export const getRankingHistoricoCached = process.env.SUPABASE_SERVICE_ROLE_KEY
-  ? unstable_cache(getRankingHistorico, ['ranking-historico'], { revalidate: 300, tags: ['ranking'] })
+  ? unstable_cache(getRankingHistorico, ['ranking-historico'], { revalidate: 3600, tags: ['ranking'] })
   : getRankingHistorico
