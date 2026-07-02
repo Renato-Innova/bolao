@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createSessionClient } from '@/lib/supabase/server'
@@ -903,6 +904,8 @@ ${conteudoOriginal}`
     console.error('Erro ao salvar boletim:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  revalidateTag('dashboard', 'max')
 
   const reescrito = conteudoFinal !== conteudoOriginal
   return NextResponse.json({ ok: true, titulo, auditoria, reescrito, custoUsd, gerado_em: new Date().toISOString() })

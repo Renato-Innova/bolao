@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidateTag } from 'next/cache'
+import { revalidateTag, revalidatePath } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { calcularPontos } from '@/utils/scoring'
 import { atualizarArtilheiros } from '@/app/api/artilheiros/atualizar/route'
@@ -178,6 +178,9 @@ export async function POST(req: NextRequest) {
   })
 
   revalidateTag('ranking', 'max')
+  revalidateTag('dashboard', 'max')
+  revalidateTag('tabela', 'max')
+  revalidatePath('/tabela')
 
   return NextResponse.json({ ok: true, updatedCount: updated })
 }

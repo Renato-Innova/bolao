@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { revalidateTag } from 'next/cache'
+import { revalidateTag, revalidatePath } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { calcularBonusClassificacao } from '@/utils/classificacao'
 
@@ -130,6 +130,9 @@ export async function POST() {
   }
 
   revalidateTag('ranking', 'max')
+  revalidateTag('dashboard', 'max')
+  revalidateTag('tabela', 'max')
+  revalidatePath('/tabela')
 
   return NextResponse.json({
     ok: true,

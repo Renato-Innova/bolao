@@ -100,6 +100,9 @@ async function getDashboardSharedData(): Promise<DashboardSharedData> {
   }
 }
 
+// TTL de 5min é rede de segurança — toda rota de admin que muda dados usados
+// aqui (resultado, recalcular, classificação, especiais, chave, boletim,
+// artilheiros) chama revalidateTag('dashboard') e a atualização é instantânea.
 export const getDashboardSharedDataCached = process.env.SUPABASE_SERVICE_ROLE_KEY
-  ? unstable_cache(getDashboardSharedData, ['dashboard-shared'], { revalidate: 20, tags: ['dashboard', 'ranking'] })
+  ? unstable_cache(getDashboardSharedData, ['dashboard-shared'], { revalidate: 300, tags: ['dashboard', 'ranking'] })
   : getDashboardSharedData

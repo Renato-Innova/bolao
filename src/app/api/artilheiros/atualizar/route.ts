@@ -1,5 +1,6 @@
 // v2
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/server'
 import { getFlagUrl, getCodigoPais } from '@/utils/helpers'
 
@@ -96,6 +97,8 @@ export async function atualizarArtilheiros(): Promise<
   if (error) {
     return { ok: false, error: error.message, status: 500 }
   }
+
+  revalidateTag('dashboard', 'max')
 
   return { ok: true, count: rows.length, atualizado_em: new Date().toISOString() }
 }

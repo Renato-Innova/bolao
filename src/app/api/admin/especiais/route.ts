@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
   }
 
   revalidateTag('ranking', 'max')
+  revalidateTag('dashboard', 'max')
 
   return NextResponse.json({ ok: true, updatedCount })
 }

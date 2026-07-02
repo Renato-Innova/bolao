@@ -34,6 +34,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   revalidateTag('ranking', 'max')
+  revalidateTag('dashboard', 'max')
 
   return NextResponse.json({ ok: true, palpite: data })
 }

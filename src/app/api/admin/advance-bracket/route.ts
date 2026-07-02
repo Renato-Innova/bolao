@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag, revalidatePath } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -203,6 +204,10 @@ async function handleR32(supabase: SupabaseClient) {
     })
   }
 
+  revalidateTag('dashboard', 'max')
+  revalidateTag('tabela', 'max')
+  revalidatePath('/tabela')
+
   return NextResponse.json({ updated: results.filter(r => r.changed).length, games: results })
 }
 
@@ -316,6 +321,10 @@ async function handleKoPhase(supabase: SupabaseClient, fase: string) {
       changed,
     })
   }
+
+  revalidateTag('dashboard', 'max')
+  revalidateTag('tabela', 'max')
+  revalidatePath('/tabela')
 
   return NextResponse.json({ updated: results.filter(r => r.changed).length, games: results })
 }

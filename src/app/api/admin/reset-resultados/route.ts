@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { revalidateTag, revalidatePath } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 // POST /api/admin/reset-resultados
@@ -108,6 +109,11 @@ export async function POST() {
       .eq('id', jogo.id)
     if (eu) return NextResponse.json({ error: `Erro ao restaurar jogo ${jogo.numero_jogo}: ${eu.message}` }, { status: 500 })
   }
+
+  revalidateTag('ranking', 'max')
+  revalidateTag('dashboard', 'max')
+  revalidateTag('tabela', 'max')
+  revalidatePath('/tabela')
 
   return NextResponse.json({ ok: true })
 }
