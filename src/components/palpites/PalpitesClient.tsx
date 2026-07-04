@@ -730,7 +730,8 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
     const isInativo = p.status === 'inativo'
     const isMenuOpen = cardMenuOpen === p.id
     const isConfirming = confirmDelete === p.id
-    const pts      = p.palpites_jogos?.reduce((s, pj) => s + (pj.pontos ?? 0), 0) ?? 0
+    const pts      = (p.palpites_jogos?.reduce((s, pj) => s + (pj.pontos ?? 0), 0) ?? 0)
+      + (p.pontos_especiais ?? 0) + (p.pontos_classificacao ?? 0)
     const varInfo  = variacaoMap[p.id]
     const preenchi = p.palpites_jogos?.filter(pj => pj.submitted_at).length ?? 0
     const pct = totalJogos > 0 ? Math.round((preenchi / totalJogos) * 100) : 0
