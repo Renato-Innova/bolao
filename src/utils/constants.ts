@@ -214,6 +214,7 @@ export const CONFRONTOS_HISTORICOS: Record<string, ConfrontoHistorico> = {
   'Bélgica|EUA':                       { ultimoConfronto: 'Bélgica 5 x 2 EUA (2026, amistoso)', raioX: '7 jogos. Bélgica: 6V · EUA: 1V' },
   'Espanha|Portugal':                  { ultimoConfronto: 'Portugal 2 x 2 Espanha (Nations League 2025, Portugal venceu nos pênaltis)', raioX: '41 jogos. Espanha: 17V · 18E · Portugal: 6V' },
   'Argentina|Egito':                   { ultimoConfronto: 'Argentina 2 x 0 Egito (2008, amistoso)', raioX: 'Único confronto oficial. Argentina venceu' },
+  'Colômbia|Suíça':                    { ultimoConfronto: 'Colômbia 2 x 0 Suíça (Copa 1994)', raioX: 'Único confronto oficial. Colômbia venceu' },
 }
 
 // Retorna o histórico de confronto dado dois nomes de time (ordem não importa)
