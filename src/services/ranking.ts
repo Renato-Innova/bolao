@@ -149,7 +149,7 @@ export const getRankingCached = process.env.SUPABASE_SERVICE_ROLE_KEY
 // toda visita à página /ranking.
 async function getRankingHistorico(activeIds: number[]): Promise<{
   historico: { palpite_id: number; data: string; total_pontos: number }[]
-  historicoCompleto: { palpite_id: number; data: string; posicao: number }[]
+  historicoCompleto: { palpite_id: number; data: string; posicao: number; acertos_exatos: number }[]
 }> {
   const hasAdminKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY
   const supabase = hasAdminKey ? createAdminClient() : await createClient()
@@ -162,7 +162,7 @@ async function getRankingHistorico(activeIds: number[]): Promise<{
       .order('data', { ascending: true }),
     supabase
       .from('ranking_historico_completo')
-      .select('palpite_id, data, posicao')
+      .select('palpite_id, data, posicao, acertos_exatos')
       .in('palpite_id', activeIds),
   ])
 

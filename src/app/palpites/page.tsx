@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { PalpitesClient } from '@/components/palpites/PalpitesClient'
-import { getRanking } from '@/services/ranking'
+import { getRanking, getRankingHistoricoCached } from '@/services/ranking'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,6 +69,17 @@ export default async function PalpitesPage() {
     variacaoMap[r.palpite_id] = { variacao: r.variacao, variacao_posicao: r.variacao_posicao, posicao: r.posicao, acertos_exatos: r.acertos_exatos }
   }
 
+  // Líder do ranking geral — usado no botão "Comparar com TOP 1" do gráfico de pontos/dia
+  const topEntry = ranking[0] ?? null
+
+  // Histórico diário (pontos + acertos exatos) para o gráfico de pontos/dia —
+  // busca só os palpites do usuário + o líder, para manter a página leve
+  const ownIds = (palpites ?? []).map(p => p.id)
+  const idsParaHistorico = Array.from(new Set([...ownIds, ...(topEntry ? [topEntry.palpite_id] : [])]))
+  const { historico, historicoCompleto } = idsParaHistorico.length > 0
+    ? await getRankingHistoricoCached(idsParaHistorico)
+    : { historico: [], historicoCompleto: [] }
+
   return (
     <PalpitesClient
       userId={user.id}
@@ -81,6 +92,9 @@ export default async function PalpitesPage() {
       novoPalpiteDeadline={sysConfig?.novo_palpite_deadline ?? null}
       minutosLockJogo={sysConfig?.minutos_lock_jogo ?? 60}
       variacaoMap={variacaoMap}
+      historico={historico}
+      historicoCompleto={historicoCompleto}
+      topPalpite={topEntry ? { id: topEntry.palpite_id, nome: topEntry.nome } : null}
     />
   )
 }

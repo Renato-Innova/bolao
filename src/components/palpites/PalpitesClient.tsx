@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { FlagImg } from '@/components/ui/FlagImg'
 import { PalpiteAvatar } from '@/components/ui/PalpiteAvatar'
 import { AvatarPicker } from '@/components/ui/AvatarPicker'
+import { PalpiteChartAccordion, type DayValue } from '@/components/palpites/PalpiteChartAccordion'
 import { createClient } from '@/lib/supabase/client'
 import { PIX_VALOR, PIX_CHAVE, GRUPOS, FASES, TEAM_QUAL, ALL_TEAMS, ARTILHEIRO_OPTIONS, GOLEIRO_OPTIONS, getConfrontoHistorico } from '@/utils/constants'
 import { SPECIAL_POINTS, PONTOS_CLASSIFICACAO_GRUPO } from '@/utils/scoring'
@@ -95,6 +96,17 @@ function isPlaceholder(name: string): boolean {
          name.startsWith('Perdedor')
 }
 
+/* ─── gráfico de evolução — extrai a série acumulada (ranking_historico
+   / ranking_historico_completo) de um palpite específico, dia a dia ─── */
+function toCumulativeSeries<T extends { palpite_id: number; data: string }>(
+  rows: T[] | undefined, palpiteId: number, field: keyof T
+): DayValue[] {
+  return (rows ?? [])
+    .filter(r => r.palpite_id === palpiteId)
+    .sort((a, b) => a.data.localeCompare(b.data))
+    .map(r => ({ data: r.data, value: Number(r[field] ?? 0) }))
+}
+
 /* ─── main component ─────────────────────────────────────────── */
 
 interface Props {
@@ -108,6 +120,9 @@ interface Props {
   novoPalpiteDeadline?: string | null
   minutosLockJogo?: number
   variacaoMap?: Record<number, { variacao: number; variacao_posicao: number; posicao: number; acertos_exatos: number }>
+  historico?: { palpite_id: number; data: string; total_pontos: number }[]
+  historicoCompleto?: { palpite_id: number; data: string; acertos_exatos: number }[]
+  topPalpite?: { id: number; nome: string } | null
 }
 
 const VISIBLE = 3
@@ -128,7 +143,7 @@ function buildPosicaoGrupoMap(classificacaoGrupos: ClassificacaoGrupo[]): Record
   return map
 }
 
-export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos, scoringConfigs, classificacaoGrupos = [], especiaisDeadline, novoPalpiteDeadline, minutosLockJogo = 60, variacaoMap = {} }: Props) {
+export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos, scoringConfigs, classificacaoGrupos = [], especiaisDeadline, novoPalpiteDeadline, minutosLockJogo = 60, variacaoMap = {}, historico = [], historicoCompleto = [], topPalpite = null }: Props) {
   const supabase = createClient()
 
   /* ─── deadline flags (recalculated on each render — lightweight) ─── */
@@ -906,6 +921,17 @@ export function PalpitesClient({ userId, userName, palpitesIniciais, todosJogos,
             </div>
           ))}
         </div>
+
+        {/* Gráficos — accordion com evolução acumulada de pontos e de acertos exatos, com opção de comparar com o TOP 1 */}
+        <PalpiteChartAccordion
+          ownNome={p.nome}
+          ownPontos={toCumulativeSeries(historico, p.id, 'total_pontos')}
+          ownExatos={toCumulativeSeries(historicoCompleto, p.id, 'acertos_exatos')}
+          topNome={topPalpite?.nome}
+          topPontos={topPalpite ? toCumulativeSeries(historico, topPalpite.id, 'total_pontos') : []}
+          topExatos={topPalpite ? toCumulativeSeries(historicoCompleto, topPalpite.id, 'acertos_exatos') : []}
+          isTop1={topPalpite?.id === p.id}
+        />
       </div>
     )
   }
