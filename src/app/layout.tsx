@@ -49,7 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <NotificationPopup />
         <EnquetePopup />
         <Analytics />
-        <SpeedInsights />
+        <SpeedInsights sampleRate={0.2} />
       </body>
     </html>
   )
