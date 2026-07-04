@@ -215,6 +215,8 @@ export const CONFRONTOS_HISTORICOS: Record<string, ConfrontoHistorico> = {
   'Espanha|Portugal':                  { ultimoConfronto: 'Portugal 2 x 2 Espanha (Nations League 2025, Portugal venceu nos pênaltis)', raioX: '41 jogos. Espanha: 17V · 18E · Portugal: 6V' },
   'Argentina|Egito':                   { ultimoConfronto: 'Argentina 2 x 0 Egito (2008, amistoso)', raioX: 'Único confronto oficial. Argentina venceu' },
   'Colômbia|Suíça':                    { ultimoConfronto: 'Colômbia 2 x 0 Suíça (Copa 1994)', raioX: 'Único confronto oficial. Colômbia venceu' },
+  // Quartas de Final (QF)
+  'França|Marrocos':                   { ultimoConfronto: 'França 2 x 0 Marrocos (Copa 2022, semifinal)', raioX: '9 jogos. França: 6V · 3E · Marrocos: 0V' },
 }
 
 // Retorna o histórico de confronto dado dois nomes de time (ordem não importa)
