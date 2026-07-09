@@ -217,6 +217,9 @@ export const CONFRONTOS_HISTORICOS: Record<string, ConfrontoHistorico> = {
   'Colômbia|Suíça':                    { ultimoConfronto: 'Colômbia 2 x 0 Suíça (Copa 1994)', raioX: 'Único confronto oficial. Colômbia venceu' },
   // Quartas de Final (QF)
   'França|Marrocos':                   { ultimoConfronto: 'França 2 x 0 Marrocos (Copa 2022, semifinal)', raioX: '9 jogos. França: 6V · 3E · Marrocos: 0V' },
+  'Bélgica|Espanha':                   { ultimoConfronto: 'Bélgica 0 x 2 Espanha (2016, amistoso)', raioX: '22 jogos. Espanha: 12V · 6E · Bélgica: 4V' },
+  'Inglaterra|Noruega':                { ultimoConfronto: 'Inglaterra 1 x 0 Noruega (2014, amistoso)', raioX: '11 jogos. Inglaterra: 6V · 3E · Noruega: 2V' },
+  'Argentina|Suíça':                   { ultimoConfronto: 'Argentina 1 x 0 Suíça (Copa 2014, oitavas, prorrogação)', raioX: '7 jogos. Argentina: 5V · 2E · Suíça: 0V' },
 }
 
 // Retorna o histórico de confronto dado dois nomes de time (ordem não importa)
