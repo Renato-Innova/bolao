@@ -76,9 +76,30 @@ export default async function PalpitesPage() {
   // busca só os palpites do usuário + o líder, para manter a página leve
   const ownIds = (palpites ?? []).map(p => p.id)
   const idsParaHistorico = Array.from(new Set([...ownIds, ...(topEntry ? [topEntry.palpite_id] : [])]))
-  const { historico, historicoCompleto } = idsParaHistorico.length > 0
+  const { historico: historicoBase, historicoCompleto: historicoCompletoBase } = idsParaHistorico.length > 0
     ? await getRankingHistoricoCached(idsParaHistorico)
     : { historico: [], historicoCompleto: [] }
+
+  // O snapshot de hoje só é gravado às 23:55 BRT (pg_cron) — se algo for
+  // recalculado depois disso (ex: bônus de classificação de grupos rodado de
+  // novo durante o dia), o snapshot de hoje fica desatualizado até a próxima
+  // meia-noite, fazendo o último ponto do gráfico "cair" em relação a ontem.
+  // Como `ranking` (getRanking(), sem cache) já é o total ao vivo, sobrescreve
+  // (ou adiciona) a entrada de hoje com esse valor em vez de esperar o cron.
+  const hoje = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const rankingPorId = new Map(ranking.map(r => [r.palpite_id, r]))
+  const historico = [
+    ...historicoBase.filter(h => !(idsParaHistorico.includes(h.palpite_id) && h.data === hoje)),
+    ...idsParaHistorico.filter(id => rankingPorId.has(id)).map(id => ({
+      palpite_id: id, data: hoje, total_pontos: rankingPorId.get(id)!.total_pontos,
+    })),
+  ]
+  const historicoCompleto = [
+    ...historicoCompletoBase.filter(h => !(idsParaHistorico.includes(h.palpite_id) && h.data === hoje)),
+    ...idsParaHistorico.filter(id => rankingPorId.has(id)).map(id => ({
+      palpite_id: id, data: hoje, posicao: rankingPorId.get(id)!.posicao, acertos_exatos: rankingPorId.get(id)!.acertos_exatos,
+    })),
+  ]
 
   return (
     <PalpitesClient
