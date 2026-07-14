@@ -172,9 +172,10 @@ function buildPrompt(params: {
   meioRelevante: string
   artilharia: string
   boletinsRecentes: string
-  bonusClassificacaoInfo: string
+  diasRestantesInfo: string
+  pontuacaoFaseInfo: string
 }) {
-  const { hoje, ranking, posJogo, preJogo, rodadaInfo, meioRelevante, artilharia, boletinsRecentes, bonusClassificacaoInfo } = params
+  const { hoje, ranking, posJogo, preJogo, rodadaInfo, meioRelevante, artilharia, boletinsRecentes, diasRestantesInfo, pontuacaoFaseInfo } = params
 
   return `Você é o narrador oficial do Bolão Copa 2026 — um jornalista esportivo com o tom da ESPN Brasil: animado e com pitadas de ironia, mas sempre profissional e com análise técnica de verdade.
 
@@ -188,11 +189,11 @@ REGRAS DE TOM E LINGUAGEM:
 O bolão é uma competição entre amigos onde cada participante registrou palpites para todos os jogos da Copa. Os pontos são somados conforme os acertos.
 
 DATA: ${hoje} — EDICAO: MANHA — BOLAO NA ${rodadaInfo.toUpperCase()}
+${diasRestantesInfo}
 
 ===== RANKING ATUAL =====
 
 ${ranking}
-${bonusClassificacaoInfo}
 
 ===== DESTAQUES DO MEIO DA TABELA (cite 3-4 destes se forem relevantes — NUNCA force uma mencao sem motivo, e nunca invente nomes fora desta lista) =====
 
@@ -201,6 +202,10 @@ ${meioRelevante || 'Nenhum destaque relevante no meio da tabela hoje — não fo
 ===== RANKING DE ARTILHARIA (top 10 — use para comentar gols de jogos encerrados ou expectativa para jogos pendentes) =====
 
 ${artilharia || 'Sem dados de artilharia disponiveis ainda.'}
+
+===== PONTUACAO RESTANTE POR FASE (quantos pontos ainda estao em jogo em cada fase futura — use para avaliar se quem esta atras no ranking ainda tem chance real de recuperacao, ja que fases posteriores valem MUITO mais pontos por jogo que a fase de grupos) =====
+
+${pontuacaoFaseInfo || 'Todas as fases ja foram concluidas.'}
 
 ===== BOLETINS RECENTES (memoria interna — NAO repita as mesmas observacoes ou piadas; use so para dar continuidade narrativa quando fizer sentido, ex: retomar uma historia ja contada) =====
 
@@ -228,6 +233,8 @@ Analise mentalmente os dados (NAO escreva essa analise — ela e apenas para voc
 - os DESTAQUES DO MEIO DA TABELA acima, se houver algum relevante — o boletim nao deve falar so de quem lidera e de quem esta no fundo, o meio da tabela tambem faz parte da historia quando ha algo digno de nota
 - a RANKING DE ARTILHARIA acima: jogadores de times que jogaram ou vao jogar podem subir no ranking de artilharia; conecte isso a expectativa dos jogos pendentes ou ao que aconteceu nos encerrados
 - os BOLETINS RECENTES acima: evite repetir as mesmas piadas ou observacoes ja feitas; se um fato ainda for relevante hoje (ex: uma rivalidade ou trajetoria que comecou ha dias), pode retomar para dar continuidade, mas sem soar repetitivo
+- a CONTAGEM REGRESSIVA acima: quanto mais perto do fim, mais isso deve aparecer no tom do boletim (urgencia, ultima chance, reta final) — nao ignore esse dado
+- a PONTUACAO RESTANTE POR FASE acima: use para avaliar de verdade a capacidade de recuperacao de quem esta mal no ranking — como as fases finais valem muito mais pontos por jogo, alguem distante na pontuacao pode ainda vencer o bolao; nao trate uma diferenca grande de pontos como decisao encerrada sem checar quanto ainda esta em jogo
 
 Com base nessa analise, escreva DIRETAMENTE o boletim em portugues brasileiro, SEM emojis e SEM icones de nenhum tipo.
 NAO escreva introducoes, pensamentos, analises ou qualquer texto antes da saudacao.
@@ -273,7 +280,6 @@ type RankingData = {
   palpiteIds:    number[]
   rodadaInfo:    string
   meioRelevante: string
-  temBonusClassificacao: boolean
 }
 
 /* ── funções de coleta de dados ────────────────────────────────────────────── */
@@ -420,8 +426,7 @@ async function getRankingComVariacao(now: Date): Promise<RankingData> {
     }
 
     const histStr = hist.length > 0 ? `  [${hist.join(' | ')}]` : ''
-    const classifStr = classifMap[id] > 0 ? `  (bônus classificação de grupos: +${classifMap[id]}pts)` : ''
-    return `#${i + 1}  ${nomeMap[id]}  ${pts} pts${classifStr}${histStr}`
+    return `#${i + 1}  ${nomeMap[id]}  ${pts} pts${histStr}`
   }).join('\n')
 
   // Destaques do meio de tabela: exclui top 10 e base 10, só entra quem teve
@@ -445,9 +450,73 @@ async function getRankingComVariacao(now: Date): Promise<RankingData> {
     .map(c => `${nomeMap[c.id]} (#${posAtual[c.id]}, era #${c.id in (posH1 ?? {}) ? (posH1![c.id]) : '?'}, ${c.deltaPts >= 0 ? '+' : ''}${c.deltaPts}pts na rodada)`)
     .join('\n')
 
-  const temBonusClassificacao = Object.values(classifMap).some(v => v > 0)
+  return { rankingStr, sorted, nomeMap, ptMap, palpiteIds, rodadaInfo, meioRelevante }
+}
 
-  return { rankingStr, sorted, nomeMap, ptMap, palpiteIds, rodadaInfo, meioRelevante, temBonusClassificacao }
+// ── Contagem regressiva até a final ──────────────────────────────────────────
+// A data da final é fixa no calendário (jogos_copa.fase='F'), mesmo antes dos
+// times estarem definidos — usada para a IA entender que o bolão está
+// chegando ao fim e ajustar o tom (urgência, reta final).
+async function getDiasRestantesInfo(hoje: string): Promise<string> {
+  const { data } = await supabase
+    .from('jogos_copa')
+    .select('data')
+    .eq('fase', 'F')
+    .maybeSingle()
+
+  if (!data?.data) return ''
+
+  const hojeDate  = new Date(`${hoje}T00:00:00`)
+  const finalDate = new Date(`${data.data}T00:00:00`)
+  const diasRestantes = Math.round((finalDate.getTime() - hojeDate.getTime()) / (24 * 60 * 60 * 1000))
+  const dataFinalFmt = finalDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+
+  if (diasRestantes < 0) return `CONTAGEM REGRESSIVA: a final da Copa (${dataFinalFmt}) ja aconteceu — o bolao esta encerrado.`
+  if (diasRestantes === 0) return `CONTAGEM REGRESSIVA: e HOJE — dia da final da Copa (${dataFinalFmt})! Ultimo dia do bolao.`
+  return `CONTAGEM REGRESSIVA: faltam ${diasRestantes} dia${diasRestantes === 1 ? '' : 's'} para a final da Copa (${dataFinalFmt}) — o bolao esta entrando na reta final.`
+}
+
+// ── Pontuação restante por fase ───────────────────────────────────────────────
+// Quantos pontos ainda estão em disputa em cada fase com jogos pendentes —
+// usa o valor de placar_exato por fase (configuracoes_pontuacao) x número de
+// jogos daquela fase que ainda não têm resultado. Ajuda a IA a não tratar uma
+// diferença grande de pontos como "decisão tomada", já que as fases finais
+// valem muito mais por jogo que a fase de grupos.
+const FASE_LABEL: Record<string, string> = {
+  GS: 'Fase de Grupos', R32: 'Rodada de 32', R16: 'Oitavas de Final',
+  QF: 'Quartas de Final', SF: 'Semifinal', TPL: 'Disputa de 3º Lugar', F: 'Final',
+}
+const FASE_ORDEM = ['GS', 'R32', 'R16', 'QF', 'SF', 'TPL', 'F']
+
+async function getPontuacaoFaseInfo(): Promise<string> {
+  const [{ data: configs }, { data: jogos }] = await Promise.all([
+    supabase.from('configuracoes_pontuacao').select('fase, tipo_acerto, pontos'),
+    supabase.from('jogos_copa').select('fase, resultado:resultados(id)'),
+  ])
+
+  const exatoPorFase: Record<string, number> = {}
+  for (const c of (configs ?? []) as { fase: string; tipo_acerto: string; pontos: number }[]) {
+    if (c.tipo_acerto === 'placar_exato') exatoPorFase[c.fase] = c.pontos
+  }
+
+  const pendentesPorFase: Record<string, number> = {}
+  for (const j of (jogos ?? []) as Jogo[]) {
+    const temResultado = resolveResultado(j) !== null
+    if (!temResultado) {
+      const fase = j.fase as string
+      pendentesPorFase[fase] = (pendentesPorFase[fase] ?? 0) + 1
+    }
+  }
+
+  return FASE_ORDEM
+    .filter(fase => (pendentesPorFase[fase] ?? 0) > 0)
+    .map(fase => {
+      const pendentes = pendentesPorFase[fase]
+      const exato = exatoPorFase[fase] ?? 0
+      const maxFase = pendentes * exato
+      return `${FASE_LABEL[fase]}: ${pendentes} jogo(s) pendente(s) — placar exato vale ${exato}pts/jogo — ate ${maxFase}pts ainda em disputa so nessa fase`
+    })
+    .join('\n')
 }
 
 // ── Boletins recentes (memória de contexto, não aparece no boletim de hoje) ─
@@ -717,16 +786,10 @@ export async function GET(req: NextRequest) {
   const encerrados                             = await getJogosEncerrados([ontem, hoje])
   const pendentes                              = await getJogosPendentes([hoje])
   const { rankingStr, sorted, nomeMap, ptMap,
-          palpiteIds, rodadaInfo, meioRelevante, temBonusClassificacao } = await getRankingComVariacao(now)
+          palpiteIds, rodadaInfo, meioRelevante } = await getRankingComVariacao(now)
 
-  // Explica o que é o "bônus classificação de grupos" — só aparece quando algum
-  // palpite já tem esse valor gravado (calculado pelo admin uma única vez, ao
-  // final da fase de grupos). Sem essa explicação a IA tende a tratar o salto
-  // de pontos/posições de hoje como desempenho normal da rodada, quando na
-  // verdade é um bônus pontual e não recorrente.
-  const bonusClassificacaoInfo = temBonusClassificacao
-    ? `\n(NOTA IMPORTANTE: "bônus classificação de grupos" é uma pontuação especial, pontual e NÃO recorrente — até 640 pts no total, 20 pts por time que o participante previu corretamente como classificado para o mata-mata (2 primeiros de cada grupo + os 8 melhores terceiros colocados). Ela foi calculada e somada UMA ÚNICA VEZ, agora que a fase de grupos terminou — não é pontuação de jogos de hoje. Pode (e deve) ser comentada como um evento marcante de hoje — quem acertou muitos classificados deu um salto no ranking por isso, não por desempenho excepcional nos placares —, mas NÃO narre isso como "uma sequência de acertos" ou "boa rodada de apostas", pois é um bônus único de uma vez só.)`
-    : ''
+  const diasRestantesInfo                      = await getDiasRestantesInfo(hoje)
+  const pontuacaoFaseInfo                      = await getPontuacaoFaseInfo()
   const palpitesTabela                         = await getTabelaPalpites(pendentes, palpiteIds, sorted, nomeMap)
   const { encTexts, penTexts }                 = await getContextoUol(encerrados, pendentes)
   const { rankingStr: artilhariaStr, lista: artilheirosLista } = await getArtilheiros()
@@ -740,7 +803,7 @@ export async function GET(req: NextRequest) {
   const preJogo = buildPreJogo(pendentes, penTexts, palpitesTabela, formaTimes, artilheirosLista)
   const prompt  = buildPrompt({
     hoje, ranking: rankingStr, posJogo, preJogo, rodadaInfo,
-    meioRelevante, artilharia: artilhariaStr, boletinsRecentes, bonusClassificacaoInfo,
+    meioRelevante, artilharia: artilhariaStr, boletinsRecentes, diasRestantesInfo, pontuacaoFaseInfo,
   })
 
   // ?preview=true — só monta e devolve o prompt, sem chamar a API da Anthropic
@@ -775,16 +838,19 @@ export async function GET(req: NextRequest) {
   // (boletins recentes não entram aqui — são memória de continuidade, não fato a auditar)
   const fatosReais = [
     `=== DATA: ${hoje} — BOLÃO NA ${rodadaInfo.toUpperCase()} ===`,
+    diasRestantesInfo,
     '',
     '=== RANKING REAL (posição atual, pontos e histórico por rodada) ===',
     rankingStr,
-    bonusClassificacaoInfo,
     '',
     '=== DESTAQUES DO MEIO DA TABELA (só estes podem ser citados como "meio") ===',
     meioRelevante || 'Nenhum destaque relevante no meio da tabela hoje.',
     '',
     '=== RANKING DE ARTILHARIA REAL ===',
     artilhariaStr || 'Sem dados de artilharia disponíveis ainda.',
+    '',
+    '=== PONTUAÇÃO RESTANTE POR FASE REAL ===',
+    pontuacaoFaseInfo || 'Todas as fases já foram concluídas.',
     '',
     '=== JOGOS ENCERRADOS — RESULTADOS E CONTEXTO PÓS-JOGO (UOL) ===',
     posJogo || 'Nenhum resultado disponível.',
@@ -808,6 +874,8 @@ export async function GET(req: NextRequest) {
    - Gols, assistências ou jogos de artilheiros que não batem com o RANKING DE ARTILHARIA REAL
    - Afirmações de liderança/posição na artilharia (ex: "lidera", "isolado na artilharia", "líder de gols") que não correspondem à posição real (#1, #2...) no RANKING DE ARTILHARIA REAL — um jogador citado como "artilheiro do time" não é necessariamente o líder geral
    - Retrospecto de time (vitórias/empates/derrotas/gols) que não bate com o contexto pré-jogo fornecido
+   - Contagem regressiva de dias até a final incorreta (compare com a CONTAGEM REGRESSIVA nos fatos reais)
+   - Pontuação restante por fase incorreta (compare com a PONTUAÇÃO RESTANTE POR FASE REAL — jogos pendentes, pontos por fase)
 
 2. ERROS DE FORMATO — verifique cada ocorrência:
    - Número escrito por extenso onde deveria ser algarismo: "duzentos pontos" → deve ser "200 pontos", "cinco à frente" → "5 à frente", "trinta e cinco pontos" → "35 pontos"
