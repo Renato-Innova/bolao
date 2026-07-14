@@ -220,6 +220,9 @@ export const CONFRONTOS_HISTORICOS: Record<string, ConfrontoHistorico> = {
   'Bélgica|Espanha':                   { ultimoConfronto: 'Bélgica 0 x 2 Espanha (2016, amistoso)', raioX: '22 jogos. Espanha: 12V · 6E · Bélgica: 4V' },
   'Inglaterra|Noruega':                { ultimoConfronto: 'Inglaterra 1 x 0 Noruega (2014, amistoso)', raioX: '11 jogos. Inglaterra: 6V · 3E · Noruega: 2V' },
   'Argentina|Suíça':                   { ultimoConfronto: 'Argentina 1 x 0 Suíça (Copa 2014, oitavas, prorrogação)', raioX: '7 jogos. Argentina: 5V · 2E · Suíça: 0V' },
+  // Semifinal (SF)
+  'Espanha|França':                    { ultimoConfronto: 'Espanha 5 x 4 França (Nations League 2025, semifinal)', raioX: '38 jogos. Espanha: 18V · 7E · França: 13V' },
+  'Argentina|Inglaterra':               { ultimoConfronto: 'Argentina 2 x 3 Inglaterra (2005, amistoso)', raioX: '14 jogos. Inglaterra: 6V · 5E · Argentina: 3V' },
 }
 
 // Retorna o histórico de confronto dado dois nomes de time (ordem não importa)
