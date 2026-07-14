@@ -48,17 +48,35 @@ export async function POST() {
     configsByFase[c.fase].push({ tipo_acerto: c.tipo_acerto, pontos: c.pontos })
   }
 
-  // 3 — Fetch ALL submitted predictions for ALL games-with-result in a single
-  // query (avoids N+1: antes fazia uma query por jogo, agora é uma só, com
-  // os resultados agrupados em memória).
+  // 3 — Fetch ALL submitted predictions for ALL games-with-result. Paginado
+  // com .range() porque o PostgREST tem um limite padrão de 1000 linhas por
+  // resposta — com 100+ jogos x ~60 palpites isso passa de 6000 linhas.
+  // Sem paginação, a maioria das predições nunca era recalculada (bug real
+  // encontrado numa auditoria: um jogo antigo ficou com pontos zerados mesmo
+  // após "Recalcular Tudo", porque a linha dele nunca vinha na resposta).
+  type PalpiteJogoRow = {
+    id: number; jogo_id: number
+    placar_palpite_a: number | null; placar_palpite_b: number | null
+    placar_penalti_a: number | null; placar_penalti_b: number | null
+    submitted_at: string | null
+  }
   const jogoIds = jogos.map(j => j.id)
-  const { data: todosPalpitesJogos } = await admin
-    .from('palpites_jogos')
-    .select('id, jogo_id, placar_palpite_a, placar_palpite_b, placar_penalti_a, placar_penalti_b, submitted_at')
-    .in('jogo_id', jogoIds)
+  const PAGE_SIZE = 1000
+  const todosPalpitesJogos: PalpiteJogoRow[] = []
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data: page, error: pageErr } = await admin
+      .from('palpites_jogos')
+      .select('id, jogo_id, placar_palpite_a, placar_palpite_b, placar_penalti_a, placar_penalti_b, submitted_at')
+      .in('jogo_id', jogoIds)
+      .range(from, from + PAGE_SIZE - 1)
+    if (pageErr) return NextResponse.json({ error: `Erro ao buscar predições: ${pageErr.message}` }, { status: 500 })
+    if (!page || page.length === 0) break
+    todosPalpitesJogos.push(...page)
+    if (page.length < PAGE_SIZE) break
+  }
 
-  const palpitesJogosPorJogo: Record<number, typeof todosPalpitesJogos> = {}
-  for (const pj of todosPalpitesJogos ?? []) {
+  const palpitesJogosPorJogo: Record<number, PalpiteJogoRow[]> = {}
+  for (const pj of todosPalpitesJogos) {
     if (!palpitesJogosPorJogo[pj.jogo_id]) palpitesJogosPorJogo[pj.jogo_id] = []
     palpitesJogosPorJogo[pj.jogo_id]!.push(pj)
   }
