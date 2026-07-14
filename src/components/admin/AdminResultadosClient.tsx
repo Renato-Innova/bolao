@@ -157,9 +157,10 @@ interface GameRowProps {
   jogo: JogoCopa
   isKO: boolean
   onSaved: (jogoId: number, placarA: number, placarB: number, penaltiA: number | null, penaltiB: number | null) => void
+  onRemoved: (jogoId: number) => void
 }
 
-function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
+function GameRow({ jogo, isKO, onSaved, onRemoved }: GameRowProps) {
   const supabase = createClient()  // used only for team editing (jogos_copa write via RLS)
 
   const hasSent = !!jogo.resultado
@@ -184,6 +185,9 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
   const [penaltiVencedor, setPenaltiVencedor] = useState<'A' | 'B' | null>(penaltiVencedorInicial)
   const [saving,    setSaving]    = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [confirmRemove, setConfirmRemove] = useState(false)
+  const [removing,      setRemoving]      = useState(false)
+  const [removeError,   setRemoveError]   = useState('')
 
   // Show penalty choice for KO games when both scores are entered and equal
   const isDraw = isKO && placarA !== '' && placarB !== '' && parseInt(placarA) === parseInt(placarB)
@@ -253,6 +257,25 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
       setSaveError(data.error ?? 'Erro ao salvar. Tente novamente.')
     }
     setSaving(false)
+  }
+
+  async function remover() {
+    setRemoving(true); setRemoveError('')
+    const res = await fetch('/api/admin/resultado', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jogoId: jogo.id }),
+    })
+    if (res.ok) {
+      setSavedA(null); setSavedB(null); setSavedPenA(null); setSavedPenB(null)
+      setPlacarA(''); setPlacarB(''); setPenaltiVencedor(null)
+      setEditing(true); setConfirmRemove(false); setMenuOpen(false)
+      onRemoved(jogo.id)
+    } else {
+      const data = await res.json().catch(() => ({}))
+      setRemoveError(data.error ?? 'Erro ao remover. Tente novamente.')
+    }
+    setRemoving(false)
   }
 
   async function salvarTimes() {
@@ -417,6 +440,12 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
                         🏳️ Editar times
                       </div>
                     )}
+                    <div onClick={() => { setConfirmRemove(true); setMenuOpen(false) }}
+                      style={{ padding: '8px 12px', fontSize: 11, fontWeight: 600, color: 'rgba(255,130,130,0.9)', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,80,80,0.12)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                      🗑️ Remover resultado
+                    </div>
                   </div>
                 )}
               </div>
@@ -448,6 +477,30 @@ function GameRow({ jogo, isKO, onSaved }: GameRowProps) {
       {saveError && (
         <div style={{ margin: '0 14px 10px', padding: '7px 12px', background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.3)', borderRadius: 6, fontSize: 11, color: 'rgba(255,130,130,0.9)' }}>
           ⚠️ {saveError}
+        </div>
+      )}
+
+      {/* Confirmar remoção do resultado */}
+      {confirmRemove && (
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '12px 16px', background: 'rgba(255,80,80,0.05)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,150,150,0.9)', lineHeight: 1.5 }}>
+            ⚠️ Remover este resultado apaga o placar e zera os pontos deste jogo para todos os palpites. O jogo volta para "Pendentes". Essa ação não tem desfazer.
+          </div>
+          {removeError && (
+            <div style={{ padding: '7px 12px', background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.3)', borderRadius: 6, fontSize: 11, color: 'rgba(255,130,130,0.9)' }}>
+              {removeError}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button onClick={() => setConfirmRemove(false)} disabled={removing}
+              style={{ padding: '6px 16px', borderRadius: 6, fontSize: 11, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', fontFamily: 'Inter,sans-serif' }}>
+              Cancelar
+            </button>
+            <button onClick={remover} disabled={removing}
+              style={{ padding: '6px 18px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: removing ? 'not-allowed' : 'pointer', border: 'none', fontFamily: 'Inter,sans-serif', background: 'rgba(255,80,80,0.75)', color: 'white', opacity: removing ? 0.7 : 1 }}>
+              {removing ? 'Removendo...' : 'Remover resultado'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -558,6 +611,11 @@ export function AdminResultadosClient({ jogos }: { jogos: JogoCopa[] }) {
     ))
   }
 
+  // When a result is removed, move the game back to pendentes
+  function handleRemoved(jogoId: number) {
+    setJogosList(prev => prev.map(j => j.id === jogoId ? { ...j, resultado: undefined } : j))
+  }
+
   function onFillDone(fase: string, result: FillResult) {
     setJogosList(prev => prev.map(j => {
       const u = result.games.find(g => g.jogoId === j.id)
@@ -615,7 +673,7 @@ export function AdminResultadosClient({ jogos }: { jogos: JogoCopa[] }) {
             <React.Fragment key={day.date}>
               <DayDivider label={day.label} />
               {day.games.map(jogo => (
-                <GameRow key={jogo.id} jogo={jogo} isKO={jogo.fase !== 'GS'} onSaved={handleSaved} />
+                <GameRow key={jogo.id} jogo={jogo} isKO={jogo.fase !== 'GS'} onSaved={handleSaved} onRemoved={handleRemoved} />
               ))}
             </React.Fragment>
           ))
@@ -638,7 +696,7 @@ export function AdminResultadosClient({ jogos }: { jogos: JogoCopa[] }) {
             <React.Fragment key={day.date}>
               <DayDivider label={day.label} />
               {day.games.map(jogo => (
-                <GameRow key={jogo.id} jogo={jogo} isKO={jogo.fase !== 'GS'} onSaved={handleSaved} />
+                <GameRow key={jogo.id} jogo={jogo} isKO={jogo.fase !== 'GS'} onSaved={handleSaved} onRemoved={handleRemoved} />
               ))}
             </React.Fragment>
           ))

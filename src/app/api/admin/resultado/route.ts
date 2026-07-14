@@ -4,6 +4,64 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { calcularPontos } from '@/utils/scoring'
 import { atualizarArtilheiros } from '@/app/api/artilheiros/atualizar/route'
 
+// Salva o snapshot diário (ranking_historico + ranking_historico_completo) para
+// todos os palpites ativos — chamado depois de qualquer mudança em pontos
+// (salvar OU remover um resultado), pra manter o gráfico de evolução correto
+// no mesmo dia, sem esperar o cron da meia-noite.
+//
+// total_pontos = soma dos jogos (get_pontos_por_palpite) + especiais + bônus de
+// classificação — mesma fórmula usada por getRanking() e pelos crons noturnos
+// (snapshot_ranking_diario / snapshot_ranking_completo_diario). Sem somar os
+// dois últimos aqui, o snapshot do dia ficava sistematicamente menor que o
+// total real sempre que o bônus já tinha sido calculado antes.
+async function recalcularSnapshotsDoDia(admin: ReturnType<typeof createAdminClient>) {
+  try {
+    const todayBRT = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10)
+
+    const { data: palpitesAtivos } = await admin
+      .from('palpites')
+      .select('id, pontos_especiais, pontos_classificacao')
+      .eq('status', 'ativo')
+
+    const palpiteIds = (palpitesAtivos ?? []).map((p: { id: number }) => p.id)
+
+    if (palpiteIds.length > 0) {
+      const { data: pontosPorPalpite } = await admin
+        .rpc('get_pontos_por_palpite', { p_ids: palpiteIds }) as {
+          data: { palpite_id: number; total_pontos: number }[] | null
+        }
+
+      const pontosMap: Record<number, number> = {}
+      for (const r of pontosPorPalpite ?? []) {
+        pontosMap[r.palpite_id] = Number(r.total_pontos ?? 0)
+      }
+
+      const snapshots = (palpitesAtivos ?? []).map((p: { id: number; pontos_especiais: number | null; pontos_classificacao: number | null }) => ({
+        palpite_id:   p.id,
+        data:         todayBRT,
+        total_pontos: (pontosMap[p.id] ?? 0) + Number(p.pontos_especiais ?? 0) + Number(p.pontos_classificacao ?? 0),
+      }))
+
+      // upsert: atualiza o snapshot do dia se já existir
+      await admin
+        .from('ranking_historico')
+        .upsert(snapshots, { onConflict: 'palpite_id,data' })
+    }
+  } catch (snapErr) {
+    // Snapshot é não-crítico: não falha o request se der erro
+    console.warn('[resultado] snapshot ranking_historico error (non-fatal):', snapErr)
+  }
+
+  // Snapshot completo (posição oficial + acertos exatos), tabela nova e
+  // independente (ranking_historico_completo). Bloco isolado e não-crítico —
+  // qualquer falha aqui nunca afeta o snapshot acima nem o resto do request.
+  try {
+    await admin.rpc('snapshot_ranking_completo_diario')
+  } catch (snapCompletoErr) {
+    console.warn('[resultado] snapshot ranking_historico_completo error (non-fatal):', snapCompletoErr)
+  }
+}
+
 // POST /api/admin/resultado
 // Body: { jogoId, placarA, placarB, penaltiA?, penaltiB? }
 //
@@ -122,53 +180,8 @@ export async function POST(req: NextRequest) {
     updated = updates.length
   }
 
-  // 4 — Salva snapshot diário no ranking_historico para todos os palpites ativos
-  // Usa a função RPC para obter a soma correta sem o cap de 1000 linhas do PostgREST
-  try {
-    const todayBRT = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10)
-
-    const { data: palpitesAtivos } = await admin
-      .from('palpites')
-      .select('id')
-      .eq('status', 'ativo')
-
-    const palpiteIds = (palpitesAtivos ?? []).map((p: { id: number }) => p.id)
-
-    if (palpiteIds.length > 0) {
-      const { data: pontosPorPalpite } = await admin
-        .rpc('get_pontos_por_palpite', { p_ids: palpiteIds }) as {
-          data: { palpite_id: number; total_pontos: number }[] | null
-        }
-
-      const pontosMap: Record<number, number> = {}
-      for (const r of pontosPorPalpite ?? []) {
-        pontosMap[r.palpite_id] = Number(r.total_pontos ?? 0)
-      }
-
-      const snapshots = palpiteIds.map((id: number) => ({
-        palpite_id:   id,
-        data:         todayBRT,
-        total_pontos: pontosMap[id] ?? 0,
-      }))
-
-      // upsert: atualiza o snapshot do dia se já existir
-      await admin
-        .from('ranking_historico')
-        .upsert(snapshots, { onConflict: 'palpite_id,data' })
-    }
-  } catch (snapErr) {
-    // Snapshot é não-crítico: não falha o request se der erro
-    console.warn('[resultado] snapshot ranking_historico error (non-fatal):', snapErr)
-  }
-
-  // 4b — Snapshot completo (posição oficial + acertos exatos), tabela nova e
-  // independente (ranking_historico_completo). Bloco isolado e não-crítico —
-  // qualquer falha aqui nunca afeta o snapshot acima nem o resto do request.
-  try {
-    await admin.rpc('snapshot_ranking_completo_diario')
-  } catch (snapCompletoErr) {
-    console.warn('[resultado] snapshot ranking_historico_completo error (non-fatal):', snapCompletoErr)
-  }
+  // 4 — Recalcula o snapshot diário (ranking_historico + _completo)
+  await recalcularSnapshotsDoDia(admin)
 
   // 5 — Dispara atualização dos artilheiros em background (fire-and-forget),
   // mesma função usada pelo cron e pelo botão admin — chamada direta, sem o
@@ -183,4 +196,46 @@ export async function POST(req: NextRequest) {
   revalidatePath('/tabela')
 
   return NextResponse.json({ ok: true, updatedCount: updated })
+}
+
+// DELETE /api/admin/resultado
+// Body: { jogoId }
+//
+// Remove um resultado lançado por engano: apaga a linha de `resultados` e
+// zera os pontos de todos os palpites para esse jogo (sem resultado oficial,
+// não há o que pontuar). O jogo volta para "Pendentes" no admin.
+export async function DELETE(req: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
+
+  const { data: userData } = await supabase
+    .from('users').select('is_admin').eq('id', user.id).single()
+  if (!userData?.is_admin) return NextResponse.json({ error: 'Sem permissão.' }, { status: 403 })
+
+  const admin = createAdminClient()
+
+  const { jogoId } = await req.json() as { jogoId: number }
+  if (!Number.isInteger(jogoId)) return NextResponse.json({ error: 'jogoId inválido.' }, { status: 400 })
+
+  const { error: delError } = await admin
+    .from('resultados')
+    .delete()
+    .eq('jogo_id', jogoId)
+  if (delError) return NextResponse.json({ error: delError.message }, { status: 500 })
+
+  const { error: zeroError } = await admin
+    .from('palpites_jogos')
+    .update({ pontos: 0 })
+    .eq('jogo_id', jogoId)
+  if (zeroError) return NextResponse.json({ error: zeroError.message }, { status: 500 })
+
+  await recalcularSnapshotsDoDia(admin)
+
+  revalidateTag('ranking', 'max')
+  revalidateTag('dashboard', 'max')
+  revalidateTag('tabela', 'max')
+  revalidatePath('/tabela')
+
+  return NextResponse.json({ ok: true })
 }
