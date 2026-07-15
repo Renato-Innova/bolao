@@ -223,6 +223,9 @@ export const CONFRONTOS_HISTORICOS: Record<string, ConfrontoHistorico> = {
   // Semifinal (SF)
   'Espanha|França':                    { ultimoConfronto: 'Espanha 5 x 4 França (Nations League 2025, semifinal)', raioX: '38 jogos. Espanha: 18V · 7E · França: 13V' },
   'Argentina|Inglaterra':               { ultimoConfronto: 'Argentina 2 x 3 Inglaterra (2005, amistoso)', raioX: '14 jogos. Inglaterra: 6V · 5E · Argentina: 3V' },
+  // Disputa de 3º Lugar (TPL) e Final (F)
+  'França|Inglaterra':                 { ultimoConfronto: 'França 3 x 2 Inglaterra (2017, amistoso)', raioX: '31 jogos. Inglaterra: 17V · 5E · França: 9V' },
+  'Argentina|Espanha':                  { ultimoConfronto: 'Espanha 6 x 1 Argentina (2018, amistoso)', raioX: '14 jogos. Espanha: 6V · 2E · Argentina: 6V' },
 }
 
 // Retorna o histórico de confronto dado dois nomes de time (ordem não importa)
