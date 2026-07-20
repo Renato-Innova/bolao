@@ -43,10 +43,14 @@ export async function GET(req: NextRequest) {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${nomeArquivo}"`,
+        'Cache-Control': 'no-store',
       },
     })
   } catch (err) {
     console.error('[relatorio] erro ao gerar PDF:', err)
-    return NextResponse.json({ error: 'Erro ao gerar relatório.' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Erro ao gerar relatório.', detalhe: err instanceof Error ? err.message : String(err) },
+      { status: 500, headers: { 'Cache-Control': 'no-store' } },
+    )
   }
 }
