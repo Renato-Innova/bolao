@@ -124,6 +124,17 @@ export default async function DashboardPage() {
     }
   }
 
+  /* Pesquisa de satisfação pós-Copa — só relevante pra quem tem ao menos 1 palpite */
+  let pesquisaRespondida = false
+  if (currentUser && myPalpiteIds.length > 0) {
+    const { data: resposta } = await supabase
+      .from('pesquisa_satisfacao')
+      .select('id')
+      .eq('usuario_id', currentUser.id)
+      .single()
+    pesquisaRespondida = !!resposta
+  }
+
   /* slides do carrossel — todos os palpites do usuário logado */
   const mySlides: PalpiteSlide[] = currentUser
     ? ranking
@@ -267,6 +278,37 @@ export default async function DashboardPage() {
 
   return (
     <div className="page-main" style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 24px 40px' }}>
+
+      {/* ── Card de destaque: Pesquisa de Satisfação (libera o relatório em PDF) ── */}
+      {currentUser && myPalpiteIds.length > 0 && (
+        <Link href="/pesquisa" style={{
+          display: 'block', textDecoration: 'none', marginBottom: 12,
+          background: '#0D1E3D', border: `1px solid ${pesquisaRespondida ? 'rgba(74,222,128,0.30)' : 'rgba(74,144,217,0.35)'}`,
+          borderRadius: 12, padding: '18px 20px', position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: pesquisaRespondida ? 'linear-gradient(90deg, #4ade80, #22c55e)' : 'linear-gradient(90deg, #4A90D9, #7BB8F0)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: pesquisaRespondida ? '#4ade80' : '#7BB8F0', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>
+                {pesquisaRespondida ? '✅ Pesquisa respondida' : '🏆 O Bolão terminou!'}
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'white', marginBottom: 4 }}>
+                {pesquisaRespondida ? 'Baixe o relatório em PDF do seu palpite' : 'Responda nossa pesquisa rápida e libere seu relatório em PDF'}
+              </div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
+                {pesquisaRespondida ? 'Um resumo completo da sua participação, jogo a jogo.' : 'Leva menos de 1 minuto — suas respostas ajudam a melhorar a próxima edição.'}
+              </div>
+            </div>
+            <span style={{
+              flexShrink: 0, padding: '10px 20px', borderRadius: 9, fontSize: 13, fontWeight: 700, color: 'white',
+              background: pesquisaRespondida ? 'linear-gradient(90deg, #4ade80, #22c55e)' : 'linear-gradient(90deg, #4A90D9, #1a5ca8)',
+              whiteSpace: 'nowrap',
+            }}>
+              {pesquisaRespondida ? 'Ver relatório →' : 'Responder agora →'}
+            </span>
+          </div>
+        </Link>
+      )}
 
       {/* ── Main grid 3×2: col 3 spans both rows ────────────────────────── */}
       <div className="dash-main-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'auto auto', gap: 12, marginBottom: 12 }}>
