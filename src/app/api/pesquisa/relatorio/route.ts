@@ -10,6 +10,20 @@ export const runtime = 'nodejs'
 export const maxDuration = 30
 
 export async function GET(req: NextRequest) {
+  // DIAGNÓSTICO TEMPORÁRIO — isola se o problema é a geração do PDF (pdfkit)
+  // ou algo mais básico na entrega do arquivo. Sem autenticação de propósito,
+  // só devolve um PDF mínimo estático. Remover assim que o bug for isolado.
+  if (req.nextUrl.searchParams.get('diagnostico') === '1') {
+    const minimalPdf = '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R>>'
+    return new NextResponse(minimalPdf, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'attachment; filename="teste-diagnostico.pdf"',
+        'Cache-Control': 'no-store',
+      },
+    })
+  }
+
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
