@@ -83,6 +83,7 @@ const MR = 24
 const CW = PAGE_W - ML - MR
 
 type GameRow = {
+  jogo_id: number
   numero_jogo: number
   fase: string
   data: string
@@ -117,6 +118,40 @@ interface RelatorioData {
   parciaisTotal: number
   maiorJogo: { pontos: number; fase: string; confronto: string } | null
   jogos: GameRow[]
+  serie: { data: string; valor: number }[]
+  lider: { nome: string; serie: { data: string; valor: number }[] } | null
+}
+
+// Série diária acumulada de pontos, incluindo os bônus de especiais e
+// classificação de grupos como "degraus" — não têm uma data própria de jogo,
+// então entram: classificação no último dia da fase de grupos (é quando esse
+// bônus é apurado) e especiais no último dia do campeonato (campeão só é
+// conhecido na Final). Sem isso o gráfico "morria" no subtotal de jogos, bem
+// abaixo da pontuação final de verdade.
+function construirSerie(
+  jogosOrdenados: { fase: string; data: string; pontos: number }[],
+  especiaisEarned: number,
+  classifEarned: number,
+): { data: string; valor: number }[] {
+  const porDia = new Map<string, number>()
+  const ordemDias: string[] = []
+  let acc = 0
+  for (const j of jogosOrdenados) {
+    acc += j.pontos
+    if (!porDia.has(j.data)) ordemDias.push(j.data)
+    porDia.set(j.data, acc)
+  }
+  if (ordemDias.length === 0) return []
+
+  const ultimaDataGS = jogosOrdenados.filter(j => j.fase === 'GS').map(j => j.data).sort().pop() ?? ordemDias[0]
+  const ultimaData = ordemDias[ordemDias.length - 1]
+
+  let bonusAcc = 0
+  return ordemDias.map(dd => {
+    if (dd === ultimaDataGS) bonusAcc += classifEarned
+    if (dd === ultimaData) bonusAcc += especiaisEarned
+    return { data: dd, valor: porDia.get(dd)! + bonusAcc }
+  })
 }
 
 // ── Coleta de dados ──────────────────────────────────────────────────────────
@@ -181,6 +216,7 @@ async function coletarDados(palpiteId: number): Promise<RelatorioData> {
     .map(j => {
       const pj = pjMap.get(j.id)
       return {
+        jogo_id: j.id,
         numero_jogo: j.numero_jogo,
         fase: j.fase,
         data: j.data,
@@ -255,6 +291,26 @@ async function coletarDados(palpiteId: number): Promise<RelatorioData> {
   const totalEarned = subtotalJogos.earned + especiais.earned + classif.earned
   const totalMax = (resumoRows ?? []).reduce((s, r) => s + r.pontos_max, 0) || 3820
 
+  // ── Minha série (jogos + degraus de especiais/classificação) ──
+  const serie = construirSerie(jogos, especiais.earned, classif.earned)
+
+  // ── Série do líder (comparativo no gráfico) — só busca se o palpite em
+  // questão não for o próprio líder (nada a comparar consigo mesmo).
+  let lider: RelatorioData['lider'] = null
+  const liderEntry = ranking[0]
+  if (liderEntry && liderEntry.palpite_id !== palpiteId) {
+    const [{ data: liderJogosRows }, { data: liderPalpite }] = await Promise.all([
+      admin.from('palpites_jogos').select('jogo_id, pontos').eq('palpite_id', liderEntry.palpite_id),
+      admin.from('palpites').select('pontos_especiais, pontos_classificacao').eq('id', liderEntry.palpite_id).single(),
+    ])
+    const liderMap = new Map((liderJogosRows ?? []).map(r => [r.jogo_id, r.pontos ?? 0]))
+    const liderJogosList = jogos.map(j => ({ fase: j.fase, data: j.data, pontos: liderMap.get(j.jogo_id) ?? 0 }))
+    lider = {
+      nome: liderEntry.nome,
+      serie: construirSerie(liderJogosList, liderPalpite?.pontos_especiais ?? 0, liderPalpite?.pontos_classificacao ?? 0),
+    }
+  }
+
   return {
     palpiteNome: palpite.nome,
     usuarioNome: usuario?.nome ?? '',
@@ -270,6 +326,8 @@ async function coletarDados(palpiteId: number): Promise<RelatorioData> {
     parciaisTotal,
     maiorJogo,
     jogos,
+    serie,
+    lider,
   }
 }
 
@@ -438,32 +496,38 @@ function drawPagina1(doc: PDFKit.PDFDocument, d: RelatorioData) {
   y = panelTop + Math.max(panelLH, panelR1H + panelR2H + 10) + 14
 
   // ── Gráfico de evolução ──
-  const chartH = 165
+  const temLider = !!d.lider
+  const chartH = temLider ? 179 : 165
   doc.roundedRect(ML, y, CW, chartH, 8).fill(CARD)
   doc.rect(ML, y, CW, 2).fill(ACCENT)
   const cy = y + 20
   doc.rect(ML + 14, cy, 6, 6).fill(ACCENT)
   doc.font('Helvetica-Bold').fontSize(9).fillColor(WHITE).text('EVOLUÇÃO DIÁRIA DE PONTOS', ML + 26, cy - 2)
 
-  const porDia = new Map<string, number>()
-  let acc = 0
-  const ordemDias: string[] = []
   const exatosPorDia = new Set<string>()
   for (const j of d.jogos) {
-    acc += j.pontos
-    if (!porDia.has(j.data)) ordemDias.push(j.data)
-    porDia.set(j.data, acc)
     if (j.placar_palpite_a !== null && j.placar_palpite_a === j.placar_real_a && j.placar_palpite_b === j.placar_real_b) {
       exatosPorDia.add(j.data)
     }
   }
-  const serie = ordemDias.map(dd => ({ data: dd, valor: porDia.get(dd)! }))
+  const serie = d.serie
   doc.font('Helvetica').fontSize(8).fillColor(MUTED)
     .text(`${fmtData(serie[0].data)} - ${fmtData(serie[serie.length - 1].data)}`, ML, cy - 2, { width: CW - 28, align: 'right' })
 
+  // legenda (só quando há comparativo com o líder)
+  const legendY = cy + 12
+  if (temLider) {
+    doc.moveTo(ML + 14, legendY + 3).lineTo(ML + 30, legendY + 3).lineWidth(1.6).strokeColor(ACCENT).stroke()
+    doc.font('Helvetica-Bold').fontSize(7.5).fillColor(MUTED).text('Meu palpite', ML + 34, legendY, { lineBreak: false })
+    const legend2X = ML + 34 + doc.widthOfString('Meu palpite') + 16
+    doc.dash(3, { space: 2 }).moveTo(legend2X, legendY + 3).lineTo(legend2X + 16, legendY + 3).lineWidth(1.4).strokeColor(ORANGE).stroke().undash()
+    doc.font('Helvetica-Bold').fontSize(7.5).fillColor(MUTED)
+      .text(`Líder: ${d.lider!.nome}`, legend2X + 20, legendY, { width: ML + CW - 14 - (legend2X + 20), lineBreak: false })
+  }
+
   const plotX0 = ML + 20, plotX1 = ML + CW - 50
-  const plotY0 = y + chartH - 24, plotY1 = cy + 34
-  const maxV = Math.max(...serie.map(s => s.valor))
+  const plotY0 = y + chartH - 24, plotY1 = temLider ? legendY + 18 : cy + 34
+  const maxV = Math.max(...serie.map(s => s.valor), ...(d.lider ? d.lider.serie.map(s => s.valor) : [0]))
   const n = serie.length
   const px = (i: number) => plotX0 + ((plotX1 - plotX0) * i) / (n - 1)
   const pyy = (v: number) => plotY0 - ((plotY0 - plotY1) * v) / maxV
@@ -472,6 +536,14 @@ function drawPagina1(doc: PDFKit.PDFDocument, d: RelatorioData) {
     const yy = plotY0 - (plotY0 - plotY1) * frac
     doc.moveTo(plotX0, yy).lineTo(plotX1, yy).lineWidth(0.5).strokeColor('rgba(255,255,255,0.05)').stroke()
     doc.font('Helvetica').fontSize(6.5).fillColor(MUTED2).text(String(Math.round(maxV * frac)), plotX1 + 4, yy - 3, { lineBreak: false })
+  }
+
+  // linha do líder (atrás da minha, tracejada)
+  if (d.lider && d.lider.serie.length === n) {
+    doc.moveTo(px(0), pyy(d.lider.serie[0].valor))
+    for (let i = 1; i < n; i++) doc.lineTo(px(i), pyy(d.lider!.serie[i].valor))
+    doc.dash(3, { space: 2 }).lineWidth(1.4).strokeColor(ORANGE).stroke().undash()
+    doc.circle(px(n - 1), pyy(d.lider.serie[n - 1].valor), 2.6).fill(ORANGE)
   }
 
   doc.moveTo(px(0), pyy(serie[0].valor))
