@@ -170,18 +170,14 @@ function draw(
     const baseY   = PT + CH
     const avatarY = by - AR - 5
 
-    // sombra + barra
-    ctx.save()
-    ctx.shadowColor   = cTop + '44'
-    ctx.shadowBlur    = 6
-    ctx.shadowOffsetY = 2
+    // barra — sem sombra, pra ficar igualmente nítida em todas as posições
+    // (antes a sombra ficava bem mais visível nas barras altas dos vencedores)
     const grad = ctx.createLinearGradient(0, by, 0, by + bh)
     grad.addColorStop(0, cTop)
     grad.addColorStop(1, cBot + '55')
     rrect(ctx, bx, by, bw, bh, 3)
     ctx.fillStyle = grad
     ctx.fill()
-    ctx.restore()
 
     // borda
     rrect(ctx, bx, by, bw, bh, 3)
