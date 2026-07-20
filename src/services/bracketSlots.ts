@@ -16,6 +16,11 @@ export const PHASE_ORDER = ['GS', 'R32', 'R16', 'QF', 'SF', 'TPL', 'F'] as const
 export type PhaseCode = typeof PHASE_ORDER[number]
 
 export function getDownstreamPhases(phase: string): string[] {
+  // TPL (disputa de 3º lugar) e F (Final) são irmãos alimentados pelos dois
+  // jogos de SF (perdedores → TPL, vencedores → F) — nenhum depende do
+  // resultado do outro. Sem esse caso especial, editar o TPL derrubava o
+  // palpite da Final só por vir depois na PHASE_ORDER, sem relação real.
+  if (phase === 'TPL') return []
   const idx = PHASE_ORDER.indexOf(phase as PhaseCode)
   if (idx === -1) return []
   return [...PHASE_ORDER.slice(idx + 1)]
