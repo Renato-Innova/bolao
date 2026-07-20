@@ -130,35 +130,44 @@ async function coletarDados(palpiteId: number): Promise<RelatorioData> {
     .single()
   if (!palpite) throw new Error('Palpite não encontrado')
 
-  const { data: usuario } = await admin.from('users').select('nome').eq('id', palpite.usuario_id).single()
+  // Todas as consultas abaixo são independentes entre si (só dependem do
+  // usuario_id/palpiteId já conhecidos) — rodar em paralelo em vez de uma
+  // atrás da outra evita somar ~12 round-trips sequenciais ao Supabase, o
+  // que já chegou a estourar o timeout da function serverless na Vercel.
+  const [
+    usuarioRes, jogosRawRes, palpitesJogosRes, resumoRowsRes,
+    especiaisOficialRes, configEspeciaisRes, classifConfigRes, ranking,
+  ] = await Promise.all([
+    admin.from('users').select('nome').eq('id', palpite.usuario_id).single(),
+    admin
+      .from('jogos_copa')
+      .select('id, numero_jogo, fase, data, horario, time_a, time_b, resultado:resultados(placar_real_a, placar_real_b, placar_penalti_a, placar_penalti_b)')
+      .order('data')
+      .order('horario')
+      .order('numero_jogo'),
+    admin
+      .from('palpites_jogos')
+      .select('jogo_id, placar_palpite_a, placar_palpite_b, pontos, submitted_at')
+      .eq('palpite_id', palpiteId),
+    admin.from('pontuacao_resumo').select('fase, tipo, pontos_max'),
+    admin.from('resultados_especiais').select('*').eq('id', 1).single(),
+    admin.from('configuracoes_pontuacao').select('tipo_acerto, pontos').eq('fase', 'ESP'),
+    admin
+      .from('configuracoes_pontuacao')
+      .select('pontos')
+      .eq('fase', 'GS')
+      .eq('tipo_acerto', 'classificacao')
+      .single(),
+    getRanking(),
+  ])
 
-  const { data: jogosRaw } = await admin
-    .from('jogos_copa')
-    .select('id, numero_jogo, fase, data, horario, time_a, time_b, resultado:resultados(placar_real_a, placar_real_b, placar_penalti_a, placar_penalti_b)')
-    .order('data')
-    .order('horario')
-    .order('numero_jogo')
-
-  const { data: palpitesJogos } = await admin
-    .from('palpites_jogos')
-    .select('jogo_id, placar_palpite_a, placar_palpite_b, pontos, submitted_at')
-    .eq('palpite_id', palpiteId)
-
-  const { data: resumoRows } = await admin.from('pontuacao_resumo').select('fase, tipo, pontos_max')
-
-  const { data: especiaisOficial } = await admin.from('resultados_especiais').select('*').eq('id', 1).single()
-
-  const { data: configEspeciais } = await admin
-    .from('configuracoes_pontuacao')
-    .select('tipo_acerto, pontos')
-    .eq('fase', 'ESP')
-
-  const { data: classifConfig } = await admin
-    .from('configuracoes_pontuacao')
-    .select('pontos')
-    .eq('fase', 'GS')
-    .eq('tipo_acerto', 'classificacao')
-    .single()
+  const usuario = usuarioRes.data
+  const jogosRaw = jogosRawRes.data
+  const palpitesJogos = palpitesJogosRes.data
+  const resumoRows = resumoRowsRes.data
+  const especiaisOficial = especiaisOficialRes.data
+  const configEspeciais = configEspeciaisRes.data
+  const classifConfig = classifConfigRes.data
 
   const pjMap = new Map((palpitesJogos ?? []).map(pj => [pj.jogo_id, pj]))
 
@@ -241,11 +250,7 @@ async function coletarDados(palpiteId: number): Promise<RelatorioData> {
     }
   }
 
-  // ── Posição no ranking ──
-  // (não usa getRankingCached — evita unstable_cache fora do runtime de request
-  // do Next, e este endpoint é sob demanda/pouco frequente o suficiente pra
-  // não precisar do cache de 24h usado no dashboard)
-  const ranking = await getRanking()
+  // ── Posição no ranking ── (já buscado em paralelo acima)
   const meuRanking = ranking.find(r => r.palpite_id === palpiteId)
   const totalEarned = subtotalJogos.earned + especiais.earned + classif.earned
   const totalMax = (resumoRows ?? []).reduce((s, r) => s + r.pontos_max, 0) || 3820
@@ -436,7 +441,7 @@ function drawPagina1(doc: PDFKit.PDFDocument, d: RelatorioData) {
   const chartH = 165
   doc.roundedRect(ML, y, CW, chartH, 8).fill(CARD)
   doc.rect(ML, y, CW, 2).fill(ACCENT)
-  let cy = y + 20
+  const cy = y + 20
   doc.rect(ML + 14, cy, 6, 6).fill(ACCENT)
   doc.font('Helvetica-Bold').fontSize(9).fillColor(WHITE).text('EVOLUÇÃO DIÁRIA DE PONTOS', ML + 26, cy - 2)
 

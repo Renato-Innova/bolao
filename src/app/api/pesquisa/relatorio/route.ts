@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { gerarRelatorioPdf } from '@/services/relatorioPdf'
 
+// pdfkit precisa do runtime Node (fs, Buffer) — nunca Edge.
+export const runtime = 'nodejs'
+// Margem extra sobre o padrão (10s no plano Hobby) — a geração faz várias
+// consultas ao Supabase; sem isso, uma delas mais lenta já é o suficiente
+// pra função ser encerrada no meio e o download falhar.
+export const maxDuration = 30
+
 export async function GET(req: NextRequest) {
   const supabase = await createClient()
 
