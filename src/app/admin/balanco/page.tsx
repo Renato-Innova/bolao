@@ -94,6 +94,13 @@ export default async function BalancoPage() {
   const ranking = await getRanking()
   const temPontos = ranking.some(r => r.total_pontos > 0)
 
+  /* ── Bolão encerrado? (todos os 104 jogos com resultado lançado) ──
+     Controla o "reveal" dos nomes do pódio — enquanto o bolão está rolando
+     eles ficam borrados para não estragar a surpresa. */
+  const { count: totalJogosCount } = await admin.from('jogos_copa').select('*', { count: 'exact', head: true })
+  const { count: jogosComResultado } = await admin.from('resultados').select('*', { count: 'exact', head: true })
+  const bolaoEncerrado = (totalJogosCount ?? 0) > 0 && jogosComResultado === totalJogosCount
+
   return (
     <div className="page-main" style={{ maxWidth: 760, margin: '0 auto', padding: '24px 24px 60px' }}>
 
@@ -223,28 +230,44 @@ export default async function BalancoPage() {
                   {/* Nome e pontos */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {entry ? (
-                      <>
-                        {/* Nome ofuscado — revelado somente após o final do bolão */}
-                        <div style={{
-                          fontSize: 14, fontWeight: 700, color: 'transparent',
-                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                          textShadow: '0 0 10px rgba(255,255,255,0.85)',
-                          userSelect: 'none',
-                          filter: 'blur(6px)',
-                          maxWidth: 180,
-                        }}>
-                          {entry.nome}
-                        </div>
-                        <div style={{
-                          fontSize: 11, color: 'transparent',
-                          marginTop: 2,
-                          textShadow: '0 0 8px rgba(255,255,255,0.5)',
-                          filter: 'blur(4px)',
-                          userSelect: 'none',
-                        }}>
-                          {entry.usuario_nome} · {entry.total_pontos} pts
-                        </div>
-                      </>
+                      bolaoEncerrado ? (
+                        <>
+                          {/* Bolão encerrado — nome revelado */}
+                          <div style={{
+                            fontSize: 14, fontWeight: 700, color: 'white',
+                            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                            maxWidth: 180,
+                          }}>
+                            {entry.nome}
+                          </div>
+                          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>
+                            {entry.usuario_nome} · {entry.total_pontos} pts
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {/* Nome ofuscado — revelado somente após o final do bolão */}
+                          <div style={{
+                            fontSize: 14, fontWeight: 700, color: 'transparent',
+                            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                            textShadow: '0 0 10px rgba(255,255,255,0.85)',
+                            userSelect: 'none',
+                            filter: 'blur(6px)',
+                            maxWidth: 180,
+                          }}>
+                            {entry.nome}
+                          </div>
+                          <div style={{
+                            fontSize: 11, color: 'transparent',
+                            marginTop: 2,
+                            textShadow: '0 0 8px rgba(255,255,255,0.5)',
+                            filter: 'blur(4px)',
+                            userSelect: 'none',
+                          }}>
+                            {entry.usuario_nome} · {entry.total_pontos} pts
+                          </div>
+                        </>
+                      )
                     ) : (
                       <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>
                         Aguardando resultado final
@@ -284,7 +307,9 @@ export default async function BalancoPage() {
           background: 'rgba(74,144,217,0.06)', borderRadius: 8,
           fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.6,
         }}>
-          🔒 Os nomes dos líderes serão revelados apenas após o final do bolão (19 jul 2026)
+          {bolaoEncerrado
+            ? '🏆 O Bolão terminou — parabéns aos vencedores!'
+            : '🔒 Os nomes dos líderes serão revelados apenas após o final do bolão (19 jul 2026)'}
         </div>
       </div>
 
